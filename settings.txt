@@ -1,0 +1,6 @@
+APK NAME:budgetwatch.apk
+PACKAGE:protect.budgetwatch
+RESOLUTION:2560x1440
+COVERAGE:no
+REQUIREMENT:no
+TIME:30
