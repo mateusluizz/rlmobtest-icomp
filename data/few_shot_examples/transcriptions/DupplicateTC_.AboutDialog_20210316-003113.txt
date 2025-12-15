@@ -1,0 +1,19 @@
+Test Case ID: TC_org.simpledo.AboutDialog
+
+Description: Verify that the AboutDialog screen of the SimpleDo application displays the expected information and allows the user to navigate to the SimpleDo screen.
+
+Preconditions:
+1. Have SimpleDo installed.
+2. Being on the AboutDialog screen.
+
+Test Steps:
+1. Click on the TextView item on the screen.
+2. Press the menu button.
+3. Click on the Button item on the screen.
+4. Proceed to the next activity, which is "org.simpledo/.SimpleDo".
+
+Expected Result:
+The AboutDialog screen displays the expected information and allows the user to navigate to the SimpleDo screen.
+
+Test Result:
+The test passed successfully, as the AboutDialog screen displayed the expected information and allowed the user to navigate to the SimpleDo screen.

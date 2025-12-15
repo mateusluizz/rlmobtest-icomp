@@ -106,6 +106,9 @@ nvidia-nvjitlink-cu12==12.4.99
 nvidia-nvtx-cu12==12.1.105
 oauthlib==3.2.2
 openai==1.17.0
+langchain>=0.3.0
+langchain-ollama>=0.2.0
+langchain-core>=0.3.0
 opt-einsum==3.3.0
 packaging==24.0
 pandocfilters==1.5.1

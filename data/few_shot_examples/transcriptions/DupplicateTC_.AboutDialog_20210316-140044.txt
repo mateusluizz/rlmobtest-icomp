@@ -1,0 +1,19 @@
+Test Case ID: TC_org.simpledo.AboutDialog_20210411-160805
+
+Test Case: org.simpledo/.AboutDialog
+
+Description: Verify the behavior of the AboutDialog screen of the SimpleDo application.
+
+Preconditions:
+1- Have SimpleDo installed.
+2- Being on the AboutDialog screen.
+
+Test Steps:
+1- Clicked on a TextView item.
+2- Pressed the back button.
+
+Expected Results:
+1- The TextView item is clicked and performs a corresponding action.
+2- The application goes back to the previous screen.
+
+Go to next activity: org.simpledo/.SimpleDo

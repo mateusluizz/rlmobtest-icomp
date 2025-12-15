@@ -1,0 +1,33 @@
+Test Case ID: TC_org.simpledo.AboutDialog_20210411-154845
+
+Test Case org.simpledo/.AboutDialog
+
+Description: Perform exploratory actions on the AboutDialog screen of the SimpleDo application.
+
+Preconditions:
+
+1- Have SimpleDo installed. 
+2- Being on the AboutDialog screen.
+
+Test Steps:
+
+1- Long-clicked on a TextView item. 
+2- Pressed the Home button. 
+3- Pressed the Home button again. 
+4- Pressed the Volume Down button. 
+5- Clicked on a Button item. 
+6- Proceeded to the next activity, which is "org.simpledo/.SimpleDo".
+
+Expected Result:
+
+The AboutDialog screen should be displayed at all times, and all actions should be performed successfully.
+
+Resultado obtido:
+
+State 1: states/state_20210411-154845.png 
+State 2: N/A 
+State 3: N/A 
+State 4: N/A 
+State 5: states/state_20210411-154916.png
+
+Note: States 2, 3 and 4 could not be captured as they require physical button presses on the device.

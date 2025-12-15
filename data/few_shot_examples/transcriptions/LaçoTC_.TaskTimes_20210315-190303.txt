@@ -1,0 +1,34 @@
+Test Case ID: TC_.TaskTimes_20210411-161912
+
+Description: Perform exploratory actions on the TaskTimes screen of the aTimeTracker application.
+
+Preconditions:
+
+1- Have aTimeTracker installed.
+2- Being on the TaskTimes screen.
+
+Test Steps:
+
+1- Long-clicked on a LinearLayout.
+2- Clicked on a FrameLayout.
+3- Clicked on a LinearLayout.
+4- Clicked on a TextView item.
+5- Clicked on an ImageButton with the content description "Mais opções".
+6- Clicked on a LinearLayout.
+7- Proceeded to the next activity, which is "com.markuspage.android.atimetracker/.EditTime".
+
+Expected Result:
+
+The application should respond to all actions without errors and the EditTime activity should be opened.
+
+Actual Result:
+
+The application responded to all actions without errors and the EditTime activity was opened.
+
+State 1: states/state_20210411-161912.png
+State 2: states/state_20210411-161932.png
+State 3: states/state_20210411-161943.png
+State 4: states/state_20210411-161954.png
+State 5: states/state_20210411-162008.png
+State 6: states/state_20210411-162019.png
+State 7: N/A

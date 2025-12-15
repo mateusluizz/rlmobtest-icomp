@@ -1,0 +1,22 @@
+Test Case ID: TC_org.simpledo.AboutDialog
+
+Description: Perform exploratory actions on the AboutDialog screen of the SimpleDo application.
+
+Preconditions: 
+
+1- Have SimpleDo installed. 
+2- Being on the AboutDialog screen.
+
+Test Steps: 
+
+1- Long-clicked on a TextView item. 
+2- Pressed the back button. 
+3- Proceeded to the next activity, which is "org.simpledo/.SimpleDo".
+
+Expected Result: 
+
+State 1: A TextView item is long-clicked. 
+
+State 2: The back button is pressed. 
+
+State 3: The next activity, which is "org.simpledo/.SimpleDo", is displayed.

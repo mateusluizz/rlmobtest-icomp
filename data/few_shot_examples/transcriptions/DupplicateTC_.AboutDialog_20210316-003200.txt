@@ -1,0 +1,18 @@
+Test Case ID: TC_org.simpledo.AboutDialog_20210411-154512
+
+Test Case org.simpledo/.AboutDialog
+
+Description:
+Perform exploratory actions on the AboutDialog screen of the SimpleDo application.
+Preconditions:
+1- Have SimpleDo installed.
+2- Being on the AboutDialog screen.
+Test Steps:
+1- Pressed the Menu button.
+2- Pressed the Volume Up button.
+3- Clicked on the Button.
+4- Proceeded to the next activity, which is "org.simpledo/.SimpleDo".
+Resultado obtido:
+State 1: N/A
+State 2: N/A
+State 3: states/state_20210411-154543.png

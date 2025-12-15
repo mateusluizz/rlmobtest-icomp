@@ -1,0 +1,31 @@
+Test Case protect.budgetwatch/.ImportExportActivity
+
+clicked  android.widget.Spinner  bounds:[182,465][692,507]
+
+clicked  android.widget.CheckedTextView  bounds:[217,549][601,633]
+
+clicked  android.widget.Button  bounds:[28,569][325,653]
+
+clicked  android.widget.ImageButton Mês passado bounds:[87,434][171,518]
+
+clicked  android.widget.Button  bounds:[540,1306][645,1380]
+
+Got Error, see errors.txt line 7
+
+clicked  android.widget.Button  bounds:[28,667][692,751]
+
+Menu Pressed
+
+clicked  android.widget.Button  bounds:[67,786][179,860]
+
+Got Error, see errors.txt line 9
+
+long click center android.widget.Spinner  bounds:[182,465][692,507]
+
+clicked  android.widget.CheckedTextView  bounds:[217,465][601,549]
+
+clicked  android.widget.Button  bounds:[28,1261][692,1345]
+
+clicked  android.widget.Button  bounds:[28,926][692,1010]
+
+Go to next activity: home

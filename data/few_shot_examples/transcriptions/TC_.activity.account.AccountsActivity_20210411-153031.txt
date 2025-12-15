@@ -1,0 +1,52 @@
+Test Case ID: TC_.activity.account.AccountsActivity_20210411-153031 
+
+Description:
+Perform exploratory actions on the AccountsActivity screen of the Moneytracker application.
+Preconditions: 
+1- Have Moneytracker installed. 
+2- Being on the AccountsActivity screen.
+Test Steps: 
+1- Long-clicked on the bottom of the LinearLayout. 
+2- Clicked on the LinearLayout. 
+3- Long-clicked on the top-left of the LinearLayout. 
+4- Clicked on the LinearLayout. 
+5- Scrolled down on the ListView. 
+6- Scrolled right on the ListView. 
+7- Scrolled right on the Spinner with the ID "spinnerCurrency". 
+8- Scrolled up on the ListView. 
+9- Clicked on a TextView item with the text "KRW". 
+10- Long-clicked on the center of the LinearLayout. 
+11- Scrolled up on the Spinner with the ID "spinnerCurrency". 
+12- Clicked on a TextView item with the text "LAK". 
+13- Long-clicked on the top-left of the Spinner with the ID "spinnerCurrency". 
+14- Clicked on a TextView item with the text "LYD". 
+15- Long-clicked on the bottom of the Spinner with the ID "spinnerCurrency". 
+16- Scrolled down on the ListView.
+17- Clicked on a TextView item with the text "CVE". 
+18- Long-clicked on the top-left of the Spinner with the ID "spinnerCurrency". 
+19- Scrolled down on the ListView. 
+20- Scrolled left on the ListView. 
+21- Clicked on the "Transfer" action with the ID "action_transfer". 
+22- Proceeded to the next activity, which is "com.blogspot.e_kanivets.moneytracker/.activity.account.TransferActivity".
+Resultado obtido: 
+State 1: states/state_20210411-153038.png 
+State 2: states/state_20210411-153052.png 
+State 3: states/state_20210411-153104.png 
+State 4: states/state_20210411-153113.png 
+State 5: states/state_20210411-153122.png 
+State 6: states/state_20210411-153131.png 
+State 7: states/state_20210411-153138.png 
+State 8: states/state_20210411-153147.png 
+State 9: states/state_20210411-153155.png 
+State 10: states/state_20210411-153205.png 
+State 11: states/state_20210411-153213.png 
+State 12: states/state_20210411-153222.png 
+State 13: states/state_20210411-153231.png 
+State 14: states/state_20210411-153241.png 
+State 15: states/state_20210411-153252.png 
+State 16: states/state_20210411-153301.png 
+State 17: states/state_20210411-153310.png 
+State 18: states/state_20210411-153319.png 
+State 19: states/state_20210411-153328.png 
+State 20: states/state_20210411-153337.png 
+State 21: states/state_20210411-153344.png

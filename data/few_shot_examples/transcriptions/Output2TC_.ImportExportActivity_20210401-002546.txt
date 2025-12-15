@@ -1,0 +1,49 @@
+Test Case protect.budgetwatch/.ImportExportActivity
+
+Description: Perform exploratory actions on the ImportExportActivity screen of the Budget Watch application.
+
+Preconditions:
+
+1- Have Budget Watch installed.
+2- Being on the ImportExportActivity screen.
+
+Test Steps:
+
+1- Scrolled down on the ScrollView.
+2- Clicked on a Spinner.
+3- Clicked on a CheckedTextView item.
+4- Clicked on a Button.
+5- Clicked on a Button.
+6- Got an error (see errors.txt line 5).
+7- Clicked on a Button.
+8- Clicked on an ImageButton with the text "Mês passado".
+9- Clicked on an ImageButton with the text "Mês passado".
+10- Clicked on an ImageButton with the text "Próximo mês".
+11- Clicked on a TextView item.
+12- Clicked on a TextView item.
+13- Clicked on a TextView item.
+14- Clicked on an ImageButton with the text "Próximo mês".
+15- Pressed the Back button.
+16- Got an error (see errors.txt line 5).
+17- Clicked on a Button.
+18- Proceeded to the next activity, which is "home".
+
+Resultado obtido:
+
+State 1: states/state_20210413-104757.png
+State 2: states/state_20210413-104813.png
+State 3: states/state_20210413-104825.png
+State 4: states/state_20210413-104843.png
+State 5: Error (see errors.txt line 5)
+State 6: states/state_20210413-104914.png
+State 7: states/state_20210413-104926.png
+State 8: states/state_20210413-104939.png
+State 9: states/state_20210413-104952.png
+State 10: states/state_20210413-104959.png
+State 11: states/state_20210413-105010.png
+State 12: states/state_20210413-105023.png
+State 13: states/state_20210413-105035.png
+State 14: states/state_20210413-105042.png
+State 15: states/state_20210413-105052.png
+State 16: Error (see errors.txt line 5)
+State 17: states/state_20210413-105127.png

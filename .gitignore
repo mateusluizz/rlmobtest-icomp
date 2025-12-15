@@ -6,10 +6,24 @@
 __pycache__/
 *.py[cod]
 *$py.class
-Transcriptions
-Scripts
-States
-TestCases
+metrics/
+
+# Output directories (generated during execution)
+output/test_cases/
+output/screenshots/
+output/transcriptions/
+output/crashes/
+output/errors/
+output/coverage/
+
+# Logs
+logs/
+
+# Temporary files
+*.log
+std.txt
+state.png
+.~lock.*
 
 
 # C extensions

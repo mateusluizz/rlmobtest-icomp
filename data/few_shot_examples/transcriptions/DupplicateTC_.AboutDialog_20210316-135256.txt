@@ -1,0 +1,30 @@
+Test Case ID: TC_org.simpledo.AboutDialog
+
+Description: Verify the behavior of the AboutDialog screen on the SimpleDo application.
+
+Preconditions:
+1. Have SimpleDo installed.
+2. Be on the AboutDialog screen.
+
+Test Steps:
+1. Click on a TextView item with the text "https://github.com/SimpleMobileTools/Simple-Do/issues"
+2. Rotate the device to the left.
+3. Verify if the app crashes. (See crash.txt line 111)
+4. Verify if any errors were displayed. (See errors.txt line 447)
+5. Proceed to the home activity.
+
+Expected Results:
+1. The link associated with the TextView item is opened in a browser.
+2. The screen rotates to the left.
+3. The app should not crash.
+4. No errors should be displayed.
+5. The home activity should be displayed.
+
+Actual Results:
+1. The link associated with the TextView item is opened in a browser.
+2. The screen rotates to the left.
+3. The app crashes. (See crash.txt line 111)
+4. An error is displayed. (See errors.txt line 447)
+5. N/A
+
+Test Case Result: Failed.

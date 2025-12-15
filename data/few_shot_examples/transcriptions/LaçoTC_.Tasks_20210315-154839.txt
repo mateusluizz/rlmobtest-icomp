@@ -1,0 +1,20 @@
+Test Case ID: TC_com.markuspage.android.atimetracker.Tasks
+
+Description: Perform exploratory actions on the Tasks screen of the aTimeTracker application.
+
+Preconditions:
+1. Have aTimeTracker installed.
+2. Being on the Tasks screen.
+
+Test Steps:
+1. Long-clicked on a LinearLayout.
+2. Clicked on another LinearLayout.
+3. Long-clicked on an ImageButton with the text "Mais opções".
+4. Clicked on a LinearLayout.
+5. Proceeded to the next activity, which is "com.markuspage.android.atimetracker/.Report".
+
+Expected Result:
+The application should allow the user to long-click on a LinearLayout and click on another LinearLayout. Then, the user should be able to long-click on an ImageButton and click on a LinearLayout. Finally, the user should be able to proceed to the next activity, which is "com.markuspage.android.atimetracker/.Report".
+
+Actual Result:
+The application allowed the user to long-click on a LinearLayout and click on another LinearLayout. However, when the user tried to long-click on an ImageButton with the text "Mais opções", an error occurred. Therefore, the test case failed. The error details are in the errors.txt file, line 71.

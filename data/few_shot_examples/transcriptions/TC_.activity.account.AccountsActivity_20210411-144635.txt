@@ -1,0 +1,29 @@
+Test Case com.blogspot.e_kanivets.moneytracker/.activity.account.AccountsActivity
+
+Description: Perform exploratory actions on the AccountsActivity screen of the Moneytracker application.
+
+Preconditions: 
+
+1- Have Moneytracker installed. 
+2- Being on the AccountsActivity screen.
+
+Test Steps: 
+
+1- Long-clicked on the top-left of the LinearLayout. 
+2- Long-clicked on the center of the LinearLayout. 
+3- Clicked on a TextView item with the text "BBD". 
+4- Long-clicked on the bottom of the LinearLayout. 
+5- Long-clicked on the center of the Spinner with the ID "spinnerCurrency". 
+6- Clicked on a TextView item with the text "BBD". 
+7- Clicked on the LinearLayout. 
+8- Proceeded to the next activity, which is "com.blogspot.e_kanivets.moneytracker/.activity.account.TransferActivity".
+
+Result obtained: 
+
+State 1: states/state_20210411-144646.png 
+State 2: states/state_20210411-144659.png 
+State 3: states/state_20210411-144709.png 
+State 4: states/state_20210411-144721.png 
+State 5: states/state_20210411-144733.png 
+State 6: states/state_20210411-144742.png 
+State 7: states/state_20210411-144752.png

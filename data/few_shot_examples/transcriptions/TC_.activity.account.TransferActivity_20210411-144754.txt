@@ -1,0 +1,13 @@
+The provided test case is for the TransferActivity screen of the Moneytracker application. It includes the following actions:
+1. Typed the value "A+>Vdadt)4F-/.c" in the "To Amount" EditText field.
+2. Typed the value "30151602285102905116" in the "From Amount" EditText field.
+3. Long-clicked on the center of the "From Account" Spinner to open a context menu.
+4. Clicked on a TextView item in the dropdown list of the "From Account" Spinner.
+5. Clicked on the "To Account" Spinner to select an account from the list.
+6. Clicked on a TextView item in the dropdown list of the "To Account" Spinner.
+7. Clicked on the "Navigate Up" button.
+8. Proceeded to the next activity, which is "com.blogspot.e_kanivets.moneytracker/.activity.account.AccountsActivity".
+
+The test case execution also includes screenshots of each action performed on the TransferActivity screen.
+
+If you need further assistance, feel free to ask!

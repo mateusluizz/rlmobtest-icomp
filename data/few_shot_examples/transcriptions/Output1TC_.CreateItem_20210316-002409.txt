@@ -1,0 +1,35 @@
+Test Case org.simpledo/.CreateItem
+
+Description: Perform actions on the CreateItem screen of the SimpleDo application.
+
+Preconditions: 
+
+1- Have SimpleDo installed. 
+2- Being on the CreateItem screen.
+
+Test Steps: 
+
+1- Long-clicked on the Spinner. 
+2- Clicked on a CheckedTextView item. 
+3- Long-clicked on the Spinner. 
+4- Clicked on a TextView item. 
+5- Typed a long string of characters in an EditText field. 
+6- Typed a large number in another EditText field. 
+7- Scrolled down on the Spinner. 
+8- Clicked on a CheckedTextView item. 
+9- Clicked on a LinearLayout item with the text "Create Item, Navigate up". 
+10- Got a crash.
+
+Expected Result: 
+The application should not crash or generate errors during the execution of the test case.
+
+Actual Result: 
+The application crashed and generated an error. 
+
+State: Crash and error occurred. 
+
+Crash: See crash.txt line 108. 
+
+Error: See errors.txt line 432.
+
+Next Activity: Home.

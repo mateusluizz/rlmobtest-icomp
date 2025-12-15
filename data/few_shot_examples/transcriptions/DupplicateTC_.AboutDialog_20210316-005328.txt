@@ -1,0 +1,29 @@
+Test Case ID: TC_org.simpledo.AboutDialog
+
+Description: Perform exploratory actions on the AboutDialog screen of the SimpleDo application.
+
+Preconditions:
+
+1- Have SimpleDo installed.
+2- Being on the AboutDialog screen.
+
+Test Steps:
+
+1- Long-clicked on a TextView item.
+2- Pressed the Volume Down button.
+3- Clicked on a TextView item.
+4- Long-clicked on a TextView item.
+5- Clicked on a TextView item.
+6- Clicked on a Button item.
+7- Proceeded to the next activity, which is "org.simpledo/.SimpleDo".
+
+Expected Result:
+
+State 1: states/state_20210411-161704.png
+State 2: states/state_20210411-161719.png
+State 3: states/state_20210411-161725.png
+State 4: states/state_20210411-161734.png
+State 5: states/state_20210411-161740.png
+State 6: states/state_20210411-161748.png
+
+Note: The expected result may vary depending on the content of the TextView and Button items clicked.

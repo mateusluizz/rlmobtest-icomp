@@ -1,0 +1,20 @@
+Test Case ID: TC_org.simpledo.AboutDialog
+
+Description: Verify if the AboutDialog screen of the SimpleDo application is functional.
+
+Preconditions:
+1- Have SimpleDo installed.
+2- Being on the AboutDialog screen.
+
+Test Steps:
+1- Clicked on a TextView item.
+2- Rotated the screen to the left.
+3- Checked if the application crashed.
+
+Expected Result:
+- The AboutDialog screen should be functional and the application should not crash when the screen is rotated.
+
+Test Result:
+- The application crashed when the screen was rotated to the left. The crash log can be found on line 109 of the "crash.txt" file. Additionally, an error was found and can be found on line 438 of the "errors.txt" file.
+- The test case failed.
+- The next activity was not reached, as the application crashed.

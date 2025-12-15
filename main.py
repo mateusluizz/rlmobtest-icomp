@@ -1,161 +1,1224 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sat Apr 29 17:23:03 2023
+Main entry point for RLMobTest - RL-based Android mobile app testing.
 
-@author: eliane
+Supports two modes:
+- Original DQN (legacy)
+- Improved DQN (Double DQN + Dueling + Target Network + PER)
+
+Training can be limited by:
+- Time (--time 300 for 5 minutes)
+- Episodes (--episodes 100 for 100 episodes)
+
+Usage:
+    python main.py                      # Uses improved DQN, time from settings
+    python main.py --mode original      # Uses original DQN
+    python main.py --time 600           # Train for 10 minutes
+    python main.py --episodes 50        # Train for 50 episodes
 """
 
+import argparse
+import json
 import logging
-import sys
+import math
+import random
 import time
+from collections import deque, namedtuple
+from datetime import datetime
 from itertools import count
+from pathlib import Path
 
+import numpy as np
 import torch
-
-import transcription_module as tm
-from constants import TEST_CASES_PATH, TRANSCRIPTIONS_PATH
-
-# Importar funções dos scripts existentes
-from rlmobtest_elianecollins import conf as conf
-from rlmobtest_elianecollins import deeprl as d
-from rlmobtest_elianecollins import mobtest_env as mob
-
-# Configuração do logger
-logging.basicConfig(
-    filename="tmp.log",
-    filemode="a",
-    format="%(levelname)s  %(asctime)s  %(message)s",
-    level=logging.DEBUG,
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
 )
+from rich.table import Table
 
-# Abrir arquivo de configurações
-settings_reader = conf.ConfRead("settings.txt")
-lines = settings_reader.read_setting()
-apk = lines[0]
-app_package = lines[1]
-wid = lines[2]
-hei = lines[3]
-cov = lines[4]
-req = lines[5]
-time_exec = lines[6]
+from environment import AndroidEnv
+from transcription import transcriber as tm
+from utils.config_reader import ConfRead
+from utils.constants import CONFIG_PATH, LOGS_PATH, TEST_CASES_PATH, TRANSCRIPTIONS_PATH
 
-# Inicializar ambiente Android
-env = mob.AndroidEnv(apk, app_package)
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+# Rich console for colored output
+console = Console()
+
+# Ensure directories exist
+LOGS_PATH.mkdir(parents=True, exist_ok=True)
+CHECKPOINTS_PATH = Path("output/checkpoints")
+CHECKPOINTS_PATH.mkdir(parents=True, exist_ok=True)
+METRICS_PATH = Path("output/metrics")
+METRICS_PATH.mkdir(parents=True, exist_ok=True)
 
 
-# Função para executar o treinamento do agente de RL
-def run():
+def setup_logging(run_id: str):
+    """Setup logging for this specific run."""
+    run_log_path = LOGS_PATH / f"run_{run_id}.log"
+
+    # Create a new logger for this run
+    logger = logging.getLogger(f"rlmobtest_{run_id}")
+    logger.setLevel(logging.DEBUG)
+
+    # File handler for this run
+    file_handler = logging.FileHandler(run_log_path)
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(
+        logging.Formatter("%(levelname)s  %(asctime)s  %(message)s")
+    )
+
+    logger.addHandler(file_handler)
+
+    console.print(f"[dim]📝 Log file: {run_log_path}[/dim]")
+    return logger, run_log_path
+
+
+# Device configuration
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Tensor types for compatibility
+FloatTensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
+LongTensor = torch.cuda.LongTensor if torch.cuda.is_available() else torch.LongTensor
+BoolTensor = torch.cuda.BoolTensor if torch.cuda.is_available() else torch.BoolTensor
+Tensor = FloatTensor
+Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
+
+
+# =============================================================================
+# TRAINING METRICS
+# =============================================================================
+
+
+class TrainingMetrics:
+    """Sistema de monitoramento e registro de métricas de treinamento com Rich."""
+
+    def __init__(self, save_path=METRICS_PATH, run_id=None):
+        self.save_path = Path(save_path)
+        self.save_path.mkdir(parents=True, exist_ok=True)
+        self.run_id = run_id or datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Métricas por episódio
+        self.episode_rewards = []
+        self.episode_lengths = []
+        self.episode_losses = []
+        self.episode_q_values = []
+        self.episode_durations = []  # Duração de cada episódio em segundos
+        self.epsilon_values = []
+
+        # Métricas recentes (para médias móveis)
+        self.recent_losses = deque(maxlen=1000)
+        self.recent_q_values = deque(maxlen=1000)
+
+        # Contadores
+        self.total_steps = 0
+        self.total_episodes = 0
+        self.current_episode_reward = 0
+        self.current_episode_steps = 0
+        self.current_episode_losses = []
+        self.current_episode_q_values = []
+
+        # Timing
+        self.start_time = datetime.now()
+        self.episode_start_time = datetime.now()
+
+    def log_step(self, reward, loss=None, q_value=None, epsilon=None):
+        """Registra métricas de um step."""
+        self.total_steps += 1
+        self.current_episode_steps += 1
+        self.current_episode_reward += reward
+
+        if loss is not None:
+            self.recent_losses.append(loss)
+            self.current_episode_losses.append(loss)
+        if q_value is not None:
+            self.recent_q_values.append(q_value)
+            self.current_episode_q_values.append(q_value)
+        if epsilon is not None:
+            self.epsilon_values.append(epsilon)
+
+    def start_episode(self):
+        """Marca o início de um novo episódio."""
+        self.episode_start_time = datetime.now()
+
+    def end_episode(self):
+        """Finaliza o episódio atual e calcula métricas."""
+        self.total_episodes += 1
+
+        # Calcula duração do episódio
+        episode_duration = (datetime.now() - self.episode_start_time).total_seconds()
+        self.episode_durations.append(episode_duration)
+
+        # Salva métricas do episódio
+        self.episode_rewards.append(self.current_episode_reward)
+        self.episode_lengths.append(self.current_episode_steps)
+
+        if self.current_episode_losses:
+            self.episode_losses.append(np.mean(self.current_episode_losses))
+        if self.current_episode_q_values:
+            self.episode_q_values.append(np.mean(self.current_episode_q_values))
+
+        # Reset para próximo episódio
+        self.current_episode_reward = 0
+        self.current_episode_steps = 0
+        self.current_episode_losses = []
+        self.current_episode_q_values = []
+
+    def get_avg_episode_duration(self):
+        """Retorna a duração média de um episódio em segundos."""
+        if self.episode_durations:
+            return np.mean(self.episode_durations)
+        return 0
+
+    def get_summary(self):
+        """Retorna resumo das métricas."""
+        training_time = datetime.now() - self.start_time
+        summary = {
+            "run_id": self.run_id,
+            "total_episodes": self.total_episodes,
+            "total_steps": self.total_steps,
+            "training_time": str(training_time),
+            "training_time_seconds": training_time.total_seconds(),
+            "avg_episode_duration": self.get_avg_episode_duration(),
+        }
+        if self.episode_rewards:
+            summary["avg_reward_last_10"] = float(np.mean(self.episode_rewards[-10:]))
+            summary["max_reward"] = float(max(self.episode_rewards))
+            summary["min_reward"] = float(min(self.episode_rewards))
+        if self.recent_losses:
+            summary["current_loss"] = float(np.mean(list(self.recent_losses)[-100:]))
+        if self.episode_durations:
+            summary["avg_episode_duration"] = float(np.mean(self.episode_durations))
+            summary["total_episode_durations"] = self.episode_durations
+        return summary
+
+    def print_step(self, step, reward, q_value, loss, activity, epsilon):
+        """Imprime log de step com cores."""
+        reward_color = "green" if reward > 0 else "red" if reward < 0 else "white"
+        loss_str = f"{loss:.4f}" if loss else "N/A"
+
+        console.print(
+            f"   [dim]Step {step:3d}[/dim] │ "
+            f"R=[{reward_color}]{reward:+5.0f}[/{reward_color}] │ "
+            f"Q=[cyan]{q_value:6.2f}[/cyan] │ "
+            f"Loss=[yellow]{loss_str}[/yellow] │ "
+            f"[dim]{activity[:25]}[/dim]"
+        )
+
+    def print_episode_start(self, episode, epsilon, total_steps):
+        """Imprime início de episódio."""
+        console.print(f"\n[bold blue]{'━' * 60}[/bold blue]")
+        console.print(
+            f"[bold blue]🎮 Episode {episode}[/bold blue] │ "
+            f"ε=[magenta]{epsilon:.3f}[/magenta] │ "
+            f"Total Steps: [cyan]{total_steps}[/cyan]"
+        )
+        console.print(f"[bold blue]{'━' * 60}[/bold blue]")
+
+    def print_episode_end(self, episode, steps, reward, duration):
+        """Imprime fim de episódio."""
+        reward_color = "green" if reward > 0 else "red" if reward < 0 else "white"
+        console.print(
+            f"[bold]📍 Episode {episode} complete[/bold] │ "
+            f"Steps: [cyan]{steps}[/cyan] │ "
+            f"Reward: [{reward_color}]{reward:+.0f}[/{reward_color}] │ "
+            f"Duration: [yellow]{duration:.1f}s[/yellow]"
+        )
+
+    def print_summary(self):
+        """Imprime resumo formatado com Rich."""
+        s = self.get_summary()
+
+        # Cria tabela de resumo
+        table = Table(
+            title="📊 Training Summary", show_header=False, border_style="blue"
+        )
+        table.add_column("Metric", style="cyan")
+        table.add_column("Value", style="white")
+
+        table.add_row("Episodes", str(s.get("total_episodes", 0)))
+        table.add_row("Total Steps", str(s.get("total_steps", 0)))
+        table.add_row("Training Time", s.get("training_time", "N/A"))
+
+        if "avg_episode_duration" in s and s["avg_episode_duration"] > 0:
+            table.add_row("Avg Episode Duration", f"{s['avg_episode_duration']:.1f}s")
+
+        if "avg_reward_last_10" in s:
+            table.add_row("Avg Reward (last 10)", f"{s['avg_reward_last_10']:.2f}")
+            table.add_row("Max Reward", f"{s['max_reward']:.2f}")
+
+        if "current_loss" in s:
+            table.add_row("Current Loss", f"{s['current_loss']:.4f}")
+
+        console.print()
+        console.print(table)
+        console.print()
+
+    def save(self, filename=None):
+        """Salva métricas em JSON."""
+        if filename is None:
+            filename = f"metrics_{self.run_id}.json"
+        data = {
+            "summary": self.get_summary(),
+            "episode_rewards": self.episode_rewards,
+            "episode_lengths": self.episode_lengths,
+            "episode_losses": self.episode_losses,
+            "episode_durations": self.episode_durations,
+        }
+        filepath = self.save_path / filename
+        with open(filepath, "w") as f:
+            json.dump(data, f, indent=2, default=str)
+        console.print(f"[green]✅ Metrics saved:[/green] {filepath}")
+
+
+# =============================================================================
+# MODEL CHECKPOINT
+# =============================================================================
+
+
+class ModelCheckpoint:
+    """Gerenciador de checkpoints."""
+
+    def __init__(self, save_dir=CHECKPOINTS_PATH):
+        self.save_dir = Path(save_dir)
+        self.save_dir.mkdir(parents=True, exist_ok=True)
+
+    def save(self, model, optimizer, metrics, episode, steps_done, filename=None):
+        if filename is None:
+            filename = (
+                f"checkpoint_ep{episode}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pt"
+            )
+
+        checkpoint = {
+            "episode": episode,
+            "steps_done": steps_done,
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "metrics": {
+                "episode_rewards": metrics.episode_rewards,
+                "episode_lengths": metrics.episode_lengths,
+            },
+            "timestamp": datetime.now().isoformat(),
+        }
+
+        filepath = self.save_dir / filename
+        torch.save(checkpoint, filepath)
+        print(f"✅ Checkpoint saved: {filepath.name}")
+        return filepath
+
+    def load(self, filepath, model, optimizer):
+        checkpoint = torch.load(filepath, map_location=device)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        print(f"✅ Checkpoint loaded: {filepath}")
+        return checkpoint["episode"], checkpoint["steps_done"]
+
+
+# =============================================================================
+# REPLAY MEMORY
+# =============================================================================
+
+
+class ReplayMemory:
+    """Experience replay memory padrão."""
+
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.memory = []
+        self.position = 0
+
+    def push(self, state, action, next_state, reward):
+        if len(self.memory) < self.capacity:
+            self.memory.append(None)
+        self.memory[self.position] = (state, action, next_state, reward)
+        self.position = (self.position + 1) % self.capacity
+
+    def sample(self, batch_size):
+        return random.sample(self.memory, batch_size)
+
+    def __len__(self):
+        return len(self.memory)
+
+
+class PrioritizedReplayMemory:
+    """Experience Replay com priorização baseada em TD-error."""
+
+    def __init__(self, capacity, alpha=0.6, beta_start=0.4, beta_frames=100000):
+        self.capacity = capacity
+        self.alpha = alpha
+        self.beta_start = beta_start
+        self.beta_frames = beta_frames
+        self.frame = 1
+        self.buffer = []
+        self.priorities = np.zeros(capacity, dtype=np.float32)
+        self.position = 0
+
+    def push(self, state, action, next_state, reward):
+        max_priority = self.priorities.max() if self.buffer else 1.0
+
+        if len(self.buffer) < self.capacity:
+            self.buffer.append((state, action, next_state, reward))
+        else:
+            self.buffer[self.position] = (state, action, next_state, reward)
+
+        self.priorities[self.position] = max_priority
+        self.position = (self.position + 1) % self.capacity
+
+    def sample(self, batch_size):
+        if len(self.buffer) == 0:
+            return [], [], None
+
+        priorities = self.priorities[: len(self.buffer)]
+        probs = priorities**self.alpha
+        probs /= probs.sum()
+
+        beta = min(
+            1.0,
+            self.beta_start + self.frame * (1.0 - self.beta_start) / self.beta_frames,
+        )
+        self.frame += 1
+
+        indices = np.random.choice(len(self.buffer), batch_size, p=probs)
+        samples = [self.buffer[i] for i in indices]
+
+        weights = (len(self.buffer) * probs[indices]) ** (-beta)
+        weights /= weights.max()
+        weights = torch.tensor(weights, dtype=torch.float32, device=device)
+
+        return samples, indices, weights
+
+    def update_priorities(self, indices, td_errors):
+        for idx, td_error in zip(indices, td_errors):
+            self.priorities[idx] = abs(td_error) + 1e-6
+
+    def __len__(self):
+        return len(self.buffer)
+
+
+# =============================================================================
+# DQN MODELS
+# =============================================================================
+
+
+class OriginalDQN(nn.Module):
+    """DQN original do projeto."""
+
+    def __init__(self, num_actions=30):
+        super(OriginalDQN, self).__init__()
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=5, stride=2)
+        self.bn1 = nn.BatchNorm2d(16)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=5, stride=2)
+        self.bn2 = nn.BatchNorm2d(32)
+        self.conv3 = nn.Conv2d(32, 32, kernel_size=5, stride=2)
+        self.bn3 = nn.BatchNorm2d(32)
+        self.head = nn.Linear(448, num_actions)
+
+    def forward(self, x):
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = x.view(x.size(0), -1)
+        return self.head(x)
+
+
+class DuelingDQN(nn.Module):
+    """Dueling DQN - separa Value e Advantage streams."""
+
+    def __init__(self, num_actions=30):
+        super(DuelingDQN, self).__init__()
+
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=8, stride=4),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
+            nn.ReLU(),
+        )
+
+        self._feature_size = None
+        self.num_actions = num_actions
+        self.value_stream = None
+        self.advantage_stream = None
+
+    def _initialize_fc(self, feature_size):
+        self.value_stream = nn.Sequential(
+            nn.Linear(feature_size, 512), nn.ReLU(), nn.Linear(512, 1)
+        ).to(device)
+
+        self.advantage_stream = nn.Sequential(
+            nn.Linear(feature_size, 512), nn.ReLU(), nn.Linear(512, self.num_actions)
+        ).to(device)
+
+    def forward(self, x):
+        features = self.features(x)
+        features = features.view(features.size(0), -1)
+
+        if self.value_stream is None:
+            self._feature_size = features.size(1)
+            self._initialize_fc(self._feature_size)
+
+        value = self.value_stream(features)
+        advantage = self.advantage_stream(features)
+        q_values = value + (advantage - advantage.mean(dim=1, keepdim=True))
+        return q_values
+
+
+# =============================================================================
+# DQN AGENTS
+# =============================================================================
+
+
+class OriginalAgent:
+    """Agente DQN original (compatibilidade com código legado)."""
+
+    def __init__(self, num_actions=30):
+        self.num_actions = num_actions
+        self.model = OriginalDQN(num_actions).to(device)
+        self.model.type(FloatTensor)
+
+        self.memory = ReplayMemory(10000)
+        self.optimizer = optim.RMSprop(self.model.parameters())
+
+        self.batch_size = 256
+        self.gamma = 0.999
+        self.eps_start = 0.9
+        self.eps_end = 0.05
+        self.eps_decay = 500
+
+        self.steps_done = 0
+
+    def get_epsilon(self):
+        return self.eps_end + (self.eps_start - self.eps_end) * math.exp(
+            -1.0 * self.steps_done / self.eps_decay
+        )
+
+    def select_action(self, state, actions):
+        epsilon = self.get_epsilon()
+        self.steps_done += 1
+
+        if random.random() > epsilon:
+            with torch.no_grad():
+                vals = self.model(state.type(FloatTensor)).data[0]
+                max_idx = vals[: len(actions)].max(0)[1]
+                return LongTensor([[max_idx]]), epsilon, vals.max().item()
+        else:
+            n = min(len(actions), 29)
+            return LongTensor([[random.randrange(n)]]), epsilon, 0.0
+
+    def optimize(self):
+        if len(self.memory) < self.batch_size:
+            return None
+
+        transitions = self.memory.sample(self.batch_size)
+        batch = list(zip(*transitions))
+
+        non_final_mask = BoolTensor(tuple(map(lambda s: s is not None, batch[2])))
+        non_final_next_states = torch.cat([s for s in batch[2] if s is not None]).type(
+            FloatTensor
+        )
+
+        state_batch = torch.cat(batch[0]).type(FloatTensor)
+        action_batch = torch.cat(batch[1])
+        reward_batch = torch.cat(batch[3])
+
+        if torch.cuda.is_available():
+            state_batch = state_batch.cuda()
+            action_batch = action_batch.cuda()
+
+        state_action_values = self.model(state_batch).gather(1, action_batch)
+
+        next_state_values = torch.zeros(self.batch_size).type(Tensor)
+        next_state_values[non_final_mask] = self.model(non_final_next_states).max(1)[0]
+
+        expected_state_action_values = (next_state_values * self.gamma) + reward_batch
+
+        state_action_values = state_action_values.view(self.batch_size)
+        loss = F.smooth_l1_loss(state_action_values, expected_state_action_values)
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        for param in self.model.parameters():
+            param.grad.data.clamp_(-1, 1)
+        self.optimizer.step()
+
+        return loss.item()
+
+
+class ImprovedAgent:
+    """Agente DQN melhorado com Double DQN, Target Network, Dueling e PER."""
+
+    def __init__(self, num_actions=30, use_dueling=True, use_per=True):
+        self.num_actions = num_actions
+        self.use_per = use_per
+
+        # Redes: policy e target
+        ModelClass = DuelingDQN if use_dueling else OriginalDQN
+        self.policy_net = ModelClass(num_actions).to(device)
+        self.target_net = ModelClass(num_actions).to(device)
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.target_net.eval()
+
+        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=1e-4)
+
+        if use_per:
+            self.memory = PrioritizedReplayMemory(50000)
+        else:
+            self.memory = ReplayMemory(50000)
+
+        # Hiperparâmetros melhorados
+        self.batch_size = 128
+        self.gamma = 0.99
+        self.eps_start = 1.0
+        self.eps_end = 0.01
+        self.eps_decay = 10000
+        self.target_update = 1000
+
+        self.steps_done = 0
+
+    def get_epsilon(self):
+        return self.eps_end + (self.eps_start - self.eps_end) * math.exp(
+            -1.0 * self.steps_done / self.eps_decay
+        )
+
+    def select_action(self, state, actions):
+        epsilon = self.get_epsilon()
+        self.steps_done += 1
+
+        if random.random() > epsilon:
+            with torch.no_grad():
+                state = state.to(device)
+                q_values = self.policy_net(state)
+                q_values = q_values[0, : len(actions)]
+                action_idx = q_values.argmax().item()
+                return LongTensor([[action_idx]]), epsilon, q_values.max().item()
+        else:
+            n = min(len(actions), self.num_actions - 1)
+            return LongTensor([[random.randrange(n)]]), epsilon, 0.0
+
+    def optimize(self):
+        if len(self.memory) < self.batch_size:
+            return None
+
+        # Amostrar batch
+        if self.use_per:
+            samples, indices, weights = self.memory.sample(self.batch_size)
+            if not samples:
+                return None
+        else:
+            samples = self.memory.sample(self.batch_size)
+            indices = None
+            weights = torch.ones(self.batch_size, device=device)
+
+        batch = list(zip(*samples))
+
+        state_batch = torch.cat([s for s in batch[0] if s is not None]).to(device)
+        action_batch = torch.cat(batch[1]).to(device)
+        reward_batch = torch.cat(batch[3]).to(device)
+
+        non_final_mask = torch.tensor(
+            [s is not None for s in batch[2]], device=device, dtype=torch.bool
+        )
+        non_final_next_states = (
+            torch.cat([s for s in batch[2] if s is not None]).to(device)
+            if any(non_final_mask)
+            else None
+        )
+
+        # Q(s, a) da policy network
+        state_action_values = self.policy_net(state_batch).gather(1, action_batch)
+
+        # Double DQN
+        next_state_values = torch.zeros(self.batch_size, device=device)
+        if non_final_next_states is not None:
+            with torch.no_grad():
+                next_actions = (
+                    self.policy_net(non_final_next_states).argmax(1).unsqueeze(1)
+                )
+                next_state_values[non_final_mask] = (
+                    self.target_net(non_final_next_states)
+                    .gather(1, next_actions)
+                    .squeeze()
+                )
+
+        expected_state_action_values = reward_batch + (self.gamma * next_state_values)
+
+        # TD-errors para PER
+        td_errors = (
+            (state_action_values.squeeze() - expected_state_action_values)
+            .detach()
+            .cpu()
+            .numpy()
+        )
+
+        # Weighted loss
+        loss = (
+            weights
+            * F.smooth_l1_loss(
+                state_action_values.squeeze(),
+                expected_state_action_values,
+                reduction="none",
+            )
+        ).mean()
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), 10)
+        self.optimizer.step()
+
+        # Atualizar prioridades
+        if self.use_per and indices is not None:
+            self.memory.update_priorities(indices, td_errors)
+
+        # Atualizar target network
+        if self.steps_done % self.target_update == 0:
+            self.target_net.load_state_dict(self.policy_net.state_dict())
+
+        return loss.item()
+
+
+# =============================================================================
+# REWARD CALCULATION
+# =============================================================================
+
+
+def calculate_reward(
+    current_action,
+    previous_action,
+    activity,
+    previous_activity,
+    activities,
+    crash,
+    req_enabled,
+    env,
+    actions,
+):
+    """Calcula a recompensa baseada na transição."""
+    reward = 0
+
+    # Penalidade por repetir ação
+    if torch.equal(current_action, previous_action):
+        reward = -2
+    else:
+        reward += 1
+
+    # Verificar happy path ou ação
+    if req_enabled:
+        reward_path = env.get_happypath(actions[current_action[0][0]])
+    else:
+        reward_path = env.verify_action(actions[current_action[0][0]])
+
+    # Adiciona reward do path (se houver)
+    if reward_path != 0:
+        reward += reward_path
+
+    # Mudança de activity
+    if activity != previous_activity:
+        if activity not in ["home", "outapp"]:
+            reward += 5
+        else:
+            reward -= 5
+
+    # Nova activity descoberta
+    if activity not in activities:
+        reward += 10
+
+    # Crash
+    if crash:
+        reward = -5
+
+    return reward
+
+
+# =============================================================================
+# TRAINING LOOP
+# =============================================================================
+
+
+class TrainingProgress:
+    """Gerenciador de progresso do treinamento com Rich."""
+
+    def __init__(self, max_time=None, max_episodes=None):
+        self.max_time = max_time
+        self.max_episodes = max_episodes
+        self.start_time = time.time()
+        self.mode = "time" if max_time else "episodes"
+
+        # Cria barra de progresso apropriada
+        if self.mode == "time":
+            self.progress = Progress(
+                SpinnerColumn(),
+                TextColumn("[bold blue]{task.description}"),
+                BarColumn(bar_width=40),
+                TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                TextColumn("•"),
+                TimeElapsedColumn(),
+                TextColumn("/"),
+                TextColumn(f"[cyan]{self._format_time(max_time)}[/cyan]"),
+                console=console,
+            )
+            self.task = None
+        else:
+            self.progress = Progress(
+                SpinnerColumn(),
+                TextColumn("[bold blue]{task.description}"),
+                BarColumn(bar_width=40),
+                MofNCompleteColumn(),
+                TextColumn("•"),
+                TimeElapsedColumn(),
+                console=console,
+            )
+            self.task = None
+
+    def _format_time(self, seconds):
+        """Formata segundos para mm:ss ou hh:mm:ss."""
+        if seconds < 3600:
+            return f"{int(seconds // 60):02d}:{int(seconds % 60):02d}"
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
+    def start(self):
+        """Inicia a barra de progresso."""
+        self.progress.start()
+        if self.mode == "time":
+            self.task = self.progress.add_task("Training", total=self.max_time)
+        else:
+            self.task = self.progress.add_task("Training", total=self.max_episodes)
+
+    def update(self, episode=None):
+        """Atualiza o progresso."""
+        if self.mode == "time":
+            elapsed = time.time() - self.start_time
+            self.progress.update(self.task, completed=min(elapsed, self.max_time))
+        else:
+            self.progress.update(self.task, completed=episode)
+
+    def should_stop(self, episode):
+        """Verifica se deve parar o treinamento."""
+        if self.mode == "time":
+            return (time.time() - self.start_time) >= self.max_time
+        else:
+            return episode >= self.max_episodes
+
+    def stop(self):
+        """Para a barra de progresso."""
+        self.progress.stop()
+
+    def get_elapsed(self):
+        """Retorna tempo decorrido em segundos."""
+        return time.time() - self.start_time
+
+
+def run(mode="improved", max_time=None, max_episodes=None):
+    """
+    Execute the RL agent training loop.
+
+    Args:
+        mode: "original" or "improved"
+        max_time: Maximum training time in seconds (mutually exclusive with max_episodes)
+        max_episodes: Maximum number of episodes (mutually exclusive with max_time)
+    """
+    # Generate unique run ID
+    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # Setup logging for this run
+    run_logger, log_path = setup_logging(run_id)
+
+    # Read settings
+    settings_reader = ConfRead(str(CONFIG_PATH / "settings.txt"))
+    lines = settings_reader.read_setting()
+    apk = lines[0]
+    app_package = lines[1]
+    cov = lines[4]
+    req = lines[5]
+    settings_time = int(lines[6])
+    req_enabled = req == "yes"
+
+    # Determine training limit
+    if max_time is None and max_episodes is None:
+        max_time = settings_time  # Use settings.txt value
+
+    training_mode = "time" if max_time else "episodes"
+    training_limit = max_time if max_time else max_episodes
+
+    # Print header
+    console.print()
+    console.print(
+        Panel.fit(
+            f"[bold cyan]RLMobTest Training[/bold cyan]\n[dim]Run ID: {run_id}[/dim]",
+            border_style="blue",
+        )
+    )
+
+    # Initialize environment
+    console.print("\n[yellow]📱 Initializing Android environment...[/yellow]")
+    env = AndroidEnv(apk, app_package, coverage_enabled=cov, max_same_activity=30)
     env.install_app()
-    episode_durations = []
-    max_time = int(time_exec)
-    start_time = time.time()  # remember when we started
-    for i_episode in count(1):
-        # Initialize the environment and state
-        previous_selected_action = d.LongTensor([[0]])
-        activities = []
-        state, actions = env.reset()
-        previous_activity = "home"
-        activities.append(previous_activity)
-        activity_actual = activities[-1]
-        env.nametc = env._create_tcfile(activity_actual)
-        reward = 0
-        if req == "yes":
-            env.get_requirements()
+    console.print("[green]✓ Environment ready[/green]")
 
-        for t in count():
-            if len(actions) > 0:
-                # Verifica se largura é maior que altura (modo landscape)
-                if state.shape[3] > state.shape[2]:
-                    state = state.permute(0, 1, 3, 2)
+    # Initialize agent based on mode
+    console.print()
+    if mode == "original":
+        agent = OriginalAgent(num_actions=30)
+        agent_info = Table(show_header=False, box=None)
+        agent_info.add_column("", style="cyan")
+        agent_info.add_column("")
+        agent_info.add_row("Agent", "Original DQN")
+        agent_info.add_row("Memory", "ReplayMemory (10,000)")
+        agent_info.add_row("Gamma", str(agent.gamma))
+        agent_info.add_row("Epsilon Decay", str(agent.eps_decay))
+    else:
+        agent = ImprovedAgent(num_actions=30, use_dueling=True, use_per=True)
+        agent_info = Table(show_header=False, box=None)
+        agent_info.add_column("", style="cyan")
+        agent_info.add_column("")
+        agent_info.add_row("Agent", "Improved DQN (Double + Dueling)")
+        agent_info.add_row("Memory", "PrioritizedReplayMemory (50,000)")
+        agent_info.add_row("Gamma", str(agent.gamma))
+        agent_info.add_row("Target Update", f"every {agent.target_update} steps")
 
-                # Select action
-                action = d.select_action(state, actions)
+    console.print(
+        Panel(
+            agent_info,
+            title="[bold]🤖 Agent Configuration[/bold]",
+            border_style="green",
+        )
+    )
 
-                if torch.equal(action, previous_selected_action):
-                    reward = -2
-                else:
-                    reward = reward + 1
-                previous_selected_action = action
+    # Training configuration
+    train_info = Table(show_header=False, box=None)
+    train_info.add_column("", style="cyan")
+    train_info.add_column("")
+    train_info.add_row("Mode", training_mode.capitalize())
+    if training_mode == "time":
+        train_info.add_row(
+            "Duration", f"{training_limit} seconds ({training_limit // 60} min)"
+        )
+    else:
+        train_info.add_row("Episodes", str(training_limit))
+    train_info.add_row("App Package", app_package)
+    train_info.add_row("Requirements", "Enabled" if req_enabled else "Disabled")
 
-                if req == "yes":
-                    reward_path = env.get_happypath(actions[action[0][0]])
-                    if reward_path != 0:
-                        reward = reward + reward_path
-                    else:
-                        reward = 0
-                else:
-                    reward_path = env.verify_action(actions[action[0][0]])
-                    if reward_path != 0:
-                        reward = reward + reward_path
-                    else:
-                        reward = 0
+    console.print(
+        Panel(
+            train_info,
+            title="[bold]⚙️ Training Configuration[/bold]",
+            border_style="yellow",
+        )
+    )
+    console.print()
 
-                next_state, actions, crash, activity = env.step(actions[action[0][0]])
+    # Initialize metrics, checkpoints, and progress
+    metrics = TrainingMetrics(run_id=run_id)
+    checkpoint_mgr = ModelCheckpoint()
+    progress = TrainingProgress(max_time=max_time, max_episodes=max_episodes)
 
-                if next_state.shape[3] > next_state.shape[2]:
-                    next_state = next_state.permute(0, 1, 3, 2)
+    # Start progress bar
+    progress.start()
 
-                logging.debug("activity actual: " + activity_actual)
-                print("activity actual: " + activity_actual)
+    episode = 0
 
-                if activity_actual != activity:
-                    activity_actual = activity
-                    env.copy_coverage()
-                    if (activity != "home") or (activity != "outapp"):
-                        reward = reward
-                    else:
-                        env.device.press.back()
-                        env._get_foreground()
-                        reward = -5
-                    file = open(TEST_CASES_PATH.as_posix() + f"{env.nametc}/", mode="a")
-                    file.write(f"\n\nGo to next activity: {activity}")
-                    env.nametc = env._create_tcfile(activity)
-                    env.tc_action = []
+    try:
+        for _ in count(1):
+            episode += 1
 
-                if activity not in activities:
-                    reward = reward + 10
-                    activities.append(activity)
-
-                if crash:
-                    reward = -5
-                    next_state = None
-
-                reward_tensor = d.Tensor([reward])
-
-                d.memory.push(state, action, next_state, reward_tensor)
-
-                state = next_state
-
-                d.optimize_model()
-
-                if crash:
-                    print(f"Epoch complete in {t + 1} steps")
-                    logging.debug(f"Epoch complete in {t + 1} steps")
-                    episode_durations.append(t + 1)
-                    break
-                if (time.time() - start_time) > max_time:
-                    logging.debug("Time finished")
-                    # Executar transcrição de test cases
-                    input_folder = TEST_CASES_PATH
-                    output_folder = TRANSCRIPTIONS_PATH
-                    tm.the_world_is_our(
-                        input_folder=input_folder, output_folder=output_folder
-                    )
-                    sys.exit()
-
-            else:
-                print(f"Empty actions Epoch interrupted in {t + 1} steps")
-                logging.debug(f"Empty actions Epoch interrupted in {t + 1} steps")
-                episode_durations.append(t + 1)
-                env.tc_action = []
+            # Check if should stop
+            if progress.should_stop(episode):
                 break
 
+            # Update progress
+            progress.update(episode)
 
-# Função principal
+            epsilon = agent.get_epsilon()
+
+            # Start episode timing
+            metrics.start_episode()
+            metrics.print_episode_start(episode, epsilon, agent.steps_done)
+
+            # Log to file
+            run_logger.info(
+                f"Episode {episode} started | epsilon={epsilon:.3f} | steps={agent.steps_done}"
+            )
+
+            # Initialize episode
+            previous_action = LongTensor([[0]])
+            activities = ["home"]
+            state, actions = env.reset()
+            previous_activity = "home"
+            activity_actual = "home"
+            env.nametc = env._create_tcfile(activity_actual)
+            episode_reward = 0
+
+            if req_enabled:
+                env.get_requirements()
+
+            for t in count():
+                if len(actions) > 0:
+                    # Handle landscape mode
+                    if state.shape[3] > state.shape[2]:
+                        state = state.permute(0, 1, 3, 2)
+
+                    # Select action
+                    action, epsilon, q_value = agent.select_action(state, actions)
+
+                    # Calculate reward
+                    reward = calculate_reward(
+                        action,
+                        previous_action,
+                        activity_actual,
+                        previous_activity,
+                        activities,
+                        False,
+                        req_enabled,
+                        env,
+                        actions,
+                    )
+                    previous_action = action
+                    episode_reward += reward
+
+                    # Execute action
+                    next_state, actions, crash, activity = env.step(
+                        actions[action[0][0]]
+                    )
+
+                    if (
+                        next_state is not None
+                        and next_state.shape[3] > next_state.shape[2]
+                    ):
+                        next_state = next_state.permute(0, 1, 3, 2)
+
+                    run_logger.debug(
+                        f"Step {t} | action={action[0][0]} | reward={reward} | activity={activity}"
+                    )
+
+                    # Handle activity change
+                    if activity_actual != activity:
+                        previous_activity = activity_actual
+                        activity_actual = activity
+                        env.copy_coverage()
+
+                        if activity in ["home", "outapp"]:
+                            env.device.press.back()
+                            env._get_foreground()
+                            reward = -5
+
+                        with open(
+                            f"{TEST_CASES_PATH.as_posix()}/{env.nametc}", mode="a"
+                        ) as file:
+                            file.write(f"\n\nGo to next activity: {activity}")
+                        env.nametc = env._create_tcfile(activity)
+                        env.tc_action = []
+
+                    # New activity bonus
+                    if activity not in activities:
+                        reward += 10
+                        activities.append(activity)
+                        console.print(
+                            f"   [green]✨ New activity discovered: {activity}[/green]"
+                        )
+                        run_logger.info(f"New activity: {activity}")
+
+                    # Crash handling
+                    if crash:
+                        reward = -5
+                        next_state = None
+                        run_logger.warning(f"Crash detected at step {t}")
+
+                    # Store transition
+                    reward_tensor = Tensor([reward])
+                    agent.memory.push(state, action, next_state, reward_tensor)
+
+                    # Update state
+                    state = next_state
+
+                    # Optimize model
+                    loss = agent.optimize()
+
+                    # Log metrics
+                    metrics.log_step(reward, loss, q_value, epsilon)
+
+                    # Log step progress (every 10 steps)
+                    if t % 10 == 0:
+                        metrics.print_step(
+                            t, reward, q_value, loss, activity_actual, epsilon
+                        )
+
+                    if crash:
+                        console.print(
+                            f"   [red]💥 Crash detected! Episode {episode} complete in {t + 1} steps[/red]"
+                        )
+                        run_logger.info(
+                            f"Episode {episode} complete in {t + 1} steps (crash)"
+                        )
+                        break
+
+                    # Check if should stop (for time-based training)
+                    if progress.should_stop(episode):
+                        break
+
+                else:
+                    console.print(
+                        "   [yellow]⚠️ No actions available. Episode interrupted.[/yellow]"
+                    )
+                    run_logger.warning(f"Episode {episode} interrupted - no actions")
+                    env.tc_action = []
+                    break
+
+            # End episode
+            episode_duration = (
+                datetime.now() - metrics.episode_start_time
+            ).total_seconds()
+            metrics.end_episode()
+            metrics.print_episode_end(episode, t + 1, episode_reward, episode_duration)
+
+            # Update progress
+            progress.update(episode)
+
+            # Periodic checkpoint and summary (every 10 episodes)
+            if episode % 10 == 0:
+                model = (
+                    agent.policy_net if hasattr(agent, "policy_net") else agent.model
+                )
+                checkpoint_mgr.save(
+                    model, agent.optimizer, metrics, episode, agent.steps_done
+                )
+                metrics.print_summary()
+
+    except KeyboardInterrupt:
+        console.print("\n[yellow]⚠️ Training interrupted by user[/yellow]")
+        run_logger.info("Training interrupted by user")
+
+    finally:
+        # Stop progress bar
+        progress.stop()
+
+        # Save final checkpoint and metrics
+        console.print("\n[cyan]💾 Saving final checkpoint and metrics...[/cyan]")
+        model = agent.policy_net if hasattr(agent, "policy_net") else agent.model
+        checkpoint_mgr.save(model, agent.optimizer, metrics, episode, agent.steps_done)
+        metrics.save()
+
+        # Print final summary
+        metrics.print_summary()
+
+        # Show episode duration info
+        avg_duration = metrics.get_avg_episode_duration()
+        if avg_duration > 0:
+            console.print(
+                Panel(
+                    f"[bold]Average Episode Duration:[/bold] [cyan]{avg_duration:.1f}s[/cyan]\n"
+                    f"[dim]Use this to estimate training time for a given number of episodes[/dim]",
+                    title="📊 Episode Duration Info",
+                    border_style="blue",
+                )
+            )
+
+        # Execute transcription
+        console.print("\n[cyan]📝 Starting transcription...[/cyan]")
+        tm.the_world_is_our(
+            input_folder=TEST_CASES_PATH, output_folder=TRANSCRIPTIONS_PATH
+        )
+
+        console.print(
+            f"\n[green]✅ Training complete! Log saved to: {log_path}[/green]"
+        )
+
+
+# =============================================================================
+# MAIN
+# =============================================================================
+
+
+def print_device_info():
+    """Print device information with Rich."""
+    console.print()
+    if torch.cuda.is_available():
+        console.print(f"[green]🖥️  GPU:[/green] {torch.cuda.get_device_name(0)}")
+        console.print(f"[dim]   CUDA Version: {torch.version.cuda}[/dim]")
+    else:
+        console.print("[yellow]🖥️  Running on CPU[/yellow]")
+
+
 def main():
-    # Executar treinamento do agente RL
-    run()
+    """Main entry point."""
+    parser = argparse.ArgumentParser(
+        description="RLMobTest - RL-based Android Testing",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python main.py                      # Use settings.txt time limit
+  python main.py --time 600           # Train for 10 minutes
+  python main.py --episodes 50        # Train for 50 episodes
+  python main.py --mode original      # Use original DQN
+
+Note: --time and --episodes are mutually exclusive.
+        """,
+    )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=["original", "improved"],
+        default="improved",
+        help="DQN mode: 'original' or 'improved' (default: improved)",
+    )
+    parser.add_argument(
+        "--time",
+        type=int,
+        default=None,
+        help="Training time limit in seconds (e.g., 300 for 5 min)",
+    )
+    parser.add_argument(
+        "--episodes",
+        type=int,
+        default=None,
+        help="Number of episodes to train (e.g., 50)",
+    )
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default=None,
+        help="Path to checkpoint file to resume training",
+    )
+
+    args = parser.parse_args()
+
+    # Validate mutually exclusive arguments
+    if args.time is not None and args.episodes is not None:
+        console.print(
+            "[red]❌ Error: --time and --episodes are mutually exclusive[/red]"
+        )
+        console.print("[dim]Use one or the other, not both.[/dim]")
+        return
+
+    # Print header
+    console.print()
+    console.print(
+        Panel.fit(
+            "[bold cyan]RLMobTest[/bold cyan]\n"
+            "[dim]Reinforcement Learning Mobile App Testing[/dim]",
+            border_style="cyan",
+        )
+    )
+
+    print_device_info()
+
+    # Run training
+    run(mode=args.mode, max_time=args.time, max_episodes=args.episodes)
 
 
 if __name__ == "__main__":

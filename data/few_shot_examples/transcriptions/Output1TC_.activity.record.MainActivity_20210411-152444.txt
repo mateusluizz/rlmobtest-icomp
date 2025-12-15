@@ -1,0 +1,30 @@
+Test Case com.blogspot.e_kanivets.moneytracker/.activity.record.MainActivity
+
+Description: 
+Perform exploratory actions on the MainActivity screen of the Moneytracker application.
+Preconditions: 
+1- Have Moneytracker installed. 
+2- Being on the MainActivity screen.
+Test Steps: 
+1- Long-clicked on the top-left of the Spinner with the ID "spinner". 
+2- Clicked on a TextView item with the text "Tudo". 
+3- Clicked on the Spinner with the ID "spinner". 
+4- Clicked on a TextView item with the text "Personalizado". 
+5- Clicked on the "Mês passado" ImageButton with the ID "prev". 
+6- Clicked on the "Próximo mês" ImageButton with the ID "next". 
+7- Clicked on the "OK" Button with the ID "b_ok". 
+8- Clicked on the "CANCELAR" Button with the ID "b_cancel". 
+9- Scrolled down on the Spinner with the ID "spinner". 
+10- Clicked on the "ADICIONAR RECEITA" Button with the ID "btnAddIncome". 
+11- Proceeded to the next activity, which is "com.blogspot.e_kanivets.moneytracker/.activity.record.AddRecordActivity".
+Resultado obtido: 
+State 1: states/state_20210411-152452.png 
+State 2: states/state_20210411-152459.png 
+State 3: states/state_20210411-152506.png 
+State 4: states/state_20210411-152512.png 
+State 5: states/state_20210411-152520.png 
+State 6: states/state_20210411-152527.png 
+State 7: states/state_20210411-152534.png 
+State 8: states/state_20210411-152540.png 
+State 9: states/state_20210411-152547.png 
+State 10: states/state_20210411-152554.png

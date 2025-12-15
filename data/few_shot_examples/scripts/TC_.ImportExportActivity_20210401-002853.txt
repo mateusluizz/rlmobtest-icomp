@@ -1,0 +1,53 @@
+Test Case protect.budgetwatch/.ImportExportActivity
+
+clicked  android.widget.Spinner  bounds:[182,465][692,507]
+
+clicked  android.widget.CheckedTextView  bounds:[217,465][601,549]
+
+clicked  android.widget.Button  bounds:[28,569][325,653]
+
+clicked  android.widget.ImageButton Mês passado bounds:[87,434][171,518]
+
+clicked  android.widget.ImageButton Próximo mês bounds:[548,434][632,518]
+
+clicked  android.widget.TextView  bounds:[83,1087][175,1148]
+
+clicked  android.widget.TextView  bounds:[55,416][645,469]
+
+clicked  android.widget.TextView  bounds:[83,266][175,327]
+
+clicked  android.widget.TextView  bounds:[97,1134][431,1205]
+
+clicked  android.widget.ImageButton Próximo mês bounds:[548,1255][632,1299]
+
+clicked  android.widget.Button  bounds:[403,1306][540,1380]
+
+Got Error, see errors.txt line 6
+
+clicked  android.widget.Button  bounds:[28,667][692,751]
+
+clicked  android.widget.Button  bounds:[67,786][179,860]
+
+Got Error, see errors.txt line 8
+
+long click bottom android.widget.Spinner  bounds:[182,465][692,507]
+
+clicked  android.widget.CheckedTextView  bounds:[217,549][601,633]
+
+scroll down android.widget.Spinner  bounds:[182,465][692,507]
+
+clicked  android.widget.CheckedTextView  bounds:[217,633][601,661]
+
+scroll up android.widget.Spinner  bounds:[182,465][692,507]
+
+Back Pressed
+
+long click top left android.widget.Spinner  bounds:[182,465][692,507]
+
+Back Pressed
+
+scroll up android.widget.ScrollView  bounds:[0,153][720,1381]
+
+clicked  android.widget.ImageButton Navegar para cima bounds:[0,55][98,153]
+
+Go to next activity: protect.budgetwatch/.MainActivity

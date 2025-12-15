@@ -1,2 +1,2 @@
-    Activities=[ActivityRecord{6dbfbbd u0 protect.budgetwatch/.MainActivity t47940}, ActivityRecord{e8e04bd u0 protect.budgetwatch/.ImportExportActivity t47940}]
-    Activities=[ActivityRecord{c6ec988 u0 com.google.android.apps.nexuslauncher/.NexusLauncherActivity t47929}]
+    Activities=[ActivityRecord{cff8b3f u0 protect.budgetwatch/.MainActivity t110}, ActivityRecord{b75578e u0 protect.budgetwatch/.TransactionActivity t110}, ActivityRecord{483c813 u0 protect.budgetwatch/.TransactionViewActivity t110}]
+    Activities=[ActivityRecord{bac0324 u0 com.motorola.launcher3/com.android.launcher3.CustomizationPanelLauncher t20}]
