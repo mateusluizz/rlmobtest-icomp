@@ -1,0 +1,33 @@
+{
+  "algorithm": "nsga2",
+  "execution_time": 54.28098392486572,
+  "population_size": 100,
+  "generations": 50,
+  "pareto_front_size": 100,
+  "objectives": {
+    "coverage": {
+      "min": 0.0,
+      "max": 366.0,
+      "mean": 203.09,
+      "std": 97.30828279237076
+    },
+    "diversity": {
+      "min": 0.0,
+      "max": 1.0,
+      "mean": 0.8747919746617664,
+      "std": 0.20253319673794828
+    },
+    "suite_size": {
+      "min": 0,
+      "max": 32,
+      "mean": 13.42,
+      "std": 8.751205631225906
+    },
+    "fault_detection_rate": {
+      "min": 0.0,
+      "max": 1.0,
+      "mean": 0.3712022783911661,
+      "std": 0.28952423866198296
+    }
+  }
+}
