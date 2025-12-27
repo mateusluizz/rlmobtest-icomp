@@ -1,0 +1,25 @@
+# SBSE Framework Dependencies
+# Install with: pip install -r requirements_sbse.txt
+
+# Multi-Objective Optimization
+pymoo>=0.6.0
+
+# Scientific Computing
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Data Analysis
+pandas>=2.0.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Jupyter (optional, for notebook)
+jupyter>=1.0.0
+ipython>=8.0.0
+ipykernel>=6.0.0
+
+# Testing and Quality
+pytest>=7.0.0
+pytest-cov>=4.0.0
