@@ -1,2 +1,4 @@
-    Activities=[ActivityRecord{cff8b3f u0 protect.budgetwatch/.MainActivity t110}, ActivityRecord{b75578e u0 protect.budgetwatch/.TransactionActivity t110}, ActivityRecord{483c813 u0 protect.budgetwatch/.TransactionViewActivity t110}]
-    Activities=[ActivityRecord{bac0324 u0 com.motorola.launcher3/com.android.launcher3.CustomizationPanelLauncher t20}]
+    Activities=[ActivityRecord{50445064 u0 protect.budgetwatch/.MainActivity t63}]
+    Activities=[ActivityRecord{87749915 u0 com.android.chrome/org.chromium.chrome.browser.firstrun.FirstRunActivity t62}]
+    Activities=[ActivityRecord{36210052 u0 com.motorola.launcher3/com.android.launcher3.CustomizationPanelLauncher t45}]
+    Activities=[ActivityRecord{175819857 u0 com.android.settings/.Settings t51}, ActivityRecord{103612875 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.safetycenter.ui.SafetyCenterActivity t51}, ActivityRecord{214745506 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.safetycenter.ui.SafetyCenterActivity t51}]
