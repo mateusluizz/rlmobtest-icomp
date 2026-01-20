@@ -1,0 +1,11 @@
+[
+    {
+        "apk_name": "budgetwatch.apk",
+        "package_name": "protect.budgetwatch",
+        "resolution": "2560x1440",
+        "is_coverage": false,
+        "is_req": false,
+        "time": 3600
+    }
+]
+
