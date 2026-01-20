@@ -1,7 +1,7 @@
 [project]
 name = "rlmobtest-mateus"
 version = "0.1.0"
-description = "Add your description here"
+description = "IARTES project to implement improvements on rlmobtest"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
