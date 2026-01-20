@@ -35,12 +35,14 @@ class ObjectiveMetrics:
         - Cobertura e diversidade são negadas (queremos maximizar)
         - Tamanho e redundância são mantidos (queremos minimizar)
         """
-        return np.array([
-            -self.coverage,  # Negar para maximizar
-            -self.diversity,  # Negar para maximizar
-            self.suite_size,  # Minimizar
-            -self.fault_detection_rate  # Negar para maximizar
-        ])
+        return np.array(
+            [
+                -self.coverage,  # Negar para maximizar
+                -self.diversity,  # Negar para maximizar
+                self.suite_size,  # Minimizar
+                -self.fault_detection_rate,  # Negar para maximizar
+            ]
+        )
 
     def to_dict(self) -> dict:
         return {
@@ -51,7 +53,7 @@ class ObjectiveMetrics:
             "total_actions": self.total_actions,
             "execution_time": self.execution_time,
             "redundancy": self.redundancy,
-            "activities_covered": self.activities_covered
+            "activities_covered": self.activities_covered,
         }
 
 
@@ -81,7 +83,9 @@ class MetricsCalculator:
         activity_coverage = len(suite.get_all_activities())
 
         # Score combinado (pode ajustar pesos)
-        coverage_score = code_coverage + (activity_coverage * 10)  # Activities valem mais
+        coverage_score = code_coverage + (
+            activity_coverage * 10
+        )  # Activities valem mais
 
         return float(coverage_score)
 
@@ -112,7 +116,7 @@ class MetricsCalculator:
 
         similarities = []
         for i, tc1 in enumerate(suite.test_cases):
-            for tc2 in suite.test_cases[i+1:]:
+            for tc2 in suite.test_cases[i + 1 :]:
                 act1 = tc1.activities_visited
                 act2 = tc2.activities_visited
 
@@ -192,7 +196,7 @@ class MetricsCalculator:
             total_actions=total_actions,
             execution_time=execution_time,
             redundancy=redundancy,
-            activities_covered=activities
+            activities_covered=activities,
         )
 
         if self.normalize:
@@ -206,9 +210,7 @@ class MetricsCalculator:
         return metrics
 
     def calculate_hypervolume(
-        self,
-        pareto_front: List[ObjectiveMetrics],
-        reference_point: np.ndarray
+        self, pareto_front: List[ObjectiveMetrics], reference_point: np.ndarray
     ) -> float:
         """
         Calcula o hypervolume da fronteira de Pareto.
@@ -231,6 +233,7 @@ class MetricsCalculator:
         # Usar biblioteca pygmo para cálculo preciso
         try:
             from pymoo.indicators.hv import HV
+
             hv = HV(ref_point=reference_point)
             return hv(points)
         except ImportError:
@@ -238,9 +241,7 @@ class MetricsCalculator:
             return self._approximate_hypervolume(points, reference_point)
 
     def _approximate_hypervolume(
-        self,
-        points: np.ndarray,
-        reference_point: np.ndarray
+        self, points: np.ndarray, reference_point: np.ndarray
     ) -> float:
         """Cálculo aproximado de hypervolume (2D/3D)."""
         # Implementação simplificada para 2D
@@ -253,7 +254,7 @@ class MetricsCalculator:
                 if i == 0:
                     width = reference_point[0] - point[0]
                 else:
-                    width = sorted_points[i-1][0] - point[0]
+                    width = sorted_points[i - 1][0] - point[0]
 
                 height = reference_point[1] - point[1]
                 hv += width * height
@@ -282,7 +283,7 @@ class MetricsCalculator:
         # Calcular distâncias entre pontos consecutivos
         distances = []
         for i in range(len(points) - 1):
-            dist = np.linalg.norm(points[i] - points[i+1])
+            dist = np.linalg.norm(points[i] - points[i + 1])
             distances.append(dist)
 
         if not distances:
@@ -298,9 +299,7 @@ class MetricsCalculator:
         return std_dist / mean_dist
 
     def compare_suites(
-        self,
-        suite1: TestSuite,
-        suite2: TestSuite
+        self, suite1: TestSuite, suite2: TestSuite
     ) -> Dict[str, Dict[str, float]]:
         """
         Compara duas suítes de teste.
@@ -317,7 +316,12 @@ class MetricsCalculator:
 
         comparison = {}
 
-        for metric_name in ['coverage', 'diversity', 'suite_size', 'fault_detection_rate']:
+        for metric_name in [
+            "coverage",
+            "diversity",
+            "suite_size",
+            "fault_detection_rate",
+        ]:
             val1 = getattr(metrics1, metric_name)
             val2 = getattr(metrics2, metric_name)
 
@@ -328,10 +332,10 @@ class MetricsCalculator:
                 improvement = 100 if val2 > 0 else 0
 
             comparison[metric_name] = {
-                'suite1': val1,
-                'suite2': val2,
-                'difference': val2 - val1,
-                'improvement_percent': improvement
+                "suite1": val1,
+                "suite2": val2,
+                "difference": val2 - val1,
+                "improvement_percent": improvement,
             }
 
         return comparison
@@ -341,14 +345,13 @@ class MetricsCalculator:
 # QUALITY INDICATORS
 # =============================================================================
 
+
 class QualityIndicators:
     """Indicadores de qualidade para avaliação de algoritmos multi-objetivo."""
 
     @staticmethod
     def calculate_generational_distance(
-        approximation_set: np.ndarray,
-        pareto_front: np.ndarray,
-        p: int = 2
+        approximation_set: np.ndarray, pareto_front: np.ndarray, p: int = 2
     ) -> float:
         """
         Calcula Generational Distance (GD).
@@ -371,19 +374,16 @@ class QualityIndicators:
         for point in approximation_set:
             # Encontrar ponto mais próximo na fronteira verdadeira
             min_dist = min(
-                np.linalg.norm(point - pf_point, ord=p)
-                for pf_point in pareto_front
+                np.linalg.norm(point - pf_point, ord=p) for pf_point in pareto_front
             )
             distances.append(min_dist)
 
-        gd = (sum(d**p for d in distances) / len(distances)) ** (1/p)
+        gd = (sum(d**p for d in distances) / len(distances)) ** (1 / p)
         return gd
 
     @staticmethod
     def calculate_inverted_generational_distance(
-        approximation_set: np.ndarray,
-        pareto_front: np.ndarray,
-        p: int = 2
+        approximation_set: np.ndarray, pareto_front: np.ndarray, p: int = 2
     ) -> float:
         """
         Calcula Inverted Generational Distance (IGD).
@@ -406,12 +406,11 @@ class QualityIndicators:
         for pf_point in pareto_front:
             # Encontrar ponto mais próximo na aproximação
             min_dist = min(
-                np.linalg.norm(pf_point - point, ord=p)
-                for point in approximation_set
+                np.linalg.norm(pf_point - point, ord=p) for point in approximation_set
             )
             distances.append(min_dist)
 
-        igd = (sum(d**p for d in distances) / len(distances)) ** (1/p)
+        igd = (sum(d**p for d in distances) / len(distances)) ** (1 / p)
         return igd
 
 
@@ -431,7 +430,7 @@ if __name__ == "__main__":
         actions=[Action(i, "click", f"button_{i}") for i in range(10)],
         coverage={f"Class.java:{i}" for i in range(20)},
         activities_visited={"Login", "Main", "Settings"},
-        crashes=1
+        crashes=1,
     )
 
     # TC 2 - Cobertura média, poucas ações
@@ -440,7 +439,7 @@ if __name__ == "__main__":
         actions=[Action(i, "swipe", f"screen_{i}") for i in range(5)],
         coverage={f"Class.java:{i}" for i in range(10, 25)},
         activities_visited={"Main", "Profile"},
-        crashes=0
+        crashes=0,
     )
 
     suite.add_test_case(tc1)

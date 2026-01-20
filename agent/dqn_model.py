@@ -120,9 +120,7 @@ def optimize_model():
     transitions = memory.sample(BATCH_SIZE)
     batch = Transition(*zip(*transitions))
 
-    non_final_mask = BoolTensor(
-        tuple(map(lambda s: s is not None, batch.next_state))
-    )
+    non_final_mask = BoolTensor(tuple(map(lambda s: s is not None, batch.next_state)))
     non_final_next_states_t = torch.cat(
         tuple(s for s in batch.next_state if s is not None)
     ).type(dtype)

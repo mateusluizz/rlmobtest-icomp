@@ -30,7 +30,7 @@ class StatisticalTestResult:
             "p_value": self.p_value,
             "significant": self.is_significant,
             "effect_size": self.effect_size,
-            "interpretation": self.interpretation
+            "interpretation": self.interpretation,
         }
 
 
@@ -45,10 +45,7 @@ class StatisticalAnalyzer:
         self.alpha = alpha
 
     def mann_whitney_u_test(
-        self,
-        sample1: List[float],
-        sample2: List[float],
-        metric_name: str = "metric"
+        self, sample1: List[float], sample2: List[float], metric_name: str = "metric"
     ) -> StatisticalTestResult:
         """
         Teste de Mann-Whitney U (Wilcoxon rank-sum test).
@@ -74,13 +71,12 @@ class StatisticalAnalyzer:
                 p_value=1.0,
                 is_significant=False,
                 effect_size=0.0,
-                interpretation="Insufficient data (n < 3)"
+                interpretation="Insufficient data (n < 3)",
             )
 
         # Executar teste
         statistic, p_value = stats.mannwhitneyu(
-            sample1, sample2,
-            alternative='two-sided'
+            sample1, sample2, alternative="two-sided"
         )
 
         # Calcular effect size (rank-biserial correlation)
@@ -96,7 +92,9 @@ class StatisticalAnalyzer:
             else:
                 interpretation = f"Sample 2 is significantly LOWER than Sample 1 for {metric_name} (p={p_value:.4f})"
         else:
-            interpretation = f"No significant difference for {metric_name} (p={p_value:.4f})"
+            interpretation = (
+                f"No significant difference for {metric_name} (p={p_value:.4f})"
+            )
 
         return StatisticalTestResult(
             test_name="Mann-Whitney U",
@@ -104,14 +102,11 @@ class StatisticalAnalyzer:
             p_value=p_value,
             is_significant=is_significant,
             effect_size=effect_size,
-            interpretation=interpretation
+            interpretation=interpretation,
         )
 
     def wilcoxon_signed_rank_test(
-        self,
-        sample1: List[float],
-        sample2: List[float],
-        metric_name: str = "metric"
+        self, sample1: List[float], sample2: List[float], metric_name: str = "metric"
     ) -> StatisticalTestResult:
         """
         Teste de Wilcoxon Signed-Rank.
@@ -140,7 +135,7 @@ class StatisticalAnalyzer:
                 p_value=1.0,
                 is_significant=False,
                 effect_size=0.0,
-                interpretation="Insufficient data (n < 3)"
+                interpretation="Insufficient data (n < 3)",
             )
 
         # Executar teste
@@ -161,7 +156,9 @@ class StatisticalAnalyzer:
             else:
                 interpretation = f"Sample 2 is significantly LOWER than Sample 1 for {metric_name} (p={p_value:.4f})"
         else:
-            interpretation = f"No significant difference for {metric_name} (p={p_value:.4f})"
+            interpretation = (
+                f"No significant difference for {metric_name} (p={p_value:.4f})"
+            )
 
         return StatisticalTestResult(
             test_name="Wilcoxon Signed-Rank",
@@ -169,14 +166,10 @@ class StatisticalAnalyzer:
             p_value=p_value,
             is_significant=is_significant,
             effect_size=effect_size,
-            interpretation=interpretation
+            interpretation=interpretation,
         )
 
-    def vargha_delaney_a12(
-        self,
-        sample1: List[float],
-        sample2: List[float]
-    ) -> float:
+    def vargha_delaney_a12(self, sample1: List[float], sample2: List[float]) -> float:
         """
         Calcula Vargha-Delaney A12 effect size.
 
@@ -207,11 +200,7 @@ class StatisticalAnalyzer:
         a12 = r1 / (n1 * n2)
         return a12
 
-    def cohen_d(
-        self,
-        sample1: List[float],
-        sample2: List[float]
-    ) -> float:
+    def cohen_d(self, sample1: List[float], sample2: List[float]) -> float:
         """
         Calcula Cohen's d effect size.
 
@@ -239,7 +228,9 @@ class StatisticalAnalyzer:
 
         return (np.mean(sample2) - np.mean(sample1)) / pooled_std
 
-    def interpret_effect_size(self, effect_size: float, measure: str = "cohen_d") -> str:
+    def interpret_effect_size(
+        self, effect_size: float, measure: str = "cohen_d"
+    ) -> str:
         """
         Interpreta o tamanho do efeito.
 
@@ -278,7 +269,7 @@ class StatisticalAnalyzer:
         self,
         baseline_samples: Dict[str, List[float]],
         optimized_samples: Dict[str, List[float]],
-        paired: bool = False
+        paired: bool = False,
     ) -> Dict[str, StatisticalTestResult]:
         """
         Realiza comparação estatística abrangente entre baseline e otimizada.
@@ -302,7 +293,9 @@ class StatisticalAnalyzer:
 
             # Escolher teste apropriado
             if paired:
-                result = self.wilcoxon_signed_rank_test(baseline, optimized, metric_name)
+                result = self.wilcoxon_signed_rank_test(
+                    baseline, optimized, metric_name
+                )
             else:
                 result = self.mann_whitney_u_test(baseline, optimized, metric_name)
 
@@ -314,7 +307,7 @@ class StatisticalAnalyzer:
         self,
         baseline_samples: Dict[str, List[float]],
         optimized_samples: Dict[str, List[float]],
-        paired: bool = False
+        paired: bool = False,
     ) -> str:
         """
         Cria relatório textual de comparação estatística.
@@ -327,7 +320,9 @@ class StatisticalAnalyzer:
         Returns:
             Relatório em texto formatado
         """
-        results = self.comprehensive_comparison(baseline_samples, optimized_samples, paired)
+        results = self.comprehensive_comparison(
+            baseline_samples, optimized_samples, paired
+        )
 
         report = "=" * 70 + "\n"
         report += "STATISTICAL COMPARISON REPORT\n"
@@ -389,8 +384,7 @@ class ResultValidator:
 
     @staticmethod
     def check_homoscedasticity(
-        sample1: List[float],
-        sample2: List[float]
+        sample1: List[float], sample2: List[float]
     ) -> Tuple[bool, float]:
         """
         Testa homogeneidade de variâncias usando Levene's test.
@@ -410,9 +404,7 @@ class ResultValidator:
 
     @staticmethod
     def recommend_test(
-        sample1: List[float],
-        sample2: List[float],
-        paired: bool = False
+        sample1: List[float], sample2: List[float], paired: bool = False
     ) -> str:
         """
         Recomenda o teste estatístico apropriado.
@@ -437,7 +429,9 @@ class ResultValidator:
         else:
             if is_normal1 and is_normal2:
                 # Verificar homogeneidade de variâncias
-                has_equal_var, _ = ResultValidator.check_homoscedasticity(sample1, sample2)
+                has_equal_var, _ = ResultValidator.check_homoscedasticity(
+                    sample1, sample2
+                )
 
                 if has_equal_var:
                     return "Independent t-test"
@@ -472,9 +466,7 @@ if __name__ == "__main__":
     print("\nMann-Whitney U Test - Coverage:")
     print("-" * 70)
     result = analyzer.mann_whitney_u_test(
-        baseline_coverage.tolist(),
-        optimized_coverage.tolist(),
-        "coverage"
+        baseline_coverage.tolist(), optimized_coverage.tolist(), "coverage"
     )
     print(f"Statistic: {result.statistic:.4f}")
     print(f"P-value: {result.p_value:.4f}")
@@ -483,17 +475,15 @@ if __name__ == "__main__":
 
     # Effect sizes
     a12 = analyzer.vargha_delaney_a12(
-        baseline_coverage.tolist(),
-        optimized_coverage.tolist()
+        baseline_coverage.tolist(), optimized_coverage.tolist()
     )
-    cohen = analyzer.cohen_d(
-        baseline_coverage.tolist(),
-        optimized_coverage.tolist()
-    )
+    cohen = analyzer.cohen_d(baseline_coverage.tolist(), optimized_coverage.tolist())
 
     print(f"\nEffect Sizes:")
     print(f"A12: {a12:.3f} ({analyzer.interpret_effect_size(a12, 'a12')})")
-    print(f"Cohen's d: {cohen:.3f} ({analyzer.interpret_effect_size(cohen, 'cohen_d')})")
+    print(
+        f"Cohen's d: {cohen:.3f} ({analyzer.interpret_effect_size(cohen, 'cohen_d')})"
+    )
 
     # Relatório completo
     print("\n" + "=" * 70)
@@ -503,13 +493,13 @@ if __name__ == "__main__":
     baseline_samples = {
         "coverage": baseline_coverage.tolist(),
         "diversity": baseline_diversity.tolist(),
-        "size": baseline_size.tolist()
+        "size": baseline_size.tolist(),
     }
 
     optimized_samples = {
         "coverage": optimized_coverage.tolist(),
         "diversity": optimized_diversity.tolist(),
-        "size": optimized_size.tolist()
+        "size": optimized_size.tolist(),
     }
 
     report = analyzer.create_comparison_report(baseline_samples, optimized_samples)

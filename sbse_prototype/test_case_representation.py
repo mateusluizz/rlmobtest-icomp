@@ -34,12 +34,14 @@ class Action:
             "text": self.text_input,
             "activity": self.activity,
             "timestamp": self.timestamp,
-            "screenshot": self.screenshot_path
+            "screenshot": self.screenshot_path,
         }
 
     def get_signature(self) -> str:
         """Gera uma assinatura única para esta ação."""
-        content = f"{self.action_type}_{self.target}_{self.coordinates}_{self.text_input}"
+        content = (
+            f"{self.action_type}_{self.target}_{self.coordinates}_{self.text_input}"
+        )
         return hashlib.md5(content.encode()).hexdigest()[:8]
 
 
@@ -105,32 +107,32 @@ class TestCase:
                 "unique_actions": self.get_unique_actions(),
                 "coverage_size": self.get_coverage_size(),
                 "action_diversity": self.get_action_diversity(),
-                "activity_diversity": self.get_activity_diversity()
-            }
+                "activity_diversity": self.get_activity_diversity(),
+            },
         }
 
     def save(self, filepath: Path):
         """Salva o caso de teste em JSON."""
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump(self.to_dict(), f, indent=2)
 
     @classmethod
-    def load(cls, filepath: Path) -> 'TestCase':
+    def load(cls, filepath: Path) -> "TestCase":
         """Carrega caso de teste de arquivo JSON."""
-        with open(filepath, 'r') as f:
+        with open(filepath, "r") as f:
             data = json.load(f)
 
-        actions = [Action(**a) for a in data.get('actions', [])]
+        actions = [Action(**a) for a in data.get("actions", [])]
         return cls(
-            id=data['id'],
+            id=data["id"],
             actions=actions,
-            coverage=set(data.get('coverage', [])),
-            activities_visited=set(data.get('activities', [])),
-            crashes=data.get('crashes', 0),
-            duration=data.get('duration', 0.0),
-            reward=data.get('reward', 0.0),
-            episode_number=data.get('episode', 0),
-            metadata=data.get('metadata', {})
+            coverage=set(data.get("coverage", [])),
+            activities_visited=set(data.get("activities", [])),
+            crashes=data.get("crashes", 0),
+            duration=data.get("duration", 0.0),
+            reward=data.get("reward", 0.0),
+            episode_number=data.get("episode", 0),
+            metadata=data.get("metadata", {}),
         )
 
 
@@ -196,7 +198,7 @@ class TestSuite:
 
         similarities = []
         for i, tc1 in enumerate(self.test_cases):
-            for tc2 in self.test_cases[i+1:]:
+            for tc2 in self.test_cases[i + 1 :]:
                 # Jaccard similarity entre as ações
                 actions1 = {a.get_signature() for a in tc1.actions}
                 actions2 = {a.get_signature() for a in tc2.actions}
@@ -240,7 +242,7 @@ class TestSuite:
             "total_duration": self.get_total_duration(),
             "activities_covered": len(self.get_all_activities()),
             "diversity": self.calculate_diversity(),
-            "redundancy": self.calculate_redundancy()
+            "redundancy": self.calculate_redundancy(),
         }
 
     def to_dict(self) -> dict:
@@ -248,39 +250,37 @@ class TestSuite:
             "name": self.name,
             "test_cases": [tc.to_dict() for tc in self.test_cases],
             "metadata": self.metadata,
-            "summary": self.get_summary()
+            "summary": self.get_summary(),
         }
 
     def save(self, filepath: Path):
         """Salva a suíte em JSON."""
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump(self.to_dict(), f, indent=2)
 
     @classmethod
-    def load(cls, filepath: Path) -> 'TestSuite':
+    def load(cls, filepath: Path) -> "TestSuite":
         """Carrega suíte de arquivo JSON."""
-        with open(filepath, 'r') as f:
+        with open(filepath, "r") as f:
             data = json.load(f)
 
         test_cases = [
             TestCase(
-                id=tc['id'],
-                actions=[Action(**a) for a in tc.get('actions', [])],
-                coverage=set(tc.get('coverage', [])),
-                activities_visited=set(tc.get('activities', [])),
-                crashes=tc.get('crashes', 0),
-                duration=tc.get('duration', 0.0),
-                reward=tc.get('reward', 0.0),
-                episode_number=tc.get('episode', 0),
-                metadata=tc.get('metadata', {})
+                id=tc["id"],
+                actions=[Action(**a) for a in tc.get("actions", [])],
+                coverage=set(tc.get("coverage", [])),
+                activities_visited=set(tc.get("activities", [])),
+                crashes=tc.get("crashes", 0),
+                duration=tc.get("duration", 0.0),
+                reward=tc.get("reward", 0.0),
+                episode_number=tc.get("episode", 0),
+                metadata=tc.get("metadata", {}),
             )
-            for tc in data.get('test_cases', [])
+            for tc in data.get("test_cases", [])
         ]
 
         return cls(
-            name=data['name'],
-            test_cases=test_cases,
-            metadata=data.get('metadata', {})
+            name=data["name"], test_cases=test_cases, metadata=data.get("metadata", {})
         )
 
 
@@ -288,10 +288,9 @@ class TestSuite:
 # UTILITIES
 # =============================================================================
 
+
 def create_test_suite_from_rl_output(
-    test_cases_dir: Path,
-    metrics_file: Path,
-    name: str = "RL_Generated_Suite"
+    test_cases_dir: Path, metrics_file: Path, name: str = "RL_Generated_Suite"
 ) -> TestSuite:
     """
     Cria uma TestSuite a partir dos outputs do RLMobTest.
@@ -307,7 +306,7 @@ def create_test_suite_from_rl_output(
     suite = TestSuite(name=name)
 
     # Carregar métricas do treinamento
-    with open(metrics_file, 'r') as f:
+    with open(metrics_file, "r") as f:
         metrics_data = json.load(f)
 
     # Processar cada arquivo de caso de teste
@@ -318,16 +317,24 @@ def create_test_suite_from_rl_output(
         actions = _parse_test_case_file(tc_file)
 
         # Extrair métricas do episódio correspondente
-        episode_reward = metrics_data.get('episode_rewards', [0])[idx] if idx < len(metrics_data.get('episode_rewards', [])) else 0
-        episode_duration = metrics_data.get('episode_durations', [0])[idx] if idx < len(metrics_data.get('episode_durations', [])) else 0
+        episode_reward = (
+            metrics_data.get("episode_rewards", [0])[idx]
+            if idx < len(metrics_data.get("episode_rewards", []))
+            else 0
+        )
+        episode_duration = (
+            metrics_data.get("episode_durations", [0])[idx]
+            if idx < len(metrics_data.get("episode_durations", []))
+            else 0
+        )
 
         # Criar caso de teste
         tc = TestCase(
-            id=f"TC_{idx+1:03d}_{tc_file.stem}",
+            id=f"TC_{idx + 1:03d}_{tc_file.stem}",
             actions=actions,
             duration=episode_duration,
             reward=episode_reward,
-            episode_number=idx + 1
+            episode_number=idx + 1,
         )
 
         suite.add_test_case(tc)
@@ -339,11 +346,11 @@ def _parse_test_case_file(filepath: Path) -> List[Action]:
     """Parse de arquivo de caso de teste do formato do RLMobTest."""
     actions = []
 
-    with open(filepath, 'r') as f:
+    with open(filepath, "r") as f:
         content = f.read()
 
     # Parse básico - pode ser refinado conforme formato real
-    lines = content.split('\n')
+    lines = content.split("\n")
     step = 0
     current_activity = "unknown"
 
@@ -362,7 +369,7 @@ def _parse_test_case_file(filepath: Path) -> List[Action]:
         action = Action(
             step_number=step,
             action_type="click",  # Pode extrair do texto
-            activity=current_activity
+            activity=current_activity,
         )
         actions.append(action)
         step += 1
@@ -387,7 +394,7 @@ if __name__ == "__main__":
         coverage={"LoginActivity.java:45", "MainActivity.java:23"},
         crashes=0,
         duration=12.5,
-        reward=25.0
+        reward=25.0,
     )
 
     print(f"Test Case: {tc.id}")

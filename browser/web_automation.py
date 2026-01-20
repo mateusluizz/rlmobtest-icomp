@@ -91,9 +91,7 @@ Image.fromarray(viewport_img).show()
 print(viewport_img.shape)
 
 
-coverage = loop.run_until_complete(
-    page.evaluate("() => {return window.__coverage__}")
-)
+coverage = loop.run_until_complete(page.evaluate("() => {return window.__coverage__}"))
 
 
 def file_coverage(statement_coverage):

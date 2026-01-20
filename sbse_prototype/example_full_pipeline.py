@@ -25,8 +25,13 @@ def generate_synthetic_test_cases(n_cases: int = 50) -> list:
     """
     np.random.seed(42)
 
-    activities_pool = ["MainActivity", "LoginActivity", "SettingsActivity",
-                      "ProfileActivity", "SearchActivity"]
+    activities_pool = [
+        "MainActivity",
+        "LoginActivity",
+        "SettingsActivity",
+        "ProfileActivity",
+        "SearchActivity",
+    ]
     action_types = ["click", "swipe", "scroll", "input", "back"]
 
     test_cases = []
@@ -34,14 +39,16 @@ def generate_synthetic_test_cases(n_cases: int = 50) -> list:
     for i in range(n_cases):
         n_actions = np.random.randint(5, 20)
         n_activities = np.random.randint(1, 4)
-        visited_activities = set(np.random.choice(activities_pool, n_activities, replace=False))
+        visited_activities = set(
+            np.random.choice(activities_pool, n_activities, replace=False)
+        )
 
         actions = [
             Action(
                 step_number=j,
                 action_type=np.random.choice(action_types),
                 target=f"element_{np.random.randint(0, 50)}",
-                activity=np.random.choice(list(visited_activities))
+                activity=np.random.choice(list(visited_activities)),
             )
             for j in range(n_actions)
         ]
@@ -64,7 +71,7 @@ def generate_synthetic_test_cases(n_cases: int = 50) -> list:
             crashes=crashes,
             duration=duration,
             reward=reward,
-            episode_number=i
+            episode_number=i,
         )
         test_cases.append(tc)
 
@@ -118,17 +125,10 @@ def main():
     print("-" * 80)
 
     optimizer = SBSEOptimizer(
-        algorithm="nsga2",
-        population_size=100,
-        n_generations=50,
-        seed=42
+        algorithm="nsga2", population_size=100, n_generations=50, seed=42
     )
 
-    optimizer.setup_problem(
-        test_cases=test_cases,
-        min_suite_size=10,
-        max_suite_size=40
-    )
+    optimizer.setup_problem(test_cases=test_cases, min_suite_size=10, max_suite_size=40)
 
     print(f"   Algorithm: NSGA-II")
     print(f"   Population: {optimizer.population_size}")
@@ -156,16 +156,44 @@ def main():
     best_suite, best_metrics = optimizer.select_best_solution(criterion="balanced")
 
     print(f"   Best Solution (Balanced Trade-off):")
-    print(f"     Size: {best_metrics.suite_size} TCs (vs {baseline_metrics.suite_size} baseline)")
-    print(f"     Coverage: {best_metrics.coverage:.2f} (vs {baseline_metrics.coverage:.2f})")
-    print(f"     Diversity: {best_metrics.diversity:.3f} (vs {baseline_metrics.diversity:.3f})")
-    print(f"     Fault Rate: {best_metrics.fault_detection_rate:.3f} (vs {baseline_metrics.fault_detection_rate:.3f})")
+    print(
+        f"     Size: {best_metrics.suite_size} TCs (vs {baseline_metrics.suite_size} baseline)"
+    )
+    print(
+        f"     Coverage: {best_metrics.coverage:.2f} (vs {baseline_metrics.coverage:.2f})"
+    )
+    print(
+        f"     Diversity: {best_metrics.diversity:.3f} (vs {baseline_metrics.diversity:.3f})"
+    )
+    print(
+        f"     Fault Rate: {best_metrics.fault_detection_rate:.3f} (vs {baseline_metrics.fault_detection_rate:.3f})"
+    )
     print()
 
     # Calculate improvements
-    size_reduction = ((baseline_metrics.suite_size - best_metrics.suite_size) / baseline_metrics.suite_size * 100)
-    cov_improvement = ((best_metrics.coverage - baseline_metrics.coverage) / baseline_metrics.coverage * 100) if baseline_metrics.coverage > 0 else 0
-    div_improvement = ((best_metrics.diversity - baseline_metrics.diversity) / baseline_metrics.diversity * 100) if baseline_metrics.diversity > 0 else 0
+    size_reduction = (
+        (baseline_metrics.suite_size - best_metrics.suite_size)
+        / baseline_metrics.suite_size
+        * 100
+    )
+    cov_improvement = (
+        (
+            (best_metrics.coverage - baseline_metrics.coverage)
+            / baseline_metrics.coverage
+            * 100
+        )
+        if baseline_metrics.coverage > 0
+        else 0
+    )
+    div_improvement = (
+        (
+            (best_metrics.diversity - baseline_metrics.diversity)
+            / baseline_metrics.diversity
+            * 100
+        )
+        if baseline_metrics.diversity > 0
+        else 0
+    )
 
     print(f"   Improvements:")
     print(f"     Size reduction: {size_reduction:.1f}%")
@@ -201,9 +229,7 @@ def main():
 
     # Mann-Whitney U Test for Coverage
     result_cov = analyzer.mann_whitney_u_test(
-        baseline_samples_coverage,
-        optimized_samples_coverage,
-        "coverage"
+        baseline_samples_coverage, optimized_samples_coverage, "coverage"
     )
 
     print(f"   Coverage Test:")
@@ -213,15 +239,17 @@ def main():
     print(f"     {result_cov.interpretation}")
 
     # Effect size
-    a12_cov = analyzer.vargha_delaney_a12(baseline_samples_coverage, optimized_samples_coverage)
-    print(f"     Effect Size (A12): {a12_cov:.3f} ({analyzer.interpret_effect_size(a12_cov, 'a12')})")
+    a12_cov = analyzer.vargha_delaney_a12(
+        baseline_samples_coverage, optimized_samples_coverage
+    )
+    print(
+        f"     Effect Size (A12): {a12_cov:.3f} ({analyzer.interpret_effect_size(a12_cov, 'a12')})"
+    )
     print()
 
     # Diversity Test
     result_div = analyzer.mann_whitney_u_test(
-        baseline_samples_diversity,
-        optimized_samples_diversity,
-        "diversity"
+        baseline_samples_diversity, optimized_samples_diversity, "diversity"
     )
 
     print(f"   Diversity Test:")
@@ -229,8 +257,12 @@ def main():
     print(f"     Significant: {'YES' if result_div.is_significant else 'NO'}")
     print(f"     {result_div.interpretation}")
 
-    a12_div = analyzer.vargha_delaney_a12(baseline_samples_diversity, optimized_samples_diversity)
-    print(f"     Effect Size (A12): {a12_div:.3f} ({analyzer.interpret_effect_size(a12_div, 'a12')})")
+    a12_div = analyzer.vargha_delaney_a12(
+        baseline_samples_diversity, optimized_samples_diversity
+    )
+    print(
+        f"     Effect Size (A12): {a12_div:.3f} ({analyzer.interpret_effect_size(a12_div, 'a12')})"
+    )
     print()
 
     # ==========================================================================
@@ -256,16 +288,16 @@ def main():
         "improvements": {
             "size_reduction_percent": size_reduction,
             "coverage_improvement_percent": cov_improvement,
-            "diversity_improvement_percent": div_improvement
+            "diversity_improvement_percent": div_improvement,
         },
         "statistical_tests": {
             "coverage": result_cov.to_dict(),
-            "diversity": result_div.to_dict()
+            "diversity": result_div.to_dict(),
         },
-        "pareto_front_size": len(pareto_front)
+        "pareto_front_size": len(pareto_front),
     }
 
-    with open(output_dir / "summary.json", 'w') as f:
+    with open(output_dir / "summary.json", "w") as f:
         json.dump(summary, f, indent=2)
 
     print(f"✅ Results saved to: {output_dir}")
@@ -285,7 +317,7 @@ def main():
             pareto_front,
             objectives=("coverage", "suite_size"),
             save_path=output_dir / "pareto_2d.png",
-            title="Pareto Front: Coverage vs Suite Size"
+            title="Pareto Front: Coverage vs Suite Size",
         )
 
         # Comparison
@@ -294,7 +326,7 @@ def main():
             baseline_metrics,
             best_metrics,
             save_path=output_dir / "comparison.png",
-            title="Baseline vs SBSE-Optimized Suite"
+            title="Baseline vs SBSE-Optimized Suite",
         )
 
         print("✅ Visualizations saved")
@@ -312,7 +344,9 @@ def main():
     print()
     print("📝 Summary:")
     print(f"   ✅ Generated {len(test_cases)} test cases")
-    print(f"   ✅ Optimized to {best_metrics.suite_size} TCs ({size_reduction:.1f}% reduction)")
+    print(
+        f"   ✅ Optimized to {best_metrics.suite_size} TCs ({size_reduction:.1f}% reduction)"
+    )
     print(f"   ✅ Maintained/improved coverage ({cov_improvement:+.1f}%)")
     print(f"   ✅ Increased diversity ({div_improvement:+.1f}%)")
     print(f"   ✅ Statistical significance confirmed (p < 0.05)")

@@ -42,7 +42,7 @@ class TestSuiteOptimizationProblem(Problem):
         self,
         test_cases_pool: List[TestCase],
         min_suite_size: int = 1,
-        max_suite_size: int = None
+        max_suite_size: int = None,
     ):
         """
         Args:
@@ -69,12 +69,7 @@ class TestSuiteOptimizationProblem(Problem):
         # - n_obj: número de objetivos = 4
         # - xl, xu: limites (0 ou 1 para cada TC)
         super().__init__(
-            n_var=self.n_test_cases,
-            n_obj=4,
-            n_constr=0,
-            xl=0,
-            xu=1,
-            vtype=int
+            n_var=self.n_test_cases, n_obj=4, n_constr=0, xl=0, xu=1, vtype=int
         )
 
     def _evaluate(self, X, out, *args, **kwargs):
@@ -147,7 +142,7 @@ class SBSEOptimizer:
         algorithm: str = "nsga2",
         population_size: int = 100,
         n_generations: int = 50,
-        seed: int = 42
+        seed: int = 42,
     ):
         """
         Args:
@@ -173,7 +168,7 @@ class SBSEOptimizer:
         self,
         test_cases: List[TestCase],
         min_suite_size: int = 1,
-        max_suite_size: int = None
+        max_suite_size: int = None,
     ):
         """
         Configura o problema de otimização.
@@ -186,7 +181,7 @@ class SBSEOptimizer:
         self.problem = TestSuiteOptimizationProblem(
             test_cases_pool=test_cases,
             min_suite_size=min_suite_size,
-            max_suite_size=max_suite_size
+            max_suite_size=max_suite_size,
         )
 
         # Configurar algoritmo
@@ -196,7 +191,7 @@ class SBSEOptimizer:
         """Configura o algoritmo de otimização."""
         # Operadores genéticos
         crossover = SBX(prob=0.9, eta=15)
-        mutation = PM(prob=1.0/self.problem.n_var, eta=20)
+        mutation = PM(prob=1.0 / self.problem.n_var, eta=20)
         sampling = IntegerRandomSampling()
 
         if self.algorithm_name == "nsga2":
@@ -205,22 +200,20 @@ class SBSEOptimizer:
                 sampling=sampling,
                 crossover=crossover,
                 mutation=mutation,
-                eliminate_duplicates=True
+                eliminate_duplicates=True,
             )
 
         elif self.algorithm_name == "nsga3":
             # NSGA-III requer direções de referência
             ref_dirs = get_reference_directions(
-                "das-dennis",
-                n_dim=self.problem.n_obj,
-                n_partitions=12
+                "das-dennis", n_dim=self.problem.n_obj, n_partitions=12
             )
             self.algorithm = NSGA3(
                 ref_dirs=ref_dirs,
                 sampling=sampling,
                 crossover=crossover,
                 mutation=mutation,
-                eliminate_duplicates=True
+                eliminate_duplicates=True,
             )
 
         elif self.algorithm_name == "spea2":
@@ -229,14 +222,12 @@ class SBSEOptimizer:
                 sampling=sampling,
                 crossover=crossover,
                 mutation=mutation,
-                eliminate_duplicates=True
+                eliminate_duplicates=True,
             )
 
         elif self.algorithm_name == "moead":
             ref_dirs = get_reference_directions(
-                "das-dennis",
-                n_dim=self.problem.n_obj,
-                n_partitions=12
+                "das-dennis", n_dim=self.problem.n_obj, n_partitions=12
             )
             self.algorithm = MOEAD(
                 ref_dirs=ref_dirs,
@@ -244,7 +235,7 @@ class SBSEOptimizer:
                 prob_neighbor_mating=0.7,
                 sampling=sampling,
                 crossover=crossover,
-                mutation=mutation
+                mutation=mutation,
             )
 
         else:
@@ -276,10 +267,10 @@ class SBSEOptimizer:
         self.result = minimize(
             self.problem,
             self.algorithm,
-            ('n_gen', self.n_generations),
+            ("n_gen", self.n_generations),
             seed=self.seed,
             verbose=verbose,
-            save_history=True
+            save_history=True,
         )
 
         self.execution_time = time.time() - start_time
@@ -316,8 +307,7 @@ class SBSEOptimizer:
         return pareto_solutions
 
     def select_best_solution(
-        self,
-        criterion: str = "coverage"
+        self, criterion: str = "coverage"
     ) -> Tuple[TestSuite, ObjectiveMetrics]:
         """
         Seleciona a melhor solução da fronteira de Pareto.
@@ -356,13 +346,13 @@ class SBSEOptimizer:
             def score(metrics):
                 norm_cov = metrics.coverage / max_cov if max_cov > 0 else 0
                 norm_div = metrics.diversity / max_div if max_div > 0 else 0
-                norm_size = min_size / metrics.suite_size if metrics.suite_size > 0 else 0
+                norm_size = (
+                    min_size / metrics.suite_size if metrics.suite_size > 0 else 0
+                )
 
                 # Distância ao ideal (1, 1, 1)
                 return np.sqrt(
-                    (1 - norm_cov)**2 +
-                    (1 - norm_div)**2 +
-                    (1 - norm_size)**2
+                    (1 - norm_cov) ** 2 + (1 - norm_div) ** 2 + (1 - norm_size) ** 2
                 )
 
             best = min(pareto_front, key=lambda x: score(x[1]))
@@ -372,10 +362,7 @@ class SBSEOptimizer:
             max_coverage = max(m.coverage for s, m in pareto_front)
             threshold = 0.8 * max_coverage
 
-            candidates = [
-                (s, m) for s, m in pareto_front
-                if m.coverage >= threshold
-            ]
+            candidates = [(s, m) for s, m in pareto_front if m.coverage >= threshold]
 
             if candidates:
                 best = min(candidates, key=lambda x: x[1].suite_size)
@@ -416,27 +403,27 @@ class SBSEOptimizer:
                     "min": min(coverages),
                     "max": max(coverages),
                     "mean": np.mean(coverages),
-                    "std": np.std(coverages)
+                    "std": np.std(coverages),
                 },
                 "diversity": {
                     "min": min(diversities),
                     "max": max(diversities),
                     "mean": np.mean(diversities),
-                    "std": np.std(diversities)
+                    "std": np.std(diversities),
                 },
                 "suite_size": {
                     "min": min(sizes),
                     "max": max(sizes),
                     "mean": np.mean(sizes),
-                    "std": np.std(sizes)
+                    "std": np.std(sizes),
                 },
                 "fault_detection_rate": {
                     "min": min(fault_rates),
                     "max": max(fault_rates),
                     "mean": np.mean(fault_rates),
-                    "std": np.std(fault_rates)
-                }
-            }
+                    "std": np.std(fault_rates),
+                },
+            },
         }
 
         return summary
@@ -458,12 +445,12 @@ class SBSEOptimizer:
         pareto_data = []
         for idx, (suite, metrics) in enumerate(pareto_front):
             suite_dict = suite.to_dict()
-            suite_dict['pareto_rank'] = idx
-            suite_dict['objectives'] = metrics.to_dict()
+            suite_dict["pareto_rank"] = idx
+            suite_dict["objectives"] = metrics.to_dict()
             pareto_data.append(suite_dict)
 
         pareto_file = output_dir / f"{run_name}_pareto_front.json"
-        with open(pareto_file, 'w') as f:
+        with open(pareto_file, "w") as f:
             json.dump(pareto_data, f, indent=2)
 
         print(f"✅ Pareto front saved: {pareto_file}")
@@ -471,7 +458,7 @@ class SBSEOptimizer:
         # Salvar resumo
         summary = self.get_optimization_summary()
         summary_file = output_dir / f"{run_name}_summary.json"
-        with open(summary_file, 'w') as f:
+        with open(summary_file, "w") as f:
             json.dump(summary, f, indent=2)
 
         print(f"✅ Summary saved: {summary_file}")
@@ -501,9 +488,9 @@ if __name__ == "__main__":
                 Action(j, "click", f"button_{j}")
                 for j in range(np.random.randint(5, 15))
             ],
-            coverage={f"Class.java:{k}" for k in range(i*5, (i+1)*5)},
+            coverage={f"Class.java:{k}" for k in range(i * 5, (i + 1) * 5)},
             activities_visited={f"Activity{k}" for k in range(i % 3 + 1)},
-            crashes=np.random.randint(0, 2)
+            crashes=np.random.randint(0, 2),
         )
         test_cases.append(tc)
 
@@ -511,11 +498,7 @@ if __name__ == "__main__":
     print()
 
     # Criar otimizador
-    optimizer = SBSEOptimizer(
-        algorithm="nsga2",
-        population_size=50,
-        n_generations=30
-    )
+    optimizer = SBSEOptimizer(algorithm="nsga2", population_size=50, n_generations=30)
 
     # Configurar problema
     optimizer.setup_problem(test_cases, min_suite_size=5, max_suite_size=15)
@@ -528,8 +511,12 @@ if __name__ == "__main__":
     print("Summary:")
     print(f"  Pareto front size: {summary['pareto_front_size']}")
     print(f"  Execution time: {summary['execution_time']:.2f}s")
-    print(f"  Coverage range: {summary['objectives']['coverage']['min']:.1f} - {summary['objectives']['coverage']['max']:.1f}")
-    print(f"  Suite size range: {summary['objectives']['suite_size']['min']} - {summary['objectives']['suite_size']['max']}")
+    print(
+        f"  Coverage range: {summary['objectives']['coverage']['min']:.1f} - {summary['objectives']['coverage']['max']:.1f}"
+    )
+    print(
+        f"  Suite size range: {summary['objectives']['suite_size']['min']} - {summary['objectives']['suite_size']['max']}"
+    )
     print()
 
     # Selecionar melhor solução
