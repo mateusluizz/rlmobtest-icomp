@@ -12,7 +12,8 @@ import shutil
 import string
 import time
 import xml.etree.ElementTree as ET
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from subprocess import call
 
 import numpy as np
@@ -22,7 +23,7 @@ import uiautomator2 as u2
 from matplotlib.pyplot import imread
 from PIL import Image
 
-from utils.constants import (
+from constants.paths import (
     CONFIG_PATH,
     COVERAGE_PATH,
     CRASHES_PATH,
@@ -100,7 +101,9 @@ class Action:
                 future.result(timeout=timeout)
                 return True
         except FuturesTimeoutError:
-            print(f"   ⏰ ACTION TIMEOUT: {self.action_type} took longer than {timeout}s")
+            print(
+                f"   ⏰ ACTION TIMEOUT: {self.action_type} took longer than {timeout}s"
+            )
             logging.debug(f"Action timeout: {self.action_type} after {timeout}s")
             # Força retorno à home do app
             print("   🏠 Forcing return to app home...")
@@ -181,7 +184,9 @@ class Action:
                             file.write(f"\n\n⏰ Timeout on long-click: {self.elem}")
                     else:
                         file.write(f"\n\n⚠️ Element not found: {self.elem}")
-                        print(f"   ⚠️ Element not found for long-click: {self.elem[:50]}")
+                        print(
+                            f"   ⚠️ Element not found for long-click: {self.elem[:50]}"
+                        )
 
                 elif self.action_type == "check":
                     if self._check_element_exists():
@@ -218,12 +223,17 @@ class Action:
 
             except Exception as e:
                 error_msg = str(e)
-                if "UiObjectNotFoundError" in error_msg or "UiObjectNotFoundException" in error_msg:
+                if (
+                    "UiObjectNotFoundError" in error_msg
+                    or "UiObjectNotFoundException" in error_msg
+                ):
                     file.write(f"\n\n⚠️ Element disappeared: {self.elem}")
                     print(f"   ⚠️ Element disappeared during action: {self.action_type}")
                     logging.debug(f"UiObjectNotFoundError: {self.elem}")
                 else:
-                    file.write(f"\n\n❌ Error executing {self.action_type}: {error_msg}")
+                    file.write(
+                        f"\n\n❌ Error executing {self.action_type}: {error_msg}"
+                    )
                     print(f"   ❌ Error: {error_msg[:80]}")
                     logging.debug(f"Action error: {e}")
 
@@ -457,10 +467,10 @@ class AndroidEnv:
         self,
         app,
         app_package,
-        coverage_enabled="no",
-        max_same_activity=15,
-        max_escape_attempts=3,
-        max_time_same_activity=120,
+        coverage_enabled: bool = False,
+        max_same_activity: int = 15,
+        max_escape_attempts: int = 3,
+        max_time_same_activity: int = 120,
     ):
         self.app = app
         self.app_package = app_package
@@ -602,7 +612,7 @@ class AndroidEnv:
 
         action.execute(self.nametc, self)
 
-        if self.coverage_enabled == "yes":
+        if self.coverage_enabled:
             self._get_current_coverage()
 
         file_crash = self.get_crash()
@@ -711,7 +721,9 @@ class AndroidEnv:
             self.same_activity_count = 0
             self.last_activity = activity
             self.escape_attempts = 0  # Reset escape attempts quando muda de activity
-            self.activity_start_time = current_time  # Reset timer quando muda de activity
+            self.activity_start_time = (
+                current_time  # Reset timer quando muda de activity
+            )
 
         # Verifica stuck por TEMPO (prioridade mais alta)
         if time_in_activity >= self.max_time_same_activity:
@@ -1511,7 +1523,7 @@ class AndroidEnv:
 
     def copy_coverage(self):
         """Copy coverage file with timestamp."""
-        if self.coverage_enabled == "yes":
+        if self.coverage_enabled:
             timestr = time.strftime("%Y%m%d-%H%M%S")
             try:
                 shutil.copy(

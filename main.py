@@ -46,10 +46,20 @@ from rich.progress import (
 )
 from rich.table import Table
 
+from constants.paths import (
+    CHECKPOINTS_PATH,
+    CONFIG_JSON_PATH,
+    CRASHES_PATH,
+    ERRORS_PATH,
+    LOGS_PATH,
+    METRICS_PATH,
+    SCREENSHOTS_PATH,
+    TEST_CASES_PATH,
+    TRANSCRIPTIONS_PATH,
+)
 from environment import AndroidEnv
 from transcription import transcriber as tm
 from utils.config_reader import ConfRead
-from utils.constants import CONFIG_PATH, LOGS_PATH, TEST_CASES_PATH, TRANSCRIPTIONS_PATH
 
 # =============================================================================
 # CONFIGURATION
@@ -60,10 +70,12 @@ console = Console()
 
 # Ensure directories exist
 LOGS_PATH.mkdir(parents=True, exist_ok=True)
-CHECKPOINTS_PATH = Path("output/checkpoints")
 CHECKPOINTS_PATH.mkdir(parents=True, exist_ok=True)
-METRICS_PATH = Path("output/metrics")
 METRICS_PATH.mkdir(parents=True, exist_ok=True)
+TEST_CASES_PATH.mkdir(parents=True, exist_ok=True)
+ERRORS_PATH.mkdir(parents=True, exist_ok=True)
+SCREENSHOTS_PATH.mkdir(parents=True, exist_ok=True)
+CRASHES_PATH.mkdir(parents=True, exist_ok=True)
 
 
 def setup_logging(run_id: str):
@@ -751,7 +763,7 @@ def calculate_reward(
 class TrainingProgress:
     """Gerenciador de progresso do treinamento com Rich."""
 
-    def __init__(self, max_time=None, max_episodes=None):
+    def __init__(self, max_time: int | None = None, max_episodes: int | None = None):
         self.max_time = max_time
         self.max_episodes = max_episodes
         self.start_time = time.time()
@@ -824,7 +836,7 @@ class TrainingProgress:
         return time.time() - self.start_time
 
 
-def run(mode="improved", max_time=None, max_episodes=None):
+def run(mode="improved", max_time: int | None = None, max_episodes: int | None = None):
     """
     Execute the RL agent training loop.
 
@@ -839,19 +851,15 @@ def run(mode="improved", max_time=None, max_episodes=None):
     # Setup logging for this run
     run_logger, log_path = setup_logging(run_id)
 
+    # Setup directories
+
     # Read settings
-    settings_reader = ConfRead(str(CONFIG_PATH / "settings.txt"))
-    lines = settings_reader.read_setting()
-    apk = lines[0]
-    app_package = lines[1]
-    cov = lines[4]
-    req = lines[5]
-    settings_time = int(lines[6])
-    req_enabled = req == "yes"
+    settings_reader = ConfRead(CONFIG_JSON_PATH.as_posix())
+    settings = settings_reader.read_setting()
 
     # Determine training limit
     if max_time is None and max_episodes is None:
-        max_time = settings_time  # Use settings.txt value
+        max_time = settings.time
 
     training_mode = "time" if max_time else "episodes"
     training_limit = max_time if max_time else max_episodes
@@ -867,7 +875,12 @@ def run(mode="improved", max_time=None, max_episodes=None):
 
     # Initialize environment
     console.print("\n[yellow]📱 Initializing Android environment...[/yellow]")
-    env = AndroidEnv(apk, app_package, coverage_enabled=cov, max_same_activity=30)
+    env = AndroidEnv(
+        settings.apk_name,
+        settings.package_name,
+        coverage_enabled=settings.is_coverage,
+        max_same_activity=30,
+    )
     env.install_app()
     console.print("[green]✓ Environment ready[/green]")
 
@@ -911,8 +924,10 @@ def run(mode="improved", max_time=None, max_episodes=None):
         )
     else:
         train_info.add_row("Episodes", str(training_limit))
-    train_info.add_row("App Package", app_package)
-    train_info.add_row("Requirements", "Enabled" if req_enabled else "Disabled")
+    train_info.add_row("App Package", settings.package_name)
+    train_info.add_row(
+        "Requirements", "Enabled" if settings.is_req_analysis else "Disabled"
+    )
 
     console.print(
         Panel(
@@ -964,7 +979,7 @@ def run(mode="improved", max_time=None, max_episodes=None):
             env.nametc = env._create_tcfile(activity_actual)
             episode_reward = 0
 
-            if req_enabled:
+            if settings.is_req_analysis:
                 env.get_requirements()
 
             for t in count():
@@ -984,7 +999,7 @@ def run(mode="improved", max_time=None, max_episodes=None):
                         previous_activity,
                         activities,
                         False,
-                        req_enabled,
+                        settings.is_req_analysis,
                         env,
                         actions,
                     )
@@ -1218,6 +1233,11 @@ Note: --time and --episodes are mutually exclusive.
     print_device_info()
 
     # Run training
+    run(mode=args.mode, max_time=args.time, max_episodes=args.episodes)
+
+
+if __name__ == "__main__":
+    main()
     run(mode=args.mode, max_time=args.time, max_episodes=args.episodes)
 
 

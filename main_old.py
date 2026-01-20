@@ -12,10 +12,10 @@ from itertools import count
 import torch
 
 from agent import dqn_model as d
+from constants.paths import CONFIG_PATH, LOGS_PATH, TEST_CASES_PATH, TRANSCRIPTIONS_PATH
 from environment import AndroidEnv
 from transcription import transcriber as tm
 from utils.config_reader import ConfRead
-from utils.constants import CONFIG_PATH, LOGS_PATH, TEST_CASES_PATH, TRANSCRIPTIONS_PATH
 
 # Ensure logs directory exists
 LOGS_PATH.mkdir(parents=True, exist_ok=True)
@@ -30,7 +30,7 @@ logging.basicConfig(
 
 # Read settings from config file
 settings_reader = ConfRead(str(CONFIG_PATH / "settings.txt"))
-lines = settings_reader.read_setting()
+lines = settings_reader.read_setting_tuple()
 apk = lines[0]
 app_package = lines[1]
 wid = lines[2]

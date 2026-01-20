@@ -6,11 +6,11 @@ Module for transcribing test cases using LangChain with Ollama.
 
 import os
 
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_ollama import ChatOllama
-from langchain_core.messages import HumanMessage, AIMessage
 
+from constants.paths import FEW_SHOT_EXAMPLES_PATH
 from transcription import similarity_filter
-from utils.constants import FEW_SHOT_EXAMPLES_PATH
 
 # Default Ollama model configuration
 DEFAULT_MODEL = "llama3.2"
@@ -63,19 +63,31 @@ def build_few_shot_messages(input_text: str) -> list:
 
     messages = [
         # Example 1
-        HumanMessage(content=read_text_file(
-            scripts_path / "TC_.activity.account.AccountsActivity_20210411-144635.txt"
-        )),
-        AIMessage(content=read_text_file(
-            transcriptions_path / "TC_.activity.account.AccountsActivity_20210411-144635.txt"
-        )),
+        HumanMessage(
+            content=read_text_file(
+                scripts_path
+                / "TC_.activity.account.AccountsActivity_20210411-144635.txt"
+            )
+        ),
+        AIMessage(
+            content=read_text_file(
+                transcriptions_path
+                / "TC_.activity.account.AccountsActivity_20210411-144635.txt"
+            )
+        ),
         # Example 2
-        HumanMessage(content=read_text_file(
-            scripts_path / "TC_.activity.account.TransferActivity_20210411-144754.txt"
-        )),
-        AIMessage(content=read_text_file(
-            transcriptions_path / "TC_.activity.account.TransferActivity_20210411-144754.txt"
-        )),
+        HumanMessage(
+            content=read_text_file(
+                scripts_path
+                / "TC_.activity.account.TransferActivity_20210411-144754.txt"
+            )
+        ),
+        AIMessage(
+            content=read_text_file(
+                transcriptions_path
+                / "TC_.activity.account.TransferActivity_20210411-144754.txt"
+            )
+        ),
         # Current input
         HumanMessage(content=input_text),
     ]
@@ -122,7 +134,7 @@ def the_world_is_our(input_folder, output_folder, model_name: str = DEFAULT_MODE
 
             output_file_path = os.path.join(output_folder, tc_name)
             write_text_file(output_file_path, output_text)
-            print(f"[{i+1}/{len(list_docs)}] Saved: {output_file_path}")
+            print(f"[{i + 1}/{len(list_docs)}] Saved: {output_file_path}")
 
         except Exception as e:
             print(f"Error processing {doc_path}: {e}")
