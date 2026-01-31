@@ -1,3 +1,4 @@
-    Activities=[ActivityRecord{2e973e5 u0 protect.budgetwatch/.MainActivity t150}, ActivityRecord{4063d8b u0 protect.budgetwatch/.TransactionActivity t150}, ActivityRecord{9088e1e u0 protect.budgetwatch/.TransactionViewActivity t150}]
+    Activities=[ActivityRecord{70fbac u0 protect.budgetwatch/.MainActivity t245}, ActivityRecord{268647b u0 protect.budgetwatch/.ImportExportActivity t245}]
     Activities=[ActivityRecord{468bb90 u0 com.android.chrome/org.chromium.chrome.browser.ChromeTabbedActivity t144}]
+    Activities=[ActivityRecord{49452d u0 com.google.android.googlequicksearchbox/com.google.android.apps.search.lens.LensientActivity t180}]
     Activities=[ActivityRecord{a4b02c0 u0 com.motorola.launcher3/com.android.launcher3.CustomizationPanelLauncher t46}]

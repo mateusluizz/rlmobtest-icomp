@@ -20,6 +20,7 @@ import numpy as np
 import torch
 import torchvision.transforms as T
 import uiautomator2 as u2
+from uiautomator2.exceptions import UiObjectNotFoundError
 from matplotlib.pyplot import imread
 from PIL import Image
 
@@ -41,6 +42,19 @@ resize = T.Compose(
 
 # Device for PyTorch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def safe_get_child_count(gui_obj, device_ref):
+    """
+    Safely get child count from UI object.
+    Returns 0 and presses back if element not found.
+    """
+    try:
+        return gui_obj.info["childCount"]
+    except UiObjectNotFoundError:
+        logging.debug("UiObjectNotFoundError - pressing back")
+        device_ref.press("back")
+        return 0
 
 
 class Action:
@@ -1135,7 +1149,7 @@ class AndroidEnv:
                 if text != "":
                     gui_obj = self.device(text=text)
                     for gui in gui_obj:
-                        count_child = gui.info["childCount"]
+                        count_child = safe_get_child_count(gui, self.device)
                         if elem_tc not in action_tc:
                             target = gui.child() if count_child > 0 else gui
                             actions.append(
@@ -1163,7 +1177,7 @@ class AndroidEnv:
                 if resourceid and not appended:
                     gui_obj = self.device(resourceId=resourceid)
                     if elem_tc not in action_tc:
-                        count_child = gui_obj.info["childCount"]
+                        count_child = safe_get_child_count(gui_obj, self.device)
                         target = gui_obj.child() if count_child > 0 else gui_obj
                         actions.append(
                             Action(
@@ -1232,7 +1246,7 @@ class AndroidEnv:
                     if text:
                         gui_obj = self.device(text=text)
                         for gui in gui_obj:
-                            count_child = gui.info["childCount"]
+                            count_child = safe_get_child_count(gui, self.device)
                             target = gui.child() if count_child > 0 else gui
                             actions.append(
                                 Action(
@@ -1258,7 +1272,7 @@ class AndroidEnv:
 
                     if resourceid and not appended:
                         gui_obj = self.device(resourceId=resourceid)
-                        count_child = gui_obj.info["childCount"]
+                        count_child = safe_get_child_count(gui_obj, self.device)
                         target = gui_obj.child() if count_child > 0 else gui_obj
                         actions.append(
                             Action(
@@ -1284,7 +1298,7 @@ class AndroidEnv:
 
                     if contentdesc and not appended:
                         gui_obj = self.device(description=contentdesc)
-                        count_child = gui_obj.info["childCount"]
+                        count_child = safe_get_child_count(gui_obj, self.device)
                         target = gui_obj.child() if count_child > 0 else gui_obj
                         actions.append(
                             Action(
@@ -1313,7 +1327,7 @@ class AndroidEnv:
                         if classname not in last_class:
                             last_class.append(classname)
                             for gui in gui_obj:
-                                count_child = gui.info["childCount"]
+                                count_child = safe_get_child_count(gui, self.device)
                                 target = gui.child() if count_child > 0 else gui
                                 actions.append(
                                     Action(
