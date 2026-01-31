@@ -5,6 +5,7 @@ Module for transcribing test cases using LangChain with Ollama.
 """
 
 import os
+from pathlib import Path
 
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_ollama import ChatOllama
@@ -35,7 +36,7 @@ def create_llm(model_name: str = DEFAULT_MODEL, temperature: float = 0.5):
 
 def read_text_file(file_path):
     """Read and clean text from a file."""
-    with open(file_path, "r") as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         text = file.read()
         text = text.strip()
         text = "\n".join(line for line in text.splitlines() if line.strip())
@@ -44,7 +45,7 @@ def read_text_file(file_path):
 
 def write_text_file(file_path, text):
     """Write text to a file."""
-    with open(file_path, "w") as file:
+    with open(file_path, "w", encoding="utf-8") as file:
         file.write(text)
 
 
@@ -61,40 +62,33 @@ def build_few_shot_messages(input_text: str) -> list:
     scripts_path = FEW_SHOT_EXAMPLES_PATH / "scripts"
     transcriptions_path = FEW_SHOT_EXAMPLES_PATH / "transcriptions"
 
-    messages = [
-        # Example 1
-        HumanMessage(
-            content=read_text_file(
-                scripts_path
-                / "TC_.activity.account.AccountsActivity_20210411-144635.txt"
-            )
+    messages = []
+
+    # Pairs of (script_filename, transcription_filename)
+    example_pairs = [
+        (
+            "TC_.ImportExportActivity_20210401-002546.txt",
+            "Output2TC_.ImportExportActivity_20210401-002546.txt",
         ),
-        AIMessage(
-            content=read_text_file(
-                transcriptions_path
-                / "TC_.activity.account.AccountsActivity_20210411-144635.txt"
-            )
-        ),
-        # Example 2
-        HumanMessage(
-            content=read_text_file(
-                scripts_path
-                / "TC_.activity.account.TransferActivity_20210411-144754.txt"
-            )
-        ),
-        AIMessage(
-            content=read_text_file(
-                transcriptions_path
-                / "TC_.activity.account.TransferActivity_20210411-144754.txt"
-            )
-        ),
-        # Current input
-        HumanMessage(content=input_text),
     ]
+
+    for script_file, transcription_file in example_pairs:
+        script_path = scripts_path / script_file
+        transcription_path = transcriptions_path / transcription_file
+
+        if script_path.exists() and transcription_path.exists():
+            messages.append(HumanMessage(content=read_text_file(script_path)))
+            messages.append(AIMessage(content=read_text_file(transcription_path)))
+
+    # Current input
+    messages.append(HumanMessage(content=input_text))
+
     return messages
 
 
-def the_world_is_our(input_folder, output_folder, model_name: str = DEFAULT_MODEL):
+def the_world_is_our(
+    input_folder: str | Path, output_folder: str, model_name: str = DEFAULT_MODEL
+):
     """
     Transcribe test cases from input folder to output folder using Ollama.
 

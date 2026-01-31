@@ -18,6 +18,13 @@
             "request": "launch",
             "program": "main_old.py",
             "console": "integratedTerminal"
-        }
+        },
+        {
+            "name": "Transcriber",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "transcription.crew_transcriber",
+            "cwd": "${workspaceFolder}"
+        },
     ]
 }
