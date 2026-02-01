@@ -12,78 +12,82 @@
 
 ---
 
-## 📖 Sobre o Projeto
+## Sobre o Projeto
 
 **RLMobTest** é uma ferramenta de teste automatizado para aplicativos Android que utiliza **Deep Q-Networks (DQN)** para explorar inteligentemente a interface do usuário e gerar casos de teste. O sistema aprende a navegar por aplicativos Android de forma autônoma, descobrindo novas funcionalidades, testando fluxos de trabalho e gerando documentação de casos de teste em linguagem natural.
 
-### 🎯 Características Principais
+### Características Principais
 
 - **🤖 Deep Q-Learning Aprimorado**: Implementação com Double DQN, Dueling Networks e Prioritized Experience Replay (PER)
 - **📱 Automação Android**: Integração com UIAutomator2 para controle de dispositivos e emuladores
 - **📊 Métricas em Tempo Real**: Monitoramento visual de treinamento com Rich UI
 - **💾 Sistema de Checkpoints**: Salvamento automático de progresso e recuperação de treinamento
-- **📝 Transcrição Inteligente**: Geração automática de casos de teste em linguagem natural usando LLMs
-- **🎨 Interface Visual**: Progresso e estatísticas com visualização colorida no terminal
+- **📝 Transcrição Inteligente**: Geração automática de casos de teste em linguagem natural usando CrewAI + LLMs
+- **🎨 CLI Moderna**: Interface de linha de comando com Typer
 
 ---
 
-## 🏗️ Arquitetura
+## Arquitetura
 
 ```
-rlmobtest-mateus/
+rlmobtest-icomp/
 │
-├── agent/                      # Modelos DQN e lógica de agentes RL
-│   ├── dqn_model.py           # Redes neurais (Original, Dueling DQN)
-│   └── __init__.py
+├── rlmobtest/                     # Pacote principal
+│   ├── __init__.py
+│   ├── __main__.py               # Entry point
+│   ├── cli.py                    # CLI com Typer
+│   │
+│   ├── models/                   # Modelos DQN e lógica de agentes RL
+│   │   ├── dqn_model.py          # Redes neurais (Original, Dueling DQN)
+│   │   └── __init__.py
+│   │
+│   ├── android/                  # Ambiente Android
+│   │   ├── android_env.py        # Interface com dispositivos Android
+│   │   └── __init__.py
+│   │
+│   ├── transcription/            # Sistema de geração de casos de teste
+│   │   ├── transcriber.py        # Transcrição usando LLMs
+│   │   ├── crew_transcriber.py   # Transcrição com CrewAI
+│   │   ├── similarity_filter.py  # Filtragem de casos duplicados
+│   │   └── __init__.py
+│   │
+│   ├── browser/                  # Automação web (opcional)
+│   │   ├── web_automation.py
+│   │   └── __init__.py
+│   │
+│   ├── utils/                    # Utilitários
+│   │   ├── config_reader.py      # Leitor de configurações (Pydantic)
+│   │   └── __init__.py
+│   │
+│   ├── constants/                # Constantes e paths
+│   │   ├── paths.py              # Caminhos do projeto
+│   │   └── __init__.py
+│   │
+│   ├── config/                   # Configurações
+│   │   ├── settings.json         # Configurações principais
+│   │   └── requirements.csv      # Requisitos (happy paths)
+│   │
+│   ├── data/                     # Dados de treinamento
+│   │   └── few_shot_examples/    # Exemplos para few-shot learning
+│   │
+│   └── output/                   # Saídas geradas
+│       ├── test_cases/           # Casos de teste gerados
+│       ├── transcriptions/       # Transcrições em NL
+│       ├── screenshots/          # Capturas de tela
+│       ├── checkpoints/          # Checkpoints do modelo
+│       ├── metrics/              # Métricas de treinamento
+│       └── logs/                 # Logs de execução
 │
-├── environment/                # Ambiente Android
-│   ├── android_env.py         # Interface com dispositivos Android
-│   └── __init__.py
+├── docs/                         # Documentação
+│   └── DQN_MODEL_EXPLICACAO.md   # Explicação detalhada do DQN
 │
-├── transcription/              # Sistema de geração de casos de teste
-│   ├── transcriber.py         # Transcrição usando LLMs
-│   ├── similarity_filter.py   # Filtragem de casos duplicados
-│   └── __init__.py
-│
-├── browser/                    # Automação web (opcional)
-│   ├── web_automation.py
-│   └── __init__.py
-│
-├── utils/                      # Utilitários
-│   ├── config_reader.py       # Leitor de configurações
-│   ├── constants.py           # Constantes do projeto
-│   └── __init__.py
-│
-├── config/                     # Configurações
-│   ├── settings.txt           # Configurações principais
-│   ├── api_keys.py            # Chaves de API
-│   └── requirements.csv       # Requisitos (happy paths)
-│
-├── data/                       # Dados de treinamento
-│   └── few_shot_examples/     # Exemplos para few-shot learning
-│
-├── output/                     # Saídas geradas
-│   ├── test_cases/            # Casos de teste gerados
-│   ├── transcriptions/        # Transcrições em NL
-│   ├── screenshots/           # Capturas de tela
-│   ├── checkpoints/           # Checkpoints do modelo
-│   ├── metrics/               # Métricas de treinamento
-│   └── logs/                  # Logs de execução
-│
-├── notebooks/                  # Jupyter notebooks para análise
-│   ├── dqn_analysis.ipynb
-│   ├── rl_experiments.ipynb
-│   └── state_analysis.ipynb
-│
-├── main.py                     # Script principal
-├── requirements.txt            # Dependências Python
-└── pyproject.toml             # Configuração do projeto
-
+├── pyproject.toml                # Configuração do projeto e dependências
+└── README.md
 ```
 
 ---
 
-## 🚀 Instalação
+## Instalação
 
 ### Pré-requisitos
 
@@ -95,26 +99,25 @@ rlmobtest-mateus/
 ### 1. Clone o Repositório
 
 ```bash
-git clone https://github.com/seu-usuario/rlmobtest-mateus.git
-cd rlmobtest-mateus
+git clone https://github.com/mateusluizz/rlmobtest-icomp.git
+cd rlmobtest-icomp
 ```
 
-### 2. Crie um Ambiente Virtual
+### 2. Instale as Dependências
+
+**Com uv (recomendado):**
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# ou
-.venv\Scripts\activate  # Windows
+uv sync
 ```
 
-### 3. Instale as Dependências
+**Ou com pip:**
 
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
-### 4. Configure o Android
+### 3. Configure o Android
 
 ```bash
 # Verifique se o ADB está funcionando
@@ -124,85 +127,110 @@ adb devices
 python -m uiautomator2 init
 ```
 
-### 5. Configure o Projeto
+### 4. Configure o Projeto
 
-Edite o arquivo [config/settings.txt](config/settings.txt):
+Edite o arquivo `rlmobtest/config/settings.json`:
 
-```
-APK NAME:seu_app.apk
-PACKAGE:com.seu.pacote
-RESOLUTION:1080x1920
-COVERAGE:no
-REQUIREMENT:no
-TIME:3600
+```json
+[
+    {
+        "apk_name": "seu_app.apk",
+        "package_name": "com.seu.pacote",
+        "resolution": "1080x1920",
+        "is_coverage": false,
+        "is_req": false,
+        "time": 3600
+    }
+]
 ```
 
 ---
 
-## 💻 Uso
+## Uso
 
-### Modo Básico (DQN Aprimorado)
+### CLI com Typer
 
-```bash
-python main.py
-```
+O RLMobTest utiliza uma CLI moderna com Typer. Após a instalação, o comando `rlmobtest` fica disponível.
 
-### Modo Original (DQN Legado)
+### Comandos Disponíveis
 
 ```bash
-python main.py --mode original
+# Ver ajuda geral
+rlmobtest --help
+
+# Ver informações do ambiente
+rlmobtest info
+
+# Treinar o agente
+rlmobtest train --help
 ```
 
-### Treinar por Tempo Específico
+### Treinamento
 
 ```bash
-python main.py --time 600  # 10 minutos
+# Usa configurações do settings.json
+rlmobtest train
+
+# Treinar por tempo específico (10 minutos)
+rlmobtest train --time 600
+rlmobtest train -t 600
+
+# Treinar por número de episódios
+rlmobtest train --episodes 50
+rlmobtest train -e 50
+
+# Usar modo DQN original
+rlmobtest train --mode original
+rlmobtest train -m original
+
+# Continuar de um checkpoint
+rlmobtest train --checkpoint path/to/checkpoint.pt
+rlmobtest train -c path/to/checkpoint.pt
 ```
 
-### Treinar por Número de Episódios
+### Opções do Comando `train`
+
+| Argumento | Alias | Descrição | Padrão |
+|-----------|-------|-----------|--------|
+| `--mode` | `-m` | Modo do agente: `improved` ou `original` | `improved` |
+| `--time` | `-t` | Tempo de treinamento em segundos | Valor de `settings.json` |
+| `--episodes` | `-e` | Número de episódios | Ilimitado (baseado em tempo) |
+| `--checkpoint` | `-c` | Caminho para checkpoint a continuar | Nenhum |
+
+> **Nota:** `--time` e `--episodes` são mutuamente exclusivos.
+
+### Executando como Módulo
 
 ```bash
-python main.py --episodes 50
+# Alternativa ao comando rlmobtest
+python -m rlmobtest train
 ```
-
-### Opções Disponíveis
-
-```bash
-python main.py --help
-```
-
-| Argumento | Descrição | Padrão |
-|-----------|-----------|--------|
-| `--mode` | Modo do agente: `improved` ou `original` | `improved` |
-| `--time` | Tempo de treinamento em segundos | Valor de `settings.txt` |
-| `--episodes` | Número de episódios | Ilimitado (baseado em tempo) |
-| `--checkpoint` | Caminho para checkpoint a continuar | Nenhum |
 
 ---
 
-## 📊 Saída e Resultados
+## Saída e Resultados
 
 ### Durante o Treinamento
 
 O sistema exibe em tempo real:
 
-- 🎮 **Número do Episódio** e epsilon (ε)
-- 📈 **Recompensas** acumuladas
-- 🎯 **Q-values** estimados
-- 📉 **Loss** da rede neural
-- ⏱️ **Duração** de cada episódio
-- 📊 **Progresso** visual com barra
+-🎮 **Número do Episódio** e epsilon
+-📈 **Recompensas** acumuladas
+-🎯 **Q-values** estimados
+-📉 **Loss** da rede neural
+-⏱️ **Duração** de cada episódio
+-📊 **Progresso** visual com barra
 
 ### Após o Treinamento
 
-#### 1. **Checkpoints** (`output/checkpoints/`)
+#### 1. **Checkpoints** (`rlmobtest/output/checkpoints/`)
 Modelos salvos automaticamente contendo:
 - Estado da rede neural
 - Otimizador
 - Métricas de treinamento
 - Número de episódios/steps
 
-#### 2. **Métricas** (`output/metrics/`)
+#### 2. **Métricas** (`rlmobtest/output/metrics/`)
 JSON com dados detalhados:
 ```json
 {
@@ -217,25 +245,25 @@ JSON com dados detalhados:
 }
 ```
 
-#### 3. **Casos de Teste** (`output/test_cases/`)
+#### 3. **Casos de Teste** (`rlmobtest/output/test_cases/`)
 Scripts de teste gerados automaticamente
 
-#### 4. **Transcrições** (`output/transcriptions/`)
+#### 4. **Transcrições** (`rlmobtest/output/transcriptions/`)
 Casos de teste em linguagem natural usando LLM
 
-#### 5. **Screenshots** (`output/screenshots/`)
+#### 5. **Screenshots** (`rlmobtest/output/screenshots/`)
 Capturas de tela de cada ação executada
 
 ---
 
-## 🧠 Algoritmos Implementados
+## Algoritmos Implementados
 
 ### DQN Original
 - Rede convolucional padrão
 - Experience Replay básico
 - Epsilon-greedy exploration
 
-### DQN Aprimorado ✨
+### DQN Aprimorado
 - **Double DQN**: Reduz superestimação de Q-values
 - **Dueling Networks**: Separa Value e Advantage streams
 - **Target Network**: Estabiliza o treinamento
@@ -243,9 +271,11 @@ Capturas de tela de cada ação executada
 - **Gradient Clipping**: Previne explosão de gradientes
 - **Soft Updates**: Atualização suave da target network
 
+Para uma explicação detalhada do modelo DQN, veja [docs/DQN_MODEL_EXPLICACAO.md](docs/DQN_MODEL_EXPLICACAO.md).
+
 ---
 
-## 📐 Sistema de Recompensas
+## Sistema de Recompensas
 
 | Evento | Recompensa |
 |--------|-----------|
@@ -259,52 +289,23 @@ Capturas de tela de cada ação executada
 
 ---
 
-## 🔧 Configuração Avançada
-
-### Ajustar Hiperparâmetros
-
-Edite os valores em [main.py](main.py:420-430):
-
-```python
-# Hiperparâmetros do DQN Aprimorado
-self.batch_size = 128
-self.gamma = 0.99           # Fator de desconto
-self.eps_start = 1.0        # Epsilon inicial
-self.eps_end = 0.01         # Epsilon final
-self.eps_decay = 10000      # Taxa de decaimento
-self.target_update = 1000   # Frequência de atualização da target network
-```
-
-### Usar GPU
-
-O sistema detecta automaticamente CUDA:
-
-```python
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-```
-
-Para forçar CPU:
-```python
-device = torch.device("cpu")
-```
-
----
-
-## 📚 Dependências Principais
+## Dependências Principais
 
 | Biblioteca | Versão | Propósito |
 |------------|--------|-----------|
 | **PyTorch** | 2.9+ | Deep Learning framework |
-| **NumPy** | - | Computação numérica |
-| **UIAutomator2** | - | Automação Android |
+| **Typer** | 0.15+ | CLI moderna |
+| **UIAutomator2** | 3.5+ | Automação Android |
 | **Rich** | - | Interface visual no terminal |
-| **Langchain-Ollama** | 1.0+ | Integração com LLMs para transcrição |
+| **Pydantic** | - | Validação de configurações |
+| **CrewAI** | 1.9+ | Agentes de IA para transcrição |
+| **Langchain-Ollama** | 1.0+ | Integração com LLMs locais |
 | **Pandas** | 2.3+ | Manipulação de dados |
 | **Matplotlib** | 3.10+ | Visualização de métricas |
 
 ---
 
-## 🤝 Contribuindo
+## Contribuindo
 
 Contribuições são bem-vindas! Por favor:
 
@@ -316,21 +317,21 @@ Contribuições são bem-vindas! Por favor:
 
 ---
 
-## 📄 Licença
+## Licença
 
 Este projeto é distribuído sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
 
 ---
 
-## 📧 Contato
+## Contato
 
 **Mateus Luiz** - [@mateusluizz](https://github.com/mateusluizz)
 
-**Link do Projeto**: [https://github.com/mateusluizz/rlmobtest-mateus](https://github.com/mateusluizz/rlmobtest-mateus)
+**Link do Projeto**: [https://github.com/mateusluizz/rlmobtest-icomp](https://github.com/mateusluizz/rlmobtest-icomp)
 
 ---
 
-## 🙏 Agradecimentos
+## Agradecimentos
 
 - Baseado no trabalho original de **Eliane Collins**
 - Inspirado em pesquisas de RL aplicado a testes de software
@@ -338,7 +339,7 @@ Este projeto é distribuído sob a licença MIT. Veja o arquivo `LICENSE` para m
 
 ---
 
-## 📖 Referências
+## Referências
 
 - [Deep Q-Learning (DQN) - DeepMind](https://www.nature.com/articles/nature14236)
 - [Double DQN](https://arxiv.org/abs/1509.06461)
@@ -349,6 +350,6 @@ Este projeto é distribuído sob a licença MIT. Veja o arquivo `LICENSE` para m
 
 <div align="center">
 
-**⭐ Se este projeto foi útil, considere dar uma estrela!**
+**Se este projeto foi útil, considere dar uma estrela!**
 
 </div>

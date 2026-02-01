@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Android environment for RL-based mobile app testing.
 """
@@ -20,11 +19,11 @@ import numpy as np
 import torch
 import torchvision.transforms as T
 import uiautomator2 as u2
-from uiautomator2.exceptions import UiObjectNotFoundError
 from matplotlib.pyplot import imread
 from PIL import Image
+from uiautomator2.exceptions import UiObjectNotFoundError
 
-from constants.paths import (
+from rlmobtest.constants.paths import (
     CONFIG_PATH,
     COVERAGE_PATH,
     CRASHES_PATH,
@@ -33,7 +32,7 @@ from constants.paths import (
     TEST_CASES_PATH,
 )
 
-FNULL = open(os.devnull, "w")
+FNULL = open(os.devnull, "w", encoding="utf-8")
 
 # Image resize transform
 resize = T.Compose(
@@ -588,27 +587,31 @@ class AndroidEnv:
     def _get_activity(self):
         """Get the current activity name."""
         try:
-            with open("std.txt", "w", encoding="utf-8") as file:
-                self._exec(
-                    "adb shell dumpsys activity recents | grep 'ActivityRecord' > std.txt"
-                )
-                for line in file.readlines():
-                    if self.app_package in line:
-                        x = line.split(",")
-                        break
-                act = x[-1]
-                act = act.split(" ")
-                for content in enumerate(act):
-                    if self.app_package in content:
-                        activityname = content
-                        break
-                indices = [i for i, s in enumerate(act) if self.app_package in s]
-                if len(indices) == 0:
-                    activityname = "outapp"
-                else:
-                    activityname = act[indices[0]]
-        except Exception:
-            activityname = "home"
+            # Execute ADB command and write to file
+            self._exec(
+                "adb shell dumpsys activity recents | grep 'ActivityRecord' > std.txt"
+            )
+
+            # Read the file
+            with open("std.txt", "r", encoding="utf-8") as file:
+                lines = file.readlines()
+
+            activityname = "outapp"
+            for line in lines:
+                if self.app_package in line:
+                    parts = line.split(",")
+                    if parts:
+                        act_part = parts[-1].split()
+                        for item in act_part:
+                            if self.app_package in item:
+                                activityname = item
+                                break
+                    break
+
+        except Exception as e:
+            logging.debug(f"Error getting activity: {e}")
+            activityname = "outapp"
+
         return activityname
 
     def step(self, action):
@@ -648,7 +651,11 @@ class AndroidEnv:
                 filesizec = os.path.getsize(crash_file_path)
                 if filesizec > 0:
                     crash = True
-                    with open(f"{self.test_case_path}/{self.nametc}", mode="a") as file:
+                    with open(
+                        f"{self.test_case_path}/{self.nametc}",
+                        mode="a",
+                        encoding="utf-8",
+                    ) as file:
                         file.write(f"\n\nGot Crash, see crashes/{file_crash}")
                     print("crash == true")
                     self.copy_coverage()
@@ -659,9 +666,13 @@ class AndroidEnv:
             if os.path.exists(error_file_path):
                 filesizerr = os.path.getsize(error_file_path)
                 if filesizerr > 0:
-                    with open(f"{self.test_case_path}/{self.nametc}", mode="a") as file:
+                    with open(
+                        f"{self.test_case_path}/{self.nametc}",
+                        mode="a",
+                        encoding="utf-8",
+                    ) as file:
                         file.write(f"\n\nGot Error, see errors/{file_error}")
-                    logging.debug("error:" + file_error)
+                    logging.debug("error: %s", file_error)
                     print("errors == true")
 
         return self._get_screen(), self._get_actions(activity), crash, activity

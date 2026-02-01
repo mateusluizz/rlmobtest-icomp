@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Configuration reader module for parsing settings files.
 """
@@ -33,8 +32,8 @@ class AppConfig(BaseModel):
         try:
             int(parts[0])
             int(parts[1])
-        except ValueError:
-            raise ValueError("Resolution width and height must be integers")
+        except ValueError as e:
+            raise ValueError("Resolution width and height must be integers") from e
         return v
 
     @property
@@ -81,7 +80,7 @@ class ConfRead:
             json.JSONDecodeError: If JSON is invalid
             ValueError: If configuration validation fails
         """
-        with open(self.settingsfile, "r") as f:
+        with open(self.settingsfile, encoding="utf-8") as f:
             data = json.load(f)
 
         # Garante que é uma lista

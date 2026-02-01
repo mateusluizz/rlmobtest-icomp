@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Module for transcribing test cases using LangChain with Ollama.
 """
 
-import os
 from pathlib import Path
 
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_ollama import ChatOllama
 
-from constants.paths import FEW_SHOT_EXAMPLES_PATH
-from transcription import similarity_filter
+from rlmobtest.constants.paths import FEW_SHOT_EXAMPLES_PATH
+from rlmobtest.transcription import similarity_filter
 
 # Default Ollama model configuration
-DEFAULT_MODEL = "llama3.2"
+DEFAULT_MODEL = "llama3.2:3b"
 
 
 def create_llm(model_name: str = DEFAULT_MODEL, temperature: float = 0.5):
@@ -36,7 +34,7 @@ def create_llm(model_name: str = DEFAULT_MODEL, temperature: float = 0.5):
 
 def read_text_file(file_path):
     """Read and clean text from a file."""
-    with open(file_path, "r", encoding="utf-8") as file:
+    with open(file_path, encoding="utf-8") as file:
         text = file.read()
         text = text.strip()
         text = "\n".join(line for line in text.splitlines() if line.strip())
@@ -87,7 +85,7 @@ def build_few_shot_messages(input_text: str) -> list:
 
 
 def the_world_is_our(
-    input_folder: str | Path, output_folder: str, model_name: str = DEFAULT_MODEL
+    input_folder: str | Path, output_folder: str | Path, model_name: str = DEFAULT_MODEL
 ):
     """
     Transcribe test cases from input folder to output folder using Ollama.
@@ -97,26 +95,29 @@ def the_world_is_our(
         output_folder: Path to folder for transcribed test cases
         model_name: Ollama model to use (default: llama3.2)
     """
+    input_folder = Path(input_folder)
+    output_folder = Path(output_folder)
+
     print(f"Using model: {model_name}")
     llm = create_llm(model_name)
 
-    print(len(os.listdir(input_folder)))
+    print(len(list(input_folder.iterdir())))
 
     # Identify and discard similar documents
-    similar_documents, documents_to_discard = (
-        similarity_filter.compare_documents_in_folder(input_folder)
+    _, documents_to_discard = similarity_filter.compare_documents_in_folder(
+        input_folder
     )
 
     # List the remaining documents after discarding similar ones
     list_docs = similarity_filter.list_arquivos(input_folder, documents_to_discard)
     print(len(list_docs))
 
-    os.makedirs(output_folder, exist_ok=True)
+    output_folder.mkdir(parents=True, exist_ok=True)
     print("=======The program is running=======")
 
     for i, doc_path in enumerate(list_docs):
         try:
-            tc_name = os.path.basename(doc_path)
+            tc_name = Path(doc_path).name
             input_text = read_text_file(doc_path)
 
             # Build messages with few-shot examples
@@ -126,7 +127,7 @@ def the_world_is_our(
             response = llm.invoke(messages)
             output_text = response.content.strip()
 
-            output_file_path = os.path.join(output_folder, tc_name)
+            output_file_path = output_folder / tc_name
             write_text_file(output_file_path, output_text)
             print(f"[{i + 1}/{len(list_docs)}] Saved: {output_file_path}")
 

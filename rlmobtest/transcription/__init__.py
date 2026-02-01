@@ -1,12 +1,19 @@
 """Transcription module for test case processing using LangChain Ollama and CrewAI."""
 
-from transcription.similarity_filter import compare_documents_in_folder, list_arquivos
-from transcription.transcriber import DEFAULT_MODEL, create_llm, the_world_is_our
-from transcription.crew_transcriber import (
-    create_test_case_agent,
-    transcribe_single,
-    transcribe_folder,
+from rlmobtest.transcription.crew_transcriber import (
     MultimodalInput,
+    create_test_case_agent,
+    transcribe_folder,
+    transcribe_single,
+)
+from rlmobtest.transcription.similarity_filter import (
+    compare_documents_in_folder,
+    list_arquivos,
+)
+from rlmobtest.transcription.transcriber import (
+    DEFAULT_MODEL,
+    create_llm,
+    the_world_is_our,
 )
 
 __all__ = [

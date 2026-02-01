@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Module for transcribing test cases using CrewAI agents.
 
@@ -15,8 +14,8 @@ from pathlib import Path
 from crewai import Agent, Crew, Process, Task
 from crewai.llm import LLM
 
-from constants.paths import FEW_SHOT_EXAMPLES_PATH
-from transcription import similarity_filter
+from rlmobtest.constants.paths import FEW_SHOT_EXAMPLES_PATH
+from rlmobtest.transcription import similarity_filter
 
 # Default LLM configuration
 DEFAULT_MODEL = "ollama/llama3.2:3b"
@@ -48,7 +47,7 @@ def create_llm(
 
 def read_text_file(file_path: str | Path) -> str:
     """Read and clean text from a file."""
-    with open(file_path, "r", encoding="utf-8") as file:
+    with open(file_path, encoding="utf-8") as file:
         text = file.read()
         text = text.strip()
         text = "\n".join(line for line in text.splitlines() if line.strip())
@@ -272,10 +271,10 @@ def transcribe_folder(
     input_folder = Path(input_folder)
     output_folder = Path(output_folder)
 
-    print(f"Using model: {model_name}")
+    logging.info("Using model: %s", model_name)
     llm = create_llm(model_name, base_url)
 
-    print(f"Total files in input folder: {len(os.listdir(input_folder))}")
+    logging.info("Total files in input folder: %d", len(os.listdir(input_folder)))
 
     # Identify and discard similar documents
     similar_documents, documents_to_discard = (
@@ -284,7 +283,7 @@ def transcribe_folder(
 
     # List remaining documents after filtering
     list_docs = similarity_filter.list_arquivos(input_folder, documents_to_discard)
-    print(f"Files to process after similarity filter: {len(list_docs)}")
+    logging.info("Files to process after similarity filter: %d", len(list_docs))
 
     os.makedirs(output_folder, exist_ok=True)
     print("=" * 50)
@@ -355,7 +354,7 @@ class MultimodalInput:
 
 if __name__ == "__main__":
     # Example usage
-    from constants.paths import TEST_CASES_PATH, TRANSCRIPTIONS_PATH
+    from rlmobtest.constants.paths import TEST_CASES_PATH, TRANSCRIPTIONS_PATH
 
     transcribe_folder(
         input_folder=TEST_CASES_PATH,

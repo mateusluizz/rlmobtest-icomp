@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Main entry point for RLMobTest - RL-based Android mobile app testing.
 """
@@ -11,11 +10,16 @@ from itertools import count
 
 import torch
 
-from agent import dqn_model as d
-from constants.paths import CONFIG_PATH, LOGS_PATH, TEST_CASES_PATH, TRANSCRIPTIONS_PATH
-from environment import AndroidEnv
-from transcription import transcriber as tm
-from utils.config_reader import ConfRead
+from rlmobtest.android import AndroidEnv
+from rlmobtest.constants.paths import (
+    CONFIG_PATH,
+    LOGS_PATH,
+    TEST_CASES_PATH,
+    TRANSCRIPTIONS_PATH,
+)
+from rlmobtest.models import dqn_model as d
+from rlmobtest.transcription import transcriber as tm
+from rlmobtest.utils.config_reader import ConfRead
 
 # Ensure logs directory exists
 LOGS_PATH.mkdir(parents=True, exist_ok=True)
@@ -106,11 +110,13 @@ def run():
                     if (activity != "home") or (activity != "outapp"):
                         reward = reward
                     else:
-                        env.device.press.back()
+                        env.device.press("back")
                         env._get_foreground()
                         reward = -5
                     with open(
-                        f"{TEST_CASES_PATH.as_posix()}/{env.nametc}", mode="a"
+                        f"{TEST_CASES_PATH.as_posix()}/{env.nametc}",
+                        mode="a",
+                        encoding="utf-8",
                     ) as file:
                         file.write(f"\n\nGo to next activity: {activity}")
                     env.nametc = env._create_tcfile(activity)
@@ -133,13 +139,12 @@ def run():
                 d.optimize_model()
 
                 if crash:
-                    print(f"Epoch complete in {t + 1} steps")
-                    logging.debug(f"Epoch complete in {t + 1} steps")
+                    logging.info("Epoch complete in %d steps", {t + 1})
                     episode_durations.append(t + 1)
                     break
 
                 if (time.time() - start_time) > max_time:
-                    logging.debug("Time finished")
+                    logging.info("Time finished")
                     # Execute test case transcription
                     input_folder = TEST_CASES_PATH
                     output_folder = TRANSCRIPTIONS_PATH
@@ -149,8 +154,7 @@ def run():
                     sys.exit()
 
             else:
-                print(f"Empty actions Epoch interrupted in {t + 1} steps")
-                logging.debug(f"Empty actions Epoch interrupted in {t + 1} steps")
+                logging.debug("Empty actions Epoch interrupted in %d steps", {t + 1})
                 episode_durations.append(t + 1)
                 env.tc_action = []
                 break

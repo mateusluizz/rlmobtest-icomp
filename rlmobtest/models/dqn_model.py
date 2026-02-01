@@ -1,20 +1,16 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Deep Q-Network (DQN) model for reinforcement learning agent.
 """
 
-import logging
 import math
 import random
 from collections import namedtuple
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
+from torch import nn, optim
 from torch.autograd import Variable
-
 
 USE_CUDA = torch.cuda.is_available()
 FloatTensor = torch.cuda.FloatTensor if USE_CUDA else torch.FloatTensor
@@ -27,7 +23,6 @@ Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"
 
 class DQN(nn.Module):
     def __init__(self):
-        super(DQN, self).__init__()
         self.conv1 = nn.Conv2d(3, 16, kernel_size=5, stride=2)
         self.bn1 = nn.BatchNorm2d(16)
         self.conv2 = nn.Conv2d(16, 32, kernel_size=5, stride=2)
@@ -37,8 +32,7 @@ class DQN(nn.Module):
         self.head = nn.Linear(448, 30)
 
     def forward(self, x):
-        print("Entrou na conv")
-        logging.debug("Enter Convolution")
+        logging.info("Entrou na conv")
         x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
         x = F.relu(self.bn3(self.conv3(x)))

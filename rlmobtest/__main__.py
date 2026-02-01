@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Main entry point for RLMobTest - RL-based Android mobile app testing.
 
@@ -18,7 +17,6 @@ Usage:
     python main.py --episodes 50        # Train for 50 episodes
 """
 
-import argparse
 import json
 import logging
 import math
@@ -29,11 +27,10 @@ from datetime import datetime
 from itertools import count
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import (
@@ -45,21 +42,23 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 from rich.table import Table
+from torch import nn, optim
 
-from constants.paths import (
+from rlmobtest.android import AndroidEnv
+from rlmobtest.constants.paths import (
     CHECKPOINTS_PATH,
     CONFIG_JSON_PATH,
     CRASHES_PATH,
     ERRORS_PATH,
     LOGS_PATH,
     METRICS_PATH,
+    PLOTS_PATH,
     SCREENSHOTS_PATH,
     TEST_CASES_PATH,
     TRANSCRIPTIONS_PATH,
 )
-from environment import AndroidEnv
-from transcription import transcriber as tm
-from utils.config_reader import ConfRead
+from rlmobtest.transcription import transcriber as tm
+from rlmobtest.utils.config_reader import ConfRead
 
 # =============================================================================
 # CONFIGURATION
@@ -72,6 +71,7 @@ console = Console()
 LOGS_PATH.mkdir(parents=True, exist_ok=True)
 CHECKPOINTS_PATH.mkdir(parents=True, exist_ok=True)
 METRICS_PATH.mkdir(parents=True, exist_ok=True)
+PLOTS_PATH.mkdir(parents=True, exist_ok=True)
 TEST_CASES_PATH.mkdir(parents=True, exist_ok=True)
 ERRORS_PATH.mkdir(parents=True, exist_ok=True)
 SCREENSHOTS_PATH.mkdir(parents=True, exist_ok=True)
@@ -85,17 +85,18 @@ def setup_logging(run_id: str):
     # Create a new logger for this run
     logger = logging.getLogger(f"rlmobtest_{run_id}")
     logger.setLevel(logging.DEBUG)
+    logger.propagate = False  # Don't send logs to console
 
     # File handler for this run
     file_handler = logging.FileHandler(run_log_path)
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(
-        logging.Formatter("%(levelname)s  %(asctime)s  %(message)s")
+        logging.Formatter("%(asctime)s | %(levelname)-5s | %(message)s", "%H:%M:%S")
     )
 
     logger.addHandler(file_handler)
 
-    console.print(f"[dim]📝 Log file: {run_log_path}[/dim]")
+    console.print(f"[dim]Log file: {run_log_path}[/dim]")
     return logger, run_log_path
 
 
@@ -118,9 +119,11 @@ Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"
 class TrainingMetrics:
     """Sistema de monitoramento e registro de métricas de treinamento com Rich."""
 
-    def __init__(self, save_path=METRICS_PATH, run_id=None):
+    def __init__(self, save_path=METRICS_PATH, plots_path=PLOTS_PATH, run_id=None):
         self.save_path = Path(save_path)
         self.save_path.mkdir(parents=True, exist_ok=True)
+        self.plots_path = Path(plots_path)
+        self.plots_path.mkdir(parents=True, exist_ok=True)
         self.run_id = run_id or datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # Métricas por episódio
@@ -294,6 +297,102 @@ class TrainingMetrics:
         with open(filepath, "w") as f:
             json.dump(data, f, indent=2, default=str)
         console.print(f"[green]✅ Metrics saved:[/green] {filepath}")
+
+    def plot_metrics(self, filename=None):
+        """Gera gráficos das métricas de treinamento."""
+        if len(self.episode_rewards) < 2:
+            console.print("[yellow]Not enough data to plot[/yellow]")
+            return
+
+        if filename is None:
+            filename = f"metrics_{self.run_id}.png"
+
+        fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+        fig.suptitle(f"Training Metrics - {self.run_id}", fontsize=14, fontweight="bold")
+
+        episodes = range(1, len(self.episode_rewards) + 1)
+
+        # 1. Reward por episódio
+        ax1 = axes[0, 0]
+        ax1.plot(episodes, self.episode_rewards, "b-", alpha=0.3, label="Reward")
+        if len(self.episode_rewards) >= 10:
+            # Média móvel
+            window = min(10, len(self.episode_rewards))
+            moving_avg = np.convolve(
+                self.episode_rewards, np.ones(window) / window, mode="valid"
+            )
+            ax1.plot(
+                range(window, len(self.episode_rewards) + 1),
+                moving_avg,
+                "r-",
+                linewidth=2,
+                label=f"Moving Avg ({window})",
+            )
+        ax1.set_xlabel("Episode")
+        ax1.set_ylabel("Reward")
+        ax1.set_title("Episode Rewards")
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+
+        # 2. Loss por episódio
+        ax2 = axes[0, 1]
+        if self.episode_losses:
+            ax2.plot(
+                range(1, len(self.episode_losses) + 1),
+                self.episode_losses,
+                "g-",
+                alpha=0.7,
+            )
+            ax2.set_xlabel("Episode")
+            ax2.set_ylabel("Loss")
+            ax2.set_title("Training Loss")
+            ax2.grid(True, alpha=0.3)
+        else:
+            ax2.text(0.5, 0.5, "No loss data", ha="center", va="center")
+            ax2.set_title("Training Loss")
+
+        # 3. Duração dos episódios
+        ax3 = axes[1, 0]
+        if self.episode_durations:
+            ax3.bar(
+                range(1, len(self.episode_durations) + 1),
+                self.episode_durations,
+                color="orange",
+                alpha=0.7,
+            )
+            ax3.axhline(
+                np.mean(self.episode_durations),
+                color="red",
+                linestyle="--",
+                label=f"Mean: {np.mean(self.episode_durations):.1f}s",
+            )
+            ax3.set_xlabel("Episode")
+            ax3.set_ylabel("Duration (s)")
+            ax3.set_title("Episode Duration")
+            ax3.legend()
+            ax3.grid(True, alpha=0.3)
+        else:
+            ax3.text(0.5, 0.5, "No duration data", ha="center", va="center")
+            ax3.set_title("Episode Duration")
+
+        # 4. Reward acumulado
+        ax4 = axes[1, 1]
+        cumulative_reward = np.cumsum(self.episode_rewards)
+        ax4.plot(episodes, cumulative_reward, "purple", linewidth=2)
+        ax4.fill_between(episodes, cumulative_reward, alpha=0.3, color="purple")
+        ax4.set_xlabel("Episode")
+        ax4.set_ylabel("Cumulative Reward")
+        ax4.set_title("Cumulative Reward")
+        ax4.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+
+        # Salva o gráfico na pasta plots
+        filepath = self.plots_path / filename
+        plt.savefig(filepath, dpi=150, bbox_inches="tight")
+        plt.close()
+
+        console.print(f"[green]📊 Metrics plot saved:[/green] {filepath}")
 
 
 # =============================================================================
@@ -836,7 +935,12 @@ class TrainingProgress:
         return time.time() - self.start_time
 
 
-def run(mode="improved", max_time: int | None = None, max_episodes: int | None = None):
+def run(
+    mode="improved",
+    max_time: int | None = None,
+    max_episodes: int | None = None,
+    max_steps: int = 100,
+):
     """
     Execute the RL agent training loop.
 
@@ -844,6 +948,11 @@ def run(mode="improved", max_time: int | None = None, max_episodes: int | None =
         mode: "original" or "improved"
         max_time: Maximum training time in seconds (mutually exclusive with max_episodes)
         max_episodes: Maximum number of episodes (mutually exclusive with max_time)
+        max_steps: Maximum steps per episode (default: 100). Limits how long each
+            episode can run. Without this limit, episodes only end on crash,
+            no actions, or total time limit - which can lead to very long episodes.
+            A typical value of 100 steps ensures regular episode resets and
+            better exploration.
     """
     # Generate unique run ID
     run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -924,6 +1033,7 @@ def run(mode="improved", max_time: int | None = None, max_episodes: int | None =
         )
     else:
         train_info.add_row("Episodes", str(training_limit))
+    train_info.add_row("Max Steps/Episode", str(max_steps))
     train_info.add_row("App Package", settings.package_name)
     train_info.add_row(
         "Requirements", "Enabled" if settings.is_req_analysis else "Disabled"
@@ -972,10 +1082,10 @@ def run(mode="improved", max_time: int | None = None, max_episodes: int | None =
 
             # Initialize episode
             previous_action = LongTensor([[0]])
-            activities = ["home"]
             state, actions = env.reset()
-            previous_activity = "home"
-            activity_actual = "home"
+            activity_actual = env.first_activity
+            previous_activity = activity_actual
+            activities = [activity_actual]
             env.nametc = env._create_tcfile(activity_actual)
             episode_reward = 0
 
@@ -1027,13 +1137,15 @@ def run(mode="improved", max_time: int | None = None, max_episodes: int | None =
                         activity_actual = activity
                         env.copy_coverage()
 
-                        if activity in ["home", "outapp"]:
-                            env.device.press.back()
+                        if activity in {"home", "outapp"}:
+                            env.device.press("back")
                             env._get_foreground()
                             reward = -5
 
                         with open(
-                            f"{TEST_CASES_PATH.as_posix()}/{env.nametc}", mode="a"
+                            f"{TEST_CASES_PATH.as_posix()}/{env.nametc}",
+                            mode="a",
+                            encoding="utf-8",
                         ) as file:
                             file.write(f"\n\nGo to next activity: {activity}")
                         env.nametc = env._create_tcfile(activity)
@@ -1046,7 +1158,7 @@ def run(mode="improved", max_time: int | None = None, max_episodes: int | None =
                         console.print(
                             f"   [green]✨ New activity discovered: {activity}[/green]"
                         )
-                        run_logger.info(f"New activity: {activity}")
+                        run_logger.info("New activity: %s", activity)
 
                     # Crash handling
                     if crash:
@@ -1072,6 +1184,8 @@ def run(mode="improved", max_time: int | None = None, max_episodes: int | None =
                         metrics.print_step(
                             t, reward, q_value, loss, activity_actual, epsilon
                         )
+                        # Update progress bar (for time-based training)
+                        progress.update(episode)
 
                     if crash:
                         console.print(
@@ -1079,6 +1193,16 @@ def run(mode="improved", max_time: int | None = None, max_episodes: int | None =
                         )
                         run_logger.info(
                             f"Episode {episode} complete in {t + 1} steps (crash)"
+                        )
+                        break
+
+                    # Check step limit per episode
+                    if t + 1 >= max_steps:
+                        console.print(
+                            f"   [cyan]🔄 Step limit reached ({max_steps}). Starting new episode.[/cyan]"
+                        )
+                        run_logger.info(
+                            f"Episode {episode} complete - step limit ({max_steps}) reached"
                         )
                         break
 
@@ -1127,6 +1251,7 @@ def run(mode="improved", max_time: int | None = None, max_episodes: int | None =
         model = agent.policy_net if hasattr(agent, "policy_net") else agent.model
         checkpoint_mgr.save(model, agent.optimizer, metrics, episode, agent.steps_done)
         metrics.save()
+        metrics.plot_metrics()
 
         # Print final summary
         metrics.print_summary()
@@ -1159,86 +1284,11 @@ def run(mode="improved", max_time: int | None = None, max_episodes: int | None =
 # =============================================================================
 
 
-def print_device_info():
-    """Print device information with Rich."""
-    console.print()
-    if torch.cuda.is_available():
-        console.print(f"[green]🖥️  GPU:[/green] {torch.cuda.get_device_name(0)}")
-        console.print(f"[dim]   CUDA Version: {torch.version.cuda}[/dim]")
-    else:
-        console.print("[yellow]🖥️  Running on CPU[/yellow]")
-
-
 def main():
-    """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="RLMobTest - RL-based Android Testing",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  python main.py                      # Use settings.txt time limit
-  python main.py --time 600           # Train for 10 minutes
-  python main.py --episodes 50        # Train for 50 episodes
-  python main.py --mode original      # Use original DQN
+    """Main entry point - delegates to CLI."""
+    from rlmobtest.cli import main as cli_main
 
-Note: --time and --episodes are mutually exclusive.
-        """,
-    )
-    parser.add_argument(
-        "--mode",
-        type=str,
-        choices=["original", "improved"],
-        default="improved",
-        help="DQN mode: 'original' or 'improved' (default: improved)",
-    )
-    parser.add_argument(
-        "--time",
-        type=int,
-        default=None,
-        help="Training time limit in seconds (e.g., 300 for 5 min)",
-    )
-    parser.add_argument(
-        "--episodes",
-        type=int,
-        default=None,
-        help="Number of episodes to train (e.g., 50)",
-    )
-    parser.add_argument(
-        "--checkpoint",
-        type=str,
-        default=None,
-        help="Path to checkpoint file to resume training",
-    )
-
-    args = parser.parse_args()
-
-    # Validate mutually exclusive arguments
-    if args.time is not None and args.episodes is not None:
-        console.print(
-            "[red]❌ Error: --time and --episodes are mutually exclusive[/red]"
-        )
-        console.print("[dim]Use one or the other, not both.[/dim]")
-        return
-
-    # Print header
-    console.print()
-    console.print(
-        Panel.fit(
-            "[bold cyan]RLMobTest[/bold cyan]\n"
-            "[dim]Reinforcement Learning Mobile App Testing[/dim]",
-            border_style="cyan",
-        )
-    )
-
-    print_device_info()
-
-    # Run training
-    run(mode=args.mode, max_time=args.time, max_episodes=args.episodes)
-
-
-if __name__ == "__main__":
-    main()
-    run(mode=args.mode, max_time=args.time, max_episodes=args.episodes)
+    cli_main()
 
 
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Module for comparing and filtering similar test case documents.
 """
@@ -29,8 +28,10 @@ def compare_documents_in_folder(folder_path):
             if similarity_percentage > 90:
                 similar_files.append((file_list[i], file_list[j]))
 
-                lines_file1 = len(open(file1).readlines())
-                lines_file2 = len(open(file2).readlines())
+                with open(file1, encoding="utf-8") as f1:
+                    lines_file1 = len(f1.readlines())
+                with open(file2, encoding="utf-8") as f2:
+                    lines_file2 = len(f2.readlines())
 
                 if lines_file1 < lines_file2:
                     files_to_discard.append(file1)
@@ -78,11 +79,11 @@ def compare_documents(doc1, doc2):
     Returns:
         float: Similarity percentage (0-100)
     """
-    with open(doc1, "r") as file1:
+    with open(doc1, encoding="utf-8") as file1:
         text1 = file1.read().splitlines()
         lines1 = set(preprocess(text1))
 
-    with open(doc2, "r") as file2:
+    with open(doc2, encoding="utf-8") as file2:
         text2 = file2.read().splitlines()
         lines2 = set(preprocess(text2))
 

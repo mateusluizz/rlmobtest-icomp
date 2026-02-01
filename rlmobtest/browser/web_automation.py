@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Web browser automation module using Pyppeteer.
 """
@@ -11,7 +10,6 @@ from io import BytesIO
 import numpy as np
 from PIL import Image
 from pyppeteer.launcher import launch
-
 
 loop = asyncio.get_event_loop()
 browser = launch(headless=False)

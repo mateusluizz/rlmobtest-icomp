@@ -1,13 +1,17 @@
 from pathlib import Path
 
-ROOT_PATH = Path(__file__).resolve().parent.parent
+PROJECT_DIR = Path(__file__).resolve().parents[2]
+BASE_PATH = PROJECT_DIR / "rlmobtest"
 
-OUTPUT_PATH = ROOT_PATH / "output"
-CONFIG_PATH = ROOT_PATH / "config"
-DATA_PATH = ROOT_PATH / "data"
-LOGS_PATH = ROOT_PATH / "logs"
+# Output goes to CWD (current working directory)
+OUTPUT_PATH = Path.cwd() / "output"
+
+# Config and data stay in package
+CONFIG_PATH = BASE_PATH / "config"
+DATA_PATH = BASE_PATH / "data"
 
 # Output
+LOGS_PATH = OUTPUT_PATH / "logs"
 TEST_CASES_PATH = OUTPUT_PATH / "test_cases"
 TRANSCRIPTIONS_PATH = OUTPUT_PATH / "transcriptions"
 SCREENSHOTS_PATH = OUTPUT_PATH / "screenshots"
@@ -16,6 +20,7 @@ ERRORS_PATH = OUTPUT_PATH / "errors"
 COVERAGE_PATH = OUTPUT_PATH / "coverage"
 CHECKPOINTS_PATH = OUTPUT_PATH / "checkpoints"
 METRICS_PATH = OUTPUT_PATH / "metrics"
+PLOTS_PATH = OUTPUT_PATH / "plots"
 
 # Config
 CONFIG_JSON_PATH = CONFIG_PATH / "settings.json"
