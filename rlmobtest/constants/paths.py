@@ -19,23 +19,30 @@ FEW_SHOT_EXAMPLES_PATH = DATA_PATH / "few_shot_examples"
 
 class OutputPaths:
     """
-    Manages output paths with structure: {apk_name}/{year}/{month}/{day}/
+    Manages output paths with structure: {apk_name}/{agent_type}/{year}/{month}/{day}/
 
     Usage:
-        paths = OutputPaths("com.example.app")
-        paths.logs  # output/com.example.app/2026/02/01/logs/
+        paths = OutputPaths("com.example.app", agent_type="improved")
+        paths.logs  # output/com.example.app/improved/2026/02/01/logs/
         paths.get_file("logs", "run", "log")  # .../logs/run_020516.log
     """
 
-    def __init__(self, apk_name: str, base_path: Path = OUTPUT_BASE):
+    def __init__(
+        self,
+        apk_name: str,
+        agent_type: str = "improved",
+        base_path: Path = OUTPUT_BASE,
+    ):
         self.apk_name = apk_name
+        self.agent_type = agent_type
         self.base_path = base_path
         self.now = datetime.now()
 
-        # Build date-based path: {apk}/{year}/{month}/{day}/
+        # Build date-based path: {apk}/{agent_type}/{year}/{month}/{day}/
         self.run_path = (
             base_path
             / apk_name
+            / agent_type
             / self.now.strftime("%Y")
             / self.now.strftime("%m")
             / self.now.strftime("%d")

@@ -237,9 +237,7 @@ class TrainingMetrics:
         s = self.get_summary()
 
         # Cria tabela de resumo
-        table = Table(
-            title="📊 Training Summary", show_header=False, border_style="blue"
-        )
+        table = Table(title="📊 Training Summary", show_header=False, border_style="blue")
         table.add_column("Metric", style="cyan")
         table.add_column("Value", style="white")
 
@@ -275,7 +273,7 @@ class TrainingMetrics:
         filepath = self.save_path / filename
         with open(filepath, "w") as f:
             json.dump(data, f, indent=2, default=str)
-        console.print(f"[green]✅ Metrics saved:[/green] {filepath}")
+        console.print("[green]✅ Metrics saved:[/green] %s", filepath)
 
     def plot_metrics(self, filename=None):
         """Gera gráficos das métricas de treinamento."""
@@ -297,9 +295,7 @@ class TrainingMetrics:
         if len(self.episode_rewards) >= 10:
             # Média móvel
             window = min(10, len(self.episode_rewards))
-            moving_avg = np.convolve(
-                self.episode_rewards, np.ones(window) / window, mode="valid"
-            )
+            moving_avg = np.convolve(self.episode_rewards, np.ones(window) / window, mode="valid")
             ax1.plot(
                 range(window, len(self.episode_rewards) + 1),
                 moving_avg,
@@ -388,9 +384,7 @@ class ModelCheckpoint:
 
     def save(self, model, optimizer, metrics, episode, steps_done, filename=None):
         if filename is None:
-            filename = (
-                f"checkpoint_ep{episode}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pt"
-            )
+            filename = f"checkpoint_ep{episode}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pt"
 
         checkpoint = {
             "episode": episode,
@@ -402,6 +396,7 @@ class ModelCheckpoint:
                 "episode_lengths": metrics.episode_lengths,
             },
             "timestamp": datetime.now().isoformat(),
+            "feature_size": getattr(model, "_feature_size", None),
         }
 
         filepath = self.save_dir / filename
@@ -411,6 +406,19 @@ class ModelCheckpoint:
 
     def load(self, filepath, model, optimizer):
         checkpoint = torch.load(filepath, map_location=device)
+
+        # Initialize lazy layers before loading state dict (for DuelingDQN)
+        if hasattr(model, "_initialize_fc") and model.value_stream is None:
+            feature_size = checkpoint.get("feature_size")
+            # Fallback: infer feature_size from saved weights
+            if feature_size is None:
+                state_dict = checkpoint["model_state_dict"]
+                if "value_stream.0.weight" in state_dict:
+                    feature_size = state_dict["value_stream.0.weight"].shape[1]
+            if feature_size is not None:
+                model._feature_size = feature_size
+                model._initialize_fc(feature_size)
+
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         print(f"✅ Checkpoint loaded: {filepath}")
@@ -617,9 +625,7 @@ class OriginalAgent:
         batch = list(zip(*transitions))
 
         non_final_mask = BoolTensor(tuple(map(lambda s: s is not None, batch[2])))
-        non_final_next_states = torch.cat([s for s in batch[2] if s is not None]).type(
-            FloatTensor
-        )
+        non_final_next_states = torch.cat([s for s in batch[2] if s is not None]).type(FloatTensor)
 
         state_batch = torch.cat(batch[0]).type(FloatTensor)
         action_batch = torch.cat(batch[1])
@@ -735,23 +741,16 @@ class ImprovedAgent:
         next_state_values = torch.zeros(self.batch_size, device=device)
         if non_final_next_states is not None:
             with torch.no_grad():
-                next_actions = (
-                    self.policy_net(non_final_next_states).argmax(1).unsqueeze(1)
-                )
+                next_actions = self.policy_net(non_final_next_states).argmax(1).unsqueeze(1)
                 next_state_values[non_final_mask] = (
-                    self.target_net(non_final_next_states)
-                    .gather(1, next_actions)
-                    .squeeze()
+                    self.target_net(non_final_next_states).gather(1, next_actions).squeeze()
                 )
 
         expected_state_action_values = reward_batch + (self.gamma * next_state_values)
 
         # TD-errors para PER
         td_errors = (
-            (state_action_values.squeeze() - expected_state_action_values)
-            .detach()
-            .cpu()
-            .numpy()
+            (state_action_values.squeeze() - expected_state_action_values).detach().cpu().numpy()
         )
 
         # Weighted loss
@@ -942,8 +941,8 @@ def run(
     # Generate unique run ID (timestamp only, date is in folder structure)
     run_id = datetime.now().strftime("%H%M%S")
 
-    # Create output paths: output/{apk_name}/{year}/{month}/{day}/
-    paths = OutputPaths(settings.package_name)
+    # Create output paths: output/{apk_name}/{agent_type}/{year}/{month}/{day}/
+    paths = OutputPaths(settings.package_name, agent_type=mode)
     paths.create_all()
 
     # Setup logging for this run
@@ -1016,16 +1015,12 @@ def run(
     train_info.add_column("")
     train_info.add_row("Mode", training_mode.capitalize())
     if training_mode == "time":
-        train_info.add_row(
-            "Duration", f"{training_limit} seconds ({training_limit // 60} min)"
-        )
+        train_info.add_row("Duration", f"{training_limit} seconds ({training_limit // 60} min)")
     else:
         train_info.add_row("Episodes", str(training_limit))
     train_info.add_row("Max Steps/Episode", str(max_steps))
     train_info.add_row("App Package", settings.package_name)
-    train_info.add_row(
-        "Requirements", "Enabled" if settings.is_req_analysis else "Disabled"
-    )
+    train_info.add_row("Requirements", "Enabled" if settings.is_req_analysis else "Disabled")
     train_info.add_row("Output Path", str(paths.run_path))
 
     console.print(
@@ -1038,9 +1033,7 @@ def run(
     console.print()
 
     # Initialize metrics, checkpoints, and progress
-    metrics = TrainingMetrics(
-        save_path=paths.metrics, plots_path=paths.plots, run_id=run_id
-    )
+    metrics = TrainingMetrics(save_path=paths.metrics, plots_path=paths.plots, run_id=run_id)
     checkpoint_mgr = ModelCheckpoint(save_dir=paths.checkpoints)
     progress = TrainingProgress(max_time=max_time, max_episodes=max_episodes)
 
@@ -1054,16 +1047,12 @@ def run(
                 checkpoint_path, model, agent.optimizer
             )
             console.print(
-                f"[green]✓ Resumed from episode {start_episode}, "
-                f"step {agent.steps_done}[/green]"
+                f"[green]✓ Resumed from episode {start_episode}, step {agent.steps_done}[/green]"
             )
-            run_logger.info(
-                f"Checkpoint loaded: episode={start_episode}, "
-                f"steps={agent.steps_done}"
-            )
+            run_logger.info(f"Checkpoint loaded: episode={start_episode}, steps={agent.steps_done}")
         except Exception as e:
             console.print(f"[red]❌ Failed to load checkpoint: {e}[/red]")
-            run_logger.error(f"Checkpoint load failed: {e}")
+            run_logger.error("Checkpoint load failed: %s", e)
             raise SystemExit(1)
 
     # Start progress bar
@@ -1090,7 +1079,10 @@ def run(
 
             # Log to file
             run_logger.info(
-                f"Episode {episode} started | epsilon={epsilon:.3f} | steps={agent.steps_done}"
+                "Episode %d started | epsilon=%.3f | steps=%d",
+                episode,
+                epsilon,
+                agent.steps_done,
             )
 
             # Initialize episode
@@ -1130,18 +1122,17 @@ def run(
                     episode_reward += reward
 
                     # Execute action
-                    next_state, actions, crash, activity = env.step(
-                        actions[action[0][0]]
-                    )
+                    next_state, actions, crash, activity = env.step(actions[action[0][0]])
 
-                    if (
-                        next_state is not None
-                        and next_state.shape[3] > next_state.shape[2]
-                    ):
+                    if next_state is not None and next_state.shape[3] > next_state.shape[2]:
                         next_state = next_state.permute(0, 1, 3, 2)
 
                     run_logger.debug(
-                        f"Step {t} | action={action[0][0]} | reward={reward} | activity={activity}"
+                        "Step %d | action=%d | reward=%d | activity=%s",
+                        t,
+                        action[0][0],
+                        reward,
+                        activity,
                     )
 
                     # Handle activity change
@@ -1168,16 +1159,14 @@ def run(
                     if activity not in activities:
                         reward += 10
                         activities.append(activity)
-                        console.print(
-                            f"   [green]✨ New activity discovered: {activity}[/green]"
-                        )
+                        console.print(f"   [green]✨ New activity discovered: {activity}[/green]")
                         run_logger.info("New activity: %s", activity)
 
                     # Crash handling
                     if crash:
                         reward = -5
                         next_state = None
-                        run_logger.warning(f"Crash detected at step {t}")
+                        run_logger.warning("Crash detected at step %d", t)
 
                     # Store transition
                     reward_tensor = Tensor([reward])
@@ -1194,28 +1183,27 @@ def run(
 
                     # Log step progress (every 10 steps)
                     if t % 10 == 0:
-                        metrics.print_step(
-                            t, reward, q_value, loss, activity_actual, epsilon
-                        )
+                        metrics.print_step(t, reward, q_value, loss, activity_actual, epsilon)
                         # Update progress bar (for time-based training)
                         progress.update(episode)
 
                     if crash:
                         console.print(
-                            f"   [red]💥 Crash detected! Episode {episode} complete in {t + 1} steps[/red]"
+                            f"   [red]💥 Crash detected! "
+                            f"Episode {episode} complete in {t + 1} steps[/red]"
                         )
-                        run_logger.info(
-                            f"Episode {episode} complete in {t + 1} steps (crash)"
-                        )
+                        run_logger.info("Episode %d complete in %d steps (crash)", episode, t + 1)
                         break
 
                     # Check step limit per episode
                     if t + 1 >= max_steps:
                         console.print(
-                            f"   [cyan]🔄 Step limit reached ({max_steps}). Starting new episode.[/cyan]"
+                            f"   [cyan]🔄 Step limit reached ({max_steps})."
+                            f"Starting new episode.[/cyan]"
                         )
                         run_logger.info(
-                            f"Episode {episode} complete - step limit ({max_steps}) reached"
+                            "Episode {episode} complete - step limit (%d) reached",
+                            max_steps,
                         )
                         break
 
@@ -1232,9 +1220,7 @@ def run(
                     break
 
             # End episode
-            episode_duration = (
-                datetime.now() - metrics.episode_start_time
-            ).total_seconds()
+            episode_duration = (datetime.now() - metrics.episode_start_time).total_seconds()
             metrics.end_episode()
             metrics.print_episode_end(episode, t + 1, episode_reward, episode_duration)
 
@@ -1243,12 +1229,8 @@ def run(
 
             # Periodic checkpoint and summary (every 10 episodes)
             if episode % 10 == 0:
-                model = (
-                    agent.policy_net if hasattr(agent, "policy_net") else agent.model
-                )
-                checkpoint_mgr.save(
-                    model, agent.optimizer, metrics, episode, agent.steps_done
-                )
+                model = agent.policy_net if hasattr(agent, "policy_net") else agent.model
+                checkpoint_mgr.save(model, agent.optimizer, metrics, episode, agent.steps_done)
                 metrics.print_summary()
 
     except KeyboardInterrupt:
@@ -1275,7 +1257,8 @@ def run(
             console.print(
                 Panel(
                     f"[bold]Average Episode Duration:[/bold] [cyan]{avg_duration:.1f}s[/cyan]\n"
-                    f"[dim]Use this to estimate training time for a given number of episodes[/dim]",
+                    f"[dim]Use this to estimate training time"
+                    f"for a given number of episodes[/dim]",
                     title="📊 Episode Duration Info",
                     border_style="blue",
                 )
@@ -1283,13 +1266,9 @@ def run(
 
         # Execute transcription
         console.print("\n[cyan]📝 Starting transcription...[/cyan]")
-        tm.the_world_is_our(
-            input_folder=paths.test_cases, output_folder=paths.transcriptions
-        )
+        tm.the_world_is_our(input_folder=paths.test_cases, output_folder=paths.transcriptions)
 
-        console.print(
-            f"\n[green]✅ Training complete! Log saved to: {log_path}[/green]"
-        )
+        console.print(f"\n[green]✅ Training complete! Log saved to: {log_path}[/green]")
 
 
 # =============================================================================
