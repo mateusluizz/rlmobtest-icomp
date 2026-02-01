@@ -222,6 +222,21 @@ def clean(
             help="Subfolder to clean (e.g., screenshots). If omitted, cleans all.",
         ),
     ] = None,
+    app_name: Annotated[
+        str | None,
+        typer.Option(
+            "--app",
+            "-a",
+            help="Clean only specific app (e.g., protect.budgetwatch)",
+        ),
+    ] = None,
+    agent: Annotated[
+        str | None,
+        typer.Option(
+            "--agent",
+            help="Clean only specific agent type (original/improved)",
+        ),
+    ] = None,
     dry_run: Annotated[
         bool,
         typer.Option(
@@ -242,71 +257,137 @@ def clean(
     """
     Clean output folders.
 
+    Output structure: output/{app}/{agent_type}/{year}/{month}/{day}/{subfolder}/
+
     Examples:
-        rlmobtest clean                    # Clean all (with confirmation)
-        rlmobtest clean screenshots        # Clean only screenshots
-        rlmobtest clean --dry-run          # Show what would be deleted
-        rlmobtest clean -f                 # Clean all without confirmation
+        rlmobtest clean                              # Clean all (with confirmation)
+        rlmobtest clean screenshots                  # Clean only screenshots
+        rlmobtest clean --app protect.budgetwatch   # Clean specific app
+        rlmobtest clean --agent original            # Clean only original agent outputs
+        rlmobtest clean --dry-run                   # Show what would be deleted
+        rlmobtest clean -f                          # Clean all without confirmation
     """
+    import shutil
+
     # Validate folder name if provided
     if folder and folder not in OUTPUT_SUBFOLDERS:
         console.print(f"[red]Error: '{folder}' is not a valid subfolder[/red]")
         console.print(f"[dim]Valid options: {', '.join(OUTPUT_SUBFOLDERS)}[/dim]")
         raise typer.Exit(code=1)
 
-    folders_to_clean = [folder] if folder else OUTPUT_SUBFOLDERS
+    # Validate agent type if provided
+    if agent and agent not in ["original", "improved"]:
+        console.print(f"[red]Error: '{agent}' is not a valid agent type[/red]")
+        console.print("[dim]Valid options: original, improved[/dim]")
+        raise typer.Exit(code=1)
+
+    if not OUTPUT_BASE.exists():
+        console.print("[dim]Nothing to clean - output folder doesn't exist[/dim]")
+        return
 
     if dry_run:
         console.print("[yellow][DRY-RUN] No files will be deleted[/yellow]\n")
 
-    # Count files first
-    total_files = 0
-    for subfolder in folders_to_clean:
-        folder_path = OUTPUT_BASE / subfolder
-        if folder_path.exists():
-            total_files += sum(1 for _ in folder_path.rglob("*") if _.is_file())
+    folders_to_clean = [folder] if folder else OUTPUT_SUBFOLDERS
 
-    if total_files == 0:
-        console.print("[dim]Nothing to clean - folders are empty[/dim]")
+    # Find all matching paths based on filters
+    # Structure: output/{app}/{agent_type}/{year}/{month}/{day}/{subfolder}/
+    files_to_delete = []
+    dirs_to_delete = []
+
+    for app_dir in OUTPUT_BASE.iterdir():
+        if not app_dir.is_dir():
+            continue
+        if app_name and app_dir.name != app_name:
+            continue
+
+        for agent_dir in app_dir.iterdir():
+            if not agent_dir.is_dir():
+                continue
+            if agent and agent_dir.name != agent:
+                continue
+
+            # Traverse year/month/day structure
+            for year_dir in agent_dir.iterdir():
+                if not year_dir.is_dir():
+                    continue
+                for month_dir in year_dir.iterdir():
+                    if not month_dir.is_dir():
+                        continue
+                    for day_dir in month_dir.iterdir():
+                        if not day_dir.is_dir():
+                            continue
+
+                        # Find target subfolders
+                        for subfolder in folders_to_clean:
+                            subfolder_path = day_dir / subfolder
+                            if subfolder_path.exists():
+                                for item in subfolder_path.rglob("*"):
+                                    if item.is_file():
+                                        files_to_delete.append(item)
+                                dirs_to_delete.append(subfolder_path)
+
+    if not files_to_delete:
+        console.print("[dim]Nothing to clean - no matching files found[/dim]")
         return
+
+    # Show filter info
+    filter_info = []
+    if app_name:
+        filter_info.append(f"app={app_name}")
+    if agent:
+        filter_info.append(f"agent={agent}")
+    if folder:
+        filter_info.append(f"folder={folder}")
+    if filter_info:
+        console.print(f"[dim]Filters: {', '.join(filter_info)}[/dim]\n")
 
     # Confirmation prompt
     if not dry_run and not force:
-        confirm = typer.confirm(
-            f"Delete {total_files} files from {len(folders_to_clean)} folder(s)?"
-        )
+        confirm = typer.confirm(f"Delete {len(files_to_delete)} files?")
         if not confirm:
             console.print("[dim]Cancelled[/dim]")
             raise typer.Exit(code=0)
 
-    # Clean folders
+    # Delete files
     deleted = 0
-    for subfolder in folders_to_clean:
-        folder_path = OUTPUT_BASE / subfolder
-        if not folder_path.exists():
-            continue
+    for item in files_to_delete:
+        if dry_run:
+            # Show relative path for readability
+            rel_path = item.relative_to(OUTPUT_BASE)
+            console.print(f"  [dim]Would delete: {rel_path}[/dim]")
+        else:
+            item.unlink()
+        deleted += 1
 
-        count = 0
-        for item in folder_path.rglob("*"):
-            if item.is_file():
-                if dry_run:
-                    console.print(f"  [dim]Would delete: {item.name}[/dim]")
-                else:
-                    item.unlink()
-                count += 1
+    # Remove empty directories
+    if not dry_run:
+        for dir_path in sorted(set(dirs_to_delete), reverse=True):
+            if dir_path.exists():
+                # Remove directory and empty parents
+                try:
+                    shutil.rmtree(dir_path)
+                except OSError:
+                    pass
 
-        # Remove empty subdirectories
-        if not dry_run:
-            for subdir in sorted(folder_path.rglob("*"), reverse=True):
-                if subdir.is_dir() and not any(subdir.iterdir()):
-                    subdir.rmdir()
+        # Clean up empty date/agent/app directories
+        for app_dir in OUTPUT_BASE.iterdir():
+            if app_dir.is_dir():
+                _remove_empty_dirs(app_dir)
 
-        if count > 0:
-            action = "Would delete" if dry_run else "Deleted"
-            console.print(f"[green][{subfolder}][/green] {action} {count} files")
-        deleted += count
+    action = "Would delete" if dry_run else "Deleted"
+    console.print(f"\n[bold]{action} {deleted} files[/bold]")
 
-    console.print(f"\n[bold]Total: {deleted} files[/bold]")
+
+def _remove_empty_dirs(path: Path):
+    """Recursively remove empty directories."""
+    if not path.is_dir():
+        return
+    for child in path.iterdir():
+        if child.is_dir():
+            _remove_empty_dirs(child)
+    if path.is_dir() and not any(path.iterdir()):
+        path.rmdir()
 
 
 def main():
