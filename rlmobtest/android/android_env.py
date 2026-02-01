@@ -484,6 +484,12 @@ class AndroidEnv:
         max_same_activity: int = 15,
         max_escape_attempts: int = 3,
         max_time_same_activity: int = 120,
+        # Optional output paths (use defaults if not provided)
+        test_case_path=None,
+        screenshots_path=None,
+        crashes_path=None,
+        errors_path=None,
+        coverage_path=None,
     ):
         self.app = app
         self.app_package = app_package
@@ -498,11 +504,22 @@ class AndroidEnv:
         self.edittexts = []
         self.buttons = []
         self.activities_req = []
-        self.test_case_path = str(TEST_CASES_PATH)
-        self.screenshots_path = str(SCREENSHOTS_PATH)
-        self.crashes_path = str(CRASHES_PATH)
-        self.errors_path = str(ERRORS_PATH)
-        self.coverage_path = str(COVERAGE_PATH)
+        # Use provided paths or defaults
+        self.test_case_path = (
+            str(test_case_path) if test_case_path else str(TEST_CASES_PATH)
+        )
+        self.screenshots_path = (
+            str(screenshots_path) if screenshots_path else str(SCREENSHOTS_PATH)
+        )
+        self.crashes_path = (
+            str(crashes_path) if crashes_path else str(CRASHES_PATH)
+        )
+        self.errors_path = (
+            str(errors_path) if errors_path else str(ERRORS_PATH)
+        )
+        self.coverage_path = (
+            str(coverage_path) if coverage_path else str(COVERAGE_PATH)
+        )
         # Controle de stuck/escape por steps
         self.stuck_counter = 0
         self.last_activity = ""
@@ -532,10 +549,10 @@ class AndroidEnv:
                 return future.result(timeout=timeout)
         except FuturesTimeoutError:
             print(f"   ⏰ TIMEOUT: Operation took longer than {timeout}s")
-            logging.debug(f"Timeout after {timeout}s")
+            logging.debug("Timeout after %ds", timeout)
             return default
         except Exception as e:
-            logging.debug(f"Error in _run_with_timeout: {e}")
+            logging.debug("Error in _run_with_timeout: {%s}", e)
             return default
 
     def reset(self):

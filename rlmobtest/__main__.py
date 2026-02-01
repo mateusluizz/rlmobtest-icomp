@@ -45,18 +45,7 @@ from rich.table import Table
 from torch import nn, optim
 
 from rlmobtest.android import AndroidEnv
-from rlmobtest.constants.paths import (
-    CHECKPOINTS_PATH,
-    CONFIG_JSON_PATH,
-    CRASHES_PATH,
-    ERRORS_PATH,
-    LOGS_PATH,
-    METRICS_PATH,
-    PLOTS_PATH,
-    SCREENSHOTS_PATH,
-    TEST_CASES_PATH,
-    TRANSCRIPTIONS_PATH,
-)
+from rlmobtest.constants.paths import CONFIG_JSON_PATH, OutputPaths
 from rlmobtest.transcription import transcriber as tm
 from rlmobtest.utils.config_reader import ConfRead
 
@@ -67,20 +56,10 @@ from rlmobtest.utils.config_reader import ConfRead
 # Rich console for colored output
 console = Console()
 
-# Ensure directories exist
-LOGS_PATH.mkdir(parents=True, exist_ok=True)
-CHECKPOINTS_PATH.mkdir(parents=True, exist_ok=True)
-METRICS_PATH.mkdir(parents=True, exist_ok=True)
-PLOTS_PATH.mkdir(parents=True, exist_ok=True)
-TEST_CASES_PATH.mkdir(parents=True, exist_ok=True)
-ERRORS_PATH.mkdir(parents=True, exist_ok=True)
-SCREENSHOTS_PATH.mkdir(parents=True, exist_ok=True)
-CRASHES_PATH.mkdir(parents=True, exist_ok=True)
 
-
-def setup_logging(run_id: str):
+def setup_logging(run_id: str, logs_path: Path):
     """Setup logging for this specific run."""
-    run_log_path = LOGS_PATH / f"run_{run_id}.log"
+    run_log_path = logs_path / f"run_{run_id}.log"
 
     # Create a new logger for this run
     logger = logging.getLogger(f"rlmobtest_{run_id}")
@@ -119,12 +98,12 @@ Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"
 class TrainingMetrics:
     """Sistema de monitoramento e registro de métricas de treinamento com Rich."""
 
-    def __init__(self, save_path=METRICS_PATH, plots_path=PLOTS_PATH, run_id=None):
+    def __init__(self, save_path: Path, plots_path: Path, run_id: str):
         self.save_path = Path(save_path)
         self.save_path.mkdir(parents=True, exist_ok=True)
         self.plots_path = Path(plots_path)
         self.plots_path.mkdir(parents=True, exist_ok=True)
-        self.run_id = run_id or datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.run_id = run_id
 
         # Métricas por episódio
         self.episode_rewards = []
@@ -403,7 +382,7 @@ class TrainingMetrics:
 class ModelCheckpoint:
     """Gerenciador de checkpoints."""
 
-    def __init__(self, save_dir=CHECKPOINTS_PATH):
+    def __init__(self, save_dir: Path):
         self.save_dir = Path(save_dir)
         self.save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -940,6 +919,7 @@ def run(
     max_time: int | None = None,
     max_episodes: int | None = None,
     max_steps: int = 100,
+    checkpoint_path: Path | None = None,
 ):
     """
     Execute the RL agent training loop.
@@ -953,18 +933,21 @@ def run(
             no actions, or total time limit - which can lead to very long episodes.
             A typical value of 100 steps ensures regular episode resets and
             better exploration.
+        checkpoint_path: Path to checkpoint file to resume training from.
     """
-    # Generate unique run ID
-    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    # Setup logging for this run
-    run_logger, log_path = setup_logging(run_id)
-
-    # Setup directories
-
-    # Read settings
+    # Read settings first to get APK name for output structure
     settings_reader = ConfRead(CONFIG_JSON_PATH.as_posix())
     settings = settings_reader.read_setting()
+
+    # Generate unique run ID (timestamp only, date is in folder structure)
+    run_id = datetime.now().strftime("%H%M%S")
+
+    # Create output paths: output/{apk_name}/{year}/{month}/{day}/
+    paths = OutputPaths(settings.package_name)
+    paths.create_all()
+
+    # Setup logging for this run
+    run_logger, log_path = setup_logging(run_id, paths.logs)
 
     # Determine training limit
     if max_time is None and max_episodes is None:
@@ -989,6 +972,11 @@ def run(
         settings.package_name,
         coverage_enabled=settings.is_coverage,
         max_same_activity=30,
+        test_case_path=paths.test_cases,
+        screenshots_path=paths.screenshots,
+        crashes_path=paths.crashes,
+        errors_path=paths.errors,
+        coverage_path=paths.coverage,
     )
     env.install_app()
     console.print("[green]✓ Environment ready[/green]")
@@ -1038,6 +1026,7 @@ def run(
     train_info.add_row(
         "Requirements", "Enabled" if settings.is_req_analysis else "Disabled"
     )
+    train_info.add_row("Output Path", str(paths.run_path))
 
     console.print(
         Panel(
@@ -1049,14 +1038,38 @@ def run(
     console.print()
 
     # Initialize metrics, checkpoints, and progress
-    metrics = TrainingMetrics(run_id=run_id)
-    checkpoint_mgr = ModelCheckpoint()
+    metrics = TrainingMetrics(
+        save_path=paths.metrics, plots_path=paths.plots, run_id=run_id
+    )
+    checkpoint_mgr = ModelCheckpoint(save_dir=paths.checkpoints)
     progress = TrainingProgress(max_time=max_time, max_episodes=max_episodes)
+
+    # Load checkpoint if provided
+    start_episode = 0
+    if checkpoint_path:
+        console.print(f"\n[cyan]📂 Loading checkpoint: {checkpoint_path}[/cyan]")
+        try:
+            model = agent.policy_net if hasattr(agent, "policy_net") else agent.model
+            start_episode, agent.steps_done = checkpoint_mgr.load(
+                checkpoint_path, model, agent.optimizer
+            )
+            console.print(
+                f"[green]✓ Resumed from episode {start_episode}, "
+                f"step {agent.steps_done}[/green]"
+            )
+            run_logger.info(
+                f"Checkpoint loaded: episode={start_episode}, "
+                f"steps={agent.steps_done}"
+            )
+        except Exception as e:
+            console.print(f"[red]❌ Failed to load checkpoint: {e}[/red]")
+            run_logger.error(f"Checkpoint load failed: {e}")
+            raise SystemExit(1)
 
     # Start progress bar
     progress.start()
 
-    episode = 0
+    episode = start_episode
 
     try:
         for _ in count(1):
@@ -1143,7 +1156,7 @@ def run(
                             reward = -5
 
                         with open(
-                            f"{TEST_CASES_PATH.as_posix()}/{env.nametc}",
+                            f"{paths.test_cases.as_posix()}/{env.nametc}",
                             mode="a",
                             encoding="utf-8",
                         ) as file:
@@ -1271,7 +1284,7 @@ def run(
         # Execute transcription
         console.print("\n[cyan]📝 Starting transcription...[/cyan]")
         tm.the_world_is_our(
-            input_folder=TEST_CASES_PATH, output_folder=TRANSCRIPTIONS_PATH
+            input_folder=paths.test_cases, output_folder=paths.transcriptions
         )
 
         console.print(

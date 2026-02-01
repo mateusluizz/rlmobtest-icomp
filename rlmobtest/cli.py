@@ -11,7 +11,7 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 
-from rlmobtest.constants.paths import CONFIG_JSON_PATH, OUTPUT_PATH
+from rlmobtest.constants.paths import CONFIG_JSON_PATH, OUTPUT_BASE
 from rlmobtest.utils.config_reader import ConfRead
 
 console = Console()
@@ -166,15 +166,15 @@ def train(
     from rlmobtest.__main__ import run
 
     # Run training
-    # TODO: Add checkpoint support to run() function
     if checkpoint:
-        console.print(f"[dim]Checkpoint: {checkpoint}[/dim]")
+        console.print(f"[dim]Resuming from checkpoint: {checkpoint}[/dim]")
 
     run(
         mode=mode.value,
         max_time=time,
         max_episodes=episodes,
         max_steps=max_steps,
+        checkpoint_path=checkpoint,
     )
 
 
@@ -262,7 +262,7 @@ def clean(
     # Count files first
     total_files = 0
     for subfolder in folders_to_clean:
-        folder_path = OUTPUT_PATH / subfolder
+        folder_path = OUTPUT_BASE / subfolder
         if folder_path.exists():
             total_files += sum(1 for _ in folder_path.rglob("*") if _.is_file())
 
@@ -282,7 +282,7 @@ def clean(
     # Clean folders
     deleted = 0
     for subfolder in folders_to_clean:
-        folder_path = OUTPUT_PATH / subfolder
+        folder_path = OUTPUT_BASE / subfolder
         if not folder_path.exists():
             continue
 
