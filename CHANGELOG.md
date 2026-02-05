@@ -5,15 +5,26 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
-## [Unreleased]
+## [0.1.3] - 2026-02-05
 
 ### Added
 - Separação de outputs por tipo de agente (original/improved)
 - Documentos de discussão para decisões arquiteturais
 - Correção de carregamento de checkpoints para DuelingDQN
+- Suporte para treinar múltiplos apps via flag `--app` (pode ser usado múltiplas vezes)
+- Função `run_all()` para treinamento sequencial de múltiplos APKs
+- Verificação do status do servidor Ollama no comando `info`
+- CLI do transcriber com filtro por data (`--date`) e processamento de múltiplos dias
+- Dependência `litellm` para suporte a múltiplos LLMs
 
 ### Changed
 - Estrutura de output: `{apk}/{agent_type}/{year}/{month}/{day}/`
+- Modelo padrão do transcriber alterado para `gemma3:4b`
+- Removido campo `resolution` do config (não utilizado)
+
+### Fixed
+- Correção de paths dos test_cases no android_env para usar diretório correto
+- Criação automática de diretórios de test_case antes de escrever arquivos
 
 ---
 
@@ -78,6 +89,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ---
 
 [Unreleased]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.2...HEAD
+[0.1.3]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.1...v0.1.3
 [0.1.2]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.0.1...v0.1.0
