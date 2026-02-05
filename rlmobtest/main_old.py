@@ -11,12 +11,7 @@ from itertools import count
 import torch
 
 from rlmobtest.android import AndroidEnv
-from rlmobtest.constants.paths import (
-    CONFIG_PATH,
-    LOGS_PATH,
-    TEST_CASES_PATH,
-    TRANSCRIPTIONS_PATH,
-)
+from rlmobtest.constants.paths import CONFIG_PATH, LOGS_PATH, TEST_CASES_PATH, TRANSCRIPTIONS_PATH
 from rlmobtest.models import dqn_model as d
 from rlmobtest.transcription import transcriber as tm
 from rlmobtest.utils.config_reader import ConfRead
@@ -80,19 +75,19 @@ def run():
                 if torch.equal(action, previous_selected_action):
                     reward = -2
                 else:
-                    reward = reward + 1
+                    reward += 1
                 previous_selected_action = action
 
                 if req == "yes":
                     reward_path = env.get_happypath(actions[action[0][0]])
                     if reward_path != 0:
-                        reward = reward + reward_path
+                        reward += reward_path
                     else:
                         reward = 0
                 else:
                     reward_path = env.verify_action(actions[action[0][0]])
                     if reward_path != 0:
-                        reward = reward + reward_path
+                        reward += reward_path
                     else:
                         reward = 0
 
@@ -101,7 +96,7 @@ def run():
                 if next_state.shape[3] > next_state.shape[2]:
                     next_state = next_state.permute(0, 1, 3, 2)
 
-                logging.debug("activity actual: " + activity_actual)
+                logging.debug("activity actual: %s", activity_actual)
                 print("activity actual: " + activity_actual)
 
                 if activity_actual != activity:
@@ -148,9 +143,7 @@ def run():
                     # Execute test case transcription
                     input_folder = TEST_CASES_PATH
                     output_folder = TRANSCRIPTIONS_PATH
-                    tm.the_world_is_our(
-                        input_folder=input_folder, output_folder=output_folder
-                    )
+                    tm.the_world_is_our(input_folder=input_folder, output_folder=output_folder)
                     sys.exit()
 
             else:

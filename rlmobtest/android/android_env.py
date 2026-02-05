@@ -128,7 +128,10 @@ class Action:
 
     def execute(self, nametc, env):
         """Execute the action on the device."""
-        with open(f"{self.test_case_path}/{nametc}", "a", encoding="utf-8") as file:
+        # Use env.test_case_path (correct path) instead of self.test_case_path (legacy)
+        test_case_path = env.test_case_path
+        os.makedirs(test_case_path, exist_ok=True)
+        with open(f"{test_case_path}/{nametc}", "a", encoding="utf-8") as file:
             try:
                 if self.action_type == "first":
                     env.device.press("back")
@@ -596,6 +599,7 @@ class AndroidEnv:
 
         filepath = f"{self.test_case_path}/{namefile}"
         if not os.path.exists(filepath):
+            os.makedirs(self.test_case_path, exist_ok=True)
             with open(filepath, "w+") as file:
                 file.write(f"Test Case{activity}")
 
@@ -830,6 +834,7 @@ class AndroidEnv:
             # Limpa ações do test case atual
             self.tc_action = []
 
+            os.makedirs(self.test_case_path, exist_ok=True)
             with open(f"{self.test_case_path}/{self.nametc}", mode="a") as file:
                 file.write("\n\n🏠 Returned to app home (stuck recovery)")
 
@@ -1541,7 +1546,7 @@ class AndroidEnv:
         tc_file_path = f"{self.test_case_path}/{self.nametc}"
         if os.path.exists(tc_file_path):
             with open(tc_file_path, mode="a") as file:
-                file.write(f"  Screen: {img_name}")
+                file.write(f"\n  Screen: {img_name}")
 
         img = imread("state.png")
         return self._image_to_torch(img)

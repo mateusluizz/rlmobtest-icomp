@@ -5,7 +5,7 @@ Configuration reader module for parsing settings files.
 
 import json
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 class AppConfig(BaseModel):
@@ -13,46 +13,17 @@ class AppConfig(BaseModel):
 
     apk_name: str = Field(..., description="Name of the APK file")
     package_name: str = Field(..., description="Android package name")
-    resolution: str = Field(..., description="Screen resolution in WxH format")
     is_coverage: bool = Field(default=False, description="Coverage analysis flag")
     is_req_analysis: bool = Field(
         default=False, description="Requirement analysis flag"
     )
     time: int = Field(..., description="Execution time in seconds")
 
-    @field_validator("resolution")
-    @classmethod
-    def validate_resolution(cls, v: str) -> str:
-        """Validate resolution format (WxH)."""
-        if "x" not in v:
-            raise ValueError("Resolution must be in format WIDTHxHEIGHT")
-        parts = v.split("x")
-        if len(parts) != 2:
-            raise ValueError("Resolution must be in format WIDTHxHEIGHT")
-        try:
-            int(parts[0])
-            int(parts[1])
-        except ValueError as e:
-            raise ValueError("Resolution width and height must be integers") from e
-        return v
-
-    @property
-    def width(self) -> int:
-        """Get screen width from resolution."""
-        return int(self.resolution.split("x")[0])
-
-    @property
-    def height(self) -> int:
-        """Get screen height from resolution."""
-        return int(self.resolution.split("x")[1])
-
     def to_tuple(self) -> tuple:
         """Convert to legacy tuple format for backwards compatibility."""
         return (
             self.apk_name,
             self.package_name,
-            str(self.width),
-            str(self.height),
             self.is_coverage,
             self.is_req_analysis,
             str(self.time),

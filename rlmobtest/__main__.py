@@ -47,7 +47,7 @@ from torch import nn, optim
 from rlmobtest.android import AndroidEnv
 from rlmobtest.constants.paths import CONFIG_JSON_PATH, OutputPaths
 from rlmobtest.transcription import transcriber as tm
-from rlmobtest.utils.config_reader import ConfRead
+from rlmobtest.utils.config_reader import AppConfig, ConfRead
 
 # =============================================================================
 # CONFIGURATION
@@ -816,7 +816,7 @@ def calculate_reward(
 
     # Mudança de activity
     if activity != previous_activity:
-        if activity not in ["home", "outapp"]:
+        if activity not in {"home", "outapp"}:
             reward += 5
         else:
             reward -= 5
@@ -919,6 +919,7 @@ def run(
     max_episodes: int | None = None,
     max_steps: int = 100,
     checkpoint_path: Path | None = None,
+    config: AppConfig | None = None,
 ):
     """
     Execute the RL agent training loop.
@@ -933,10 +934,14 @@ def run(
             A typical value of 100 steps ensures regular episode resets and
             better exploration.
         checkpoint_path: Path to checkpoint file to resume training from.
+        config: AppConfig to use. If None, reads from settings.json.
     """
-    # Read settings first to get APK name for output structure
-    settings_reader = ConfRead(CONFIG_JSON_PATH.as_posix())
-    settings = settings_reader.read_setting()
+    # Use provided config or read from settings file
+    if config is None:
+        settings_reader = ConfRead(CONFIG_JSON_PATH.as_posix())
+        settings = config = settings_reader.read_setting()
+    else:
+        settings = config
 
     # Generate unique run ID (timestamp only, date is in folder structure)
     run_id = datetime.now().strftime("%H%M%S")
@@ -1049,7 +1054,9 @@ def run(
             console.print(
                 f"[green]✓ Resumed from episode {start_episode}, step {agent.steps_done}[/green]"
             )
-            run_logger.info(f"Checkpoint loaded: episode={start_episode}, steps={agent.steps_done}")
+            run_logger.info(
+                "Checkpoint loaded: episode=%d, steps=%d", start_episode, agent.steps_done
+            )
         except Exception as e:
             console.print(f"[red]❌ Failed to load checkpoint: {e}[/red]")
             run_logger.error("Checkpoint load failed: %s", e)
@@ -1274,6 +1281,58 @@ def run(
 # =============================================================================
 # MAIN
 # =============================================================================
+
+
+def run_all(
+    configs: list[AppConfig],
+    mode: str = "improved",
+    max_steps: int = 100,
+):
+    """
+    Run training for multiple APKs sequentially.
+
+    Args:
+        configs: List of AppConfig to train.
+        mode: "original" or "improved"
+        max_steps: Maximum steps per episode.
+    """
+    total = len(configs)
+    console.print(
+        Panel.fit(
+            f"[bold cyan]Multi-APK Training[/bold cyan]\n"
+            f"[dim]{total} app(s) to train[/dim]",
+            border_style="cyan",
+        )
+    )
+
+    for i, config in enumerate(configs, 1):
+        console.print()
+        console.print(
+            f"[bold yellow]═══ App {i}/{total}: {config.package_name} ═══[/bold yellow]"
+        )
+        console.print()
+
+        try:
+            run(
+                mode=mode,
+                max_time=config.time,
+                max_episodes=None,
+                max_steps=max_steps,
+                checkpoint_path=None,
+                config=config,
+            )
+            console.print(f"\n[green]✓ Completed training for {config.package_name}[/green]")
+        except KeyboardInterrupt:
+            console.print(f"\n[yellow]⚠ Training interrupted for {config.package_name}[/yellow]")
+            if i < total:
+                console.print("[dim]Remaining apps will not be trained[/dim]")
+            raise
+        except Exception as e:
+            console.print(f"\n[red]✗ Error training {config.package_name}: {e}[/red]")
+            continue
+
+    console.print()
+    console.print(Panel.fit("[bold green]Multi-APK training complete[/bold green]", border_style="green"))
 
 
 def main():

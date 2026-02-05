@@ -3,6 +3,9 @@
 CLI module for RLMobTest using Typer.
 """
 
+import contextlib
+import urllib.error
+import urllib.request
 from enum import Enum
 from pathlib import Path
 from typing import Annotated
@@ -53,23 +56,6 @@ def print_device_info():
         console.print("[yellow]🖥️  Running on CPU[/yellow]")
 
 
-def load_config_defaults() -> tuple[int | None, DQNMode]:
-    """
-    Load default values from config file.
-
-    Returns:
-        Tuple of (time, mode) from config or defaults.
-    """
-    try:
-        settings_reader = ConfRead(CONFIG_JSON_PATH.as_posix())
-        settings = settings_reader.read_setting()
-        return settings.time, DQNMode.improved
-    except Exception as e:
-        console.print(f"[yellow]⚠️  Could not load config: {e}[/yellow]")
-        console.print("[dim]Using default values.[/dim]")
-        return None, DQNMode.improved
-
-
 @app.command()
 def train(
     mode: Annotated[
@@ -80,12 +66,20 @@ def train(
             help="DQN mode: 'original' or 'improved'",
         ),
     ] = None,
+    app_filter: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--app",
+            "-a",
+            help="Train specific app(s) by package name. Can be used multiple times.",
+        ),
+    ] = None,
     time: Annotated[
         int | None,
         typer.Option(
             "--time",
             "-t",
-            help="Training time limit in seconds (e.g., 300 for 5 min)",
+            help="Training time limit in seconds (overrides config for all apps)",
         ),
     ] = None,
     episodes: Annotated[
@@ -93,7 +87,7 @@ def train(
         typer.Option(
             "--episodes",
             "-e",
-            help="Number of episodes to train (e.g., 50)",
+            help="Number of episodes to train (overrides config for all apps)",
         ),
     ] = None,
     checkpoint: Annotated[
@@ -101,7 +95,7 @@ def train(
         typer.Option(
             "--checkpoint",
             "-c",
-            help="Path to checkpoint file to resume training",
+            help="Path to checkpoint file to resume training (single app only)",
             exists=True,
             dir_okay=False,
         ),
@@ -111,44 +105,67 @@ def train(
         typer.Option(
             "--max-steps",
             "-s",
-            help=(
-                "Maximum steps per episode (default: 100). "
-                "Limits episode length to ensure regular resets and better exploration."
-            ),
+            help="Maximum steps per episode (default: 100)",
         ),
     ] = 100,
 ):
     """
-    Train the RL agent on an Android application.
+    Train the RL agent on Android application(s).
 
-    If no arguments are provided, reads configuration from config/settings.json.
+    Reads app configurations from config/settings.json. Without --app, trains all
+    apps sequentially. Each app uses its own time/coverage settings from config.
 
     Examples:
-        rlmobtest train                     # Use config file settings
-        rlmobtest train --time 600          # Train for 10 minutes
-        rlmobtest train --episodes 50       # Train for 50 episodes
-        rlmobtest train --mode original     # Use original DQN
-        rlmobtest train --max-steps 200     # 200 steps per episode
+        rlmobtest train                          # Train all apps from config
+        rlmobtest train --app com.example.app    # Train specific app
+        rlmobtest train -a app1 -a app2          # Train multiple specific apps
+        rlmobtest train --time 600               # Override time for all apps
+        rlmobtest train --mode original          # Use original DQN
     """
     # Validate mutually exclusive arguments
     if time is not None and episodes is not None:
-        console.print(
-            "[red]❌ Error: --time and --episodes are mutually exclusive[/red]"
-        )
+        console.print("[red]❌ Error: --time and --episodes are mutually exclusive[/red]")
         console.print("[dim]Use one or the other, not both.[/dim]")
         raise typer.Exit(code=1)
 
-    # Load defaults from config if no arguments provided
-    config_time, config_mode = load_config_defaults()
+    if checkpoint and app_filter and len(app_filter) > 1:
+        console.print("[red]❌ Error: --checkpoint can only be used with a single app[/red]")
+        raise typer.Exit(code=1)
 
-    # Apply config defaults if not specified via CLI
+    # Load all configs from settings.json
+    try:
+        settings_reader = ConfRead(CONFIG_JSON_PATH.as_posix())
+        all_configs = settings_reader.read_all_settings()
+    except Exception as e:
+        console.print(f"[red]❌ Error loading config: {e}[/red]")
+        raise typer.Exit(code=1) from None
+
+    if not all_configs:
+        console.print("[red]❌ No app configurations found in settings.json[/red]")
+        raise typer.Exit(code=1)
+
+    # Filter configs if --app specified
+    if app_filter:
+        configs = [c for c in all_configs if c.package_name in app_filter]
+        not_found = set(app_filter) - {c.package_name for c in configs}
+        if not_found:
+            console.print(f"[red]❌ App(s) not found in config: {', '.join(not_found)}[/red]")
+            console.print("[dim]Available apps:[/dim]")
+            for c in all_configs:
+                console.print(f"  - {c.package_name}")
+            raise typer.Exit(code=1)
+    else:
+        configs = all_configs
+
+    # Apply mode default
     if mode is None:
-        mode = config_mode
+        mode = DQNMode.improved
 
-    if time is None and episodes is None:
-        time = config_time
-        if time:
-            console.print(f"[dim]Using time limit from config: {time}s[/dim]")
+    # Override time/episodes if specified via CLI
+    if time is not None or episodes is not None:
+        for config in configs:
+            if time is not None:
+                config.time = time
 
     # Print header
     console.print()
@@ -163,19 +180,34 @@ def train(
     print_device_info()
 
     # Import here to avoid circular imports and speed up CLI help
-    from rlmobtest.__main__ import run
+    from rlmobtest.__main__ import run, run_all
 
-    # Run training
-    if checkpoint:
-        console.print(f"[dim]Resuming from checkpoint: {checkpoint}[/dim]")
+    # Single app training
+    if len(configs) == 1:
+        config = configs[0]
+        console.print(f"\n[dim]Training app: {config.package_name}[/dim]")
 
-    run(
-        mode=mode.value,
-        max_time=time,
-        max_episodes=episodes,
-        max_steps=max_steps,
-        checkpoint_path=checkpoint,
-    )
+        if checkpoint:
+            console.print(f"[dim]Resuming from checkpoint: {checkpoint}[/dim]")
+
+        run(
+            mode=mode.value,
+            max_time=config.time if episodes is None else None,
+            max_episodes=episodes,
+            max_steps=max_steps,
+            checkpoint_path=checkpoint,
+            config=config,
+        )
+    else:
+        # Multi-app sequential training
+        if checkpoint:
+            console.print("[yellow]⚠ --checkpoint ignored for multi-app training[/yellow]")
+
+        run_all(
+            configs=configs,
+            mode=mode.value,
+            max_steps=max_steps,
+        )
 
 
 @app.command()
@@ -208,10 +240,24 @@ def info():
         settings = settings_reader.read_setting()
         console.print(f"  APK: {settings.apk_name}")
         console.print(f"  Package: {settings.package_name}")
-        console.print(f"  Resolution: {settings.resolution}")
         console.print(f"  Time limit: {settings.time}s")
     except Exception as e:
         console.print(f"  [red]Error loading config: {e}[/red]")
+
+    # Ollama server check
+    console.print("\n[bold]Ollama Server:[/bold]")
+    try:
+        req = urllib.request.Request("http://localhost:11434", method="GET")
+        with urllib.request.urlopen(req, timeout=5) as response:
+            if response.status == 200:
+                console.print("  [green]✓ Ollama is running[/green]")
+            else:
+                console.print(f"  [yellow]⚠ Unexpected status: {response.status}[/yellow]")
+    except urllib.error.URLError:
+        console.print("  [red]✗ Ollama is not running[/red]")
+        console.print("  [dim]Start with: ollama serve[/dim]")
+    except Exception as e:
+        console.print(f"  [red]✗ Error checking Ollama: {e}[/red]")
 
 
 @app.command()
@@ -365,10 +411,8 @@ def clean(
         for dir_path in sorted(set(dirs_to_delete), reverse=True):
             if dir_path.exists():
                 # Remove directory and empty parents
-                try:
+                with contextlib.suppress(OSError):
                     shutil.rmtree(dir_path)
-                except OSError:
-                    pass
 
         # Clean up empty date/agent/app directories
         for app_dir in OUTPUT_BASE.iterdir():

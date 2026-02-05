@@ -18,7 +18,7 @@ from rlmobtest.constants.paths import FEW_SHOT_EXAMPLES_PATH
 from rlmobtest.transcription import similarity_filter
 
 # Default LLM configuration
-DEFAULT_MODEL = "ollama/llama3.2:3b"
+DEFAULT_MODEL = "ollama/gemma3:4b"
 DEFAULT_BASE_URL = "http://localhost:11434"
 
 
@@ -99,7 +99,7 @@ def load_few_shot_examples() -> str:
         transcription_path = transcriptions_path / transcription_file
 
         if not script_path.exists() or not transcription_path.exists():
-            logging.warning(f"Few-shot example files not found: {script_file}")
+            logging.warning("Few-shot example files not found: %s", script_file)
             continue
 
         script_content = read_text_file(script_path)
@@ -277,9 +277,7 @@ def transcribe_folder(
     logging.info("Total files in input folder: %d", len(os.listdir(input_folder)))
 
     # Identify and discard similar documents
-    similar_documents, documents_to_discard = (
-        similarity_filter.compare_documents_in_folder(input_folder)
-    )
+    _, documents_to_discard = similarity_filter.compare_documents_in_folder(input_folder)
 
     # List remaining documents after filtering
     list_docs = similarity_filter.list_arquivos(input_folder, documents_to_discard)
@@ -352,12 +350,115 @@ class MultimodalInput:
         return encoded
 
 
-if __name__ == "__main__":
-    # Example usage
-    from rlmobtest.constants.paths import TEST_CASES_PATH, TRANSCRIPTIONS_PATH
+def find_all_days(app: str, agent: str, base_path: Path) -> list[tuple[str, str, str]]:
+    """
+    Find all available days in the output structure.
 
-    transcribe_folder(
-        input_folder=TEST_CASES_PATH,
-        output_folder=TRANSCRIPTIONS_PATH,
-        model_name="ollama/llama3.2:3b",
+    Returns:
+        List of (year, month, day) tuples sorted chronologically
+    """
+    agent_path = base_path / app / agent
+    if not agent_path.exists():
+        return []
+
+    days = []
+    for year_dir in sorted(agent_path.iterdir()):
+        if not year_dir.is_dir() or not year_dir.name.isdigit():
+            continue
+        for month_dir in sorted(year_dir.iterdir()):
+            if not month_dir.is_dir() or not month_dir.name.isdigit():
+                continue
+            for day_dir in sorted(month_dir.iterdir()):
+                if not day_dir.is_dir() or not day_dir.name.isdigit():
+                    continue
+                # Check if test_cases folder exists and has files
+                tc_path = day_dir / "test_cases"
+                if tc_path.exists() and any(tc_path.iterdir()):
+                    days.append((year_dir.name, month_dir.name, day_dir.name))
+
+    return days
+
+
+if __name__ == "__main__":
+    import argparse
+    from datetime import datetime
+
+    from rlmobtest.constants.paths import OUTPUT_BASE
+
+    parser = argparse.ArgumentParser(description="Transcribe test cases using CrewAI")
+    parser.add_argument(
+        "--app",
+        required=True,
+        help="App name (e.g., protect.budgetwatch)",
     )
+    parser.add_argument(
+        "--agent",
+        default="improved",
+        choices=["original", "improved"],
+        help="Agent type (default: improved)",
+    )
+    parser.add_argument(
+        "--date",
+        default=None,
+        help="Specific date to process (YYYY-MM-DD). If omitted, processes all available days.",
+    )
+    parser.add_argument(
+        "--model",
+        default="ollama/llama3.2:3b",
+        help="Model to use (default: ollama/llama3.2:3b)",
+    )
+    parser.add_argument(
+        "--base-url",
+        default="http://localhost:11434",
+        help="LLM API base URL (default: http://localhost:11434)",
+    )
+
+    args = parser.parse_args()
+
+    # Determine which days to process
+    if args.date:
+        # Parse specific date
+        try:
+            dt = datetime.strptime(args.date, "%Y-%m-%d")
+            days_to_process = [(dt.strftime("%Y"), dt.strftime("%m"), dt.strftime("%d"))]
+        except ValueError:
+            print(f"Error: Invalid date format '{args.date}'. Use YYYY-MM-DD.")
+            exit(1)
+    else:
+        # Find all available days
+        days_to_process = find_all_days(args.app, args.agent, OUTPUT_BASE)
+        if not days_to_process:
+            print(f"No test cases found for {args.app}/{args.agent}")
+            exit(1)
+        print(f"Found {len(days_to_process)} day(s) with test cases")
+
+    # Process each day
+    for year, month, day in days_to_process:
+        print(f"\n{'=' * 50}")
+        print(f"Processing: {year}-{month}-{day}")
+        print(f"{'=' * 50}")
+
+        # Build paths for this specific day
+        day_path = OUTPUT_BASE / args.app / args.agent / year / month / day
+        test_cases_path = day_path / "test_cases"
+        apk_transcriptions_path = day_path / "transcriptions"
+        screenshots_path = day_path / "screenshots"
+
+        if not test_cases_path.exists():
+            print(f"Skipping {year}-{month}-{day}: no test_cases folder")
+            continue
+
+        print(f"Input folder: {test_cases_path}")
+        print(f"Output folder: {apk_transcriptions_path}")
+
+        transcribe_folder(
+            input_folder=test_cases_path,
+            output_folder=apk_transcriptions_path,
+            model_name=args.model,
+            base_url=args.base_url,
+            screenshots_folder=screenshots_path,
+        )
+
+    print(f"\n{'=' * 50}")
+    print("All days processed!")
+    print(f"{'=' * 50}")

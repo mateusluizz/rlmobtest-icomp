@@ -14,6 +14,7 @@ keywords = ["Deep Q Learning", "Exploratory Tests"]
 dependencies = [
   "crewai>=1.9.3",
   "langchain-ollama>=1.0.0",
+  "litellm>=1.75.3",
   "matplotlib>=3.10.7",
   "pandas>=2.3.3",
   "tensorflow>=2.20.0",

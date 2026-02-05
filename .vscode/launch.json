@@ -23,8 +23,9 @@
             "name": "Transcriber",
             "type": "debugpy",
             "request": "launch",
-            "module": "transcription.crew_transcriber",
-            "cwd": "${workspaceFolder}"
+            "module": "rlmobtest.transcription.crew_transcriber",
+            "cwd": "${workspaceFolder}",
+            "args": ["--app", "protect.budgetwatch", "--agent", "original"]
         },
     ]
 }
