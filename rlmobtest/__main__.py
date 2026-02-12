@@ -112,6 +112,10 @@ class TrainingMetrics:
         self.episode_q_values = []
         self.episode_durations = []  # Duração de cada episódio em segundos
         self.epsilon_values = []
+        self.episode_activity_counts = []
+
+        # Tracking de activities do episódio atual
+        self.current_episode_activities = []
 
         # Métricas recentes (para médias móveis)
         self.recent_losses = deque(maxlen=1000)
@@ -144,6 +148,11 @@ class TrainingMetrics:
         if epsilon is not None:
             self.epsilon_values.append(epsilon)
 
+    def log_activity(self, activity):
+        """Registra uma activity visitada no episódio atual."""
+        if activity not in self.current_episode_activities:
+            self.current_episode_activities.append(activity)
+
     def start_episode(self):
         """Marca o início de um novo episódio."""
         self.episode_start_time = datetime.now()
@@ -165,11 +174,15 @@ class TrainingMetrics:
         if self.current_episode_q_values:
             self.episode_q_values.append(np.mean(self.current_episode_q_values))
 
+        # Salva contagem de activities do episódio
+        self.episode_activity_counts.append(len(self.current_episode_activities))
+
         # Reset para próximo episódio
         self.current_episode_reward = 0
         self.current_episode_steps = 0
         self.current_episode_losses = []
         self.current_episode_q_values = []
+        self.current_episode_activities = []
 
     def get_avg_episode_duration(self):
         """Retorna a duração média de um episódio em segundos."""
@@ -269,6 +282,9 @@ class TrainingMetrics:
             "episode_lengths": self.episode_lengths,
             "episode_losses": self.episode_losses,
             "episode_durations": self.episode_durations,
+            "episode_q_values": self.episode_q_values,
+            "epsilon_values": self.epsilon_values,
+            "episode_activity_counts": self.episode_activity_counts,
         }
         filepath = self.save_path / filename
         with open(filepath, "w") as f:
@@ -284,16 +300,16 @@ class TrainingMetrics:
         if filename is None:
             filename = f"metrics_{self.run_id}.png"
 
-        fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-        fig.suptitle(f"Training Metrics - {self.run_id}", fontsize=14, fontweight="bold")
+        fig = plt.figure(figsize=(18, 14))
+        gs = fig.add_gridspec(3, 3, hspace=0.35, wspace=0.3)
+        fig.suptitle(f"Training Metrics - {self.run_id}", fontsize=16, fontweight="bold")
 
         episodes = range(1, len(self.episode_rewards) + 1)
 
         # 1. Reward por episódio
-        ax1 = axes[0, 0]
+        ax1 = fig.add_subplot(gs[0, 0])
         ax1.plot(episodes, self.episode_rewards, "b-", alpha=0.3, label="Reward")
         if len(self.episode_rewards) >= 10:
-            # Média móvel
             window = min(10, len(self.episode_rewards))
             moving_avg = np.convolve(self.episode_rewards, np.ones(window) / window, mode="valid")
             ax1.plot(
@@ -310,7 +326,7 @@ class TrainingMetrics:
         ax1.grid(True, alpha=0.3)
 
         # 2. Loss por episódio
-        ax2 = axes[0, 1]
+        ax2 = fig.add_subplot(gs[0, 1])
         if self.episode_losses:
             ax2.plot(
                 range(1, len(self.episode_losses) + 1),
@@ -326,41 +342,124 @@ class TrainingMetrics:
             ax2.text(0.5, 0.5, "No loss data", ha="center", va="center")
             ax2.set_title("Training Loss")
 
-        # 3. Duração dos episódios
-        ax3 = axes[1, 0]
+        # 3. Q-Values por episódio
+        ax3 = fig.add_subplot(gs[0, 2])
+        if self.episode_q_values:
+            q_episodes = range(1, len(self.episode_q_values) + 1)
+            ax3.plot(q_episodes, self.episode_q_values, color="darkcyan", alpha=0.3, label="Q-Value")
+            if len(self.episode_q_values) >= 10:
+                window = min(10, len(self.episode_q_values))
+                q_moving_avg = np.convolve(
+                    self.episode_q_values, np.ones(window) / window, mode="valid"
+                )
+                ax3.plot(
+                    range(window, len(self.episode_q_values) + 1),
+                    q_moving_avg,
+                    color="teal",
+                    linewidth=2,
+                    label=f"Moving Avg ({window})",
+                )
+            ax3.set_xlabel("Episode")
+            ax3.set_ylabel("Mean Q-Value")
+            ax3.set_title("Q-Values")
+            ax3.legend()
+            ax3.grid(True, alpha=0.3)
+        else:
+            ax3.text(0.5, 0.5, "No Q-value data", ha="center", va="center")
+            ax3.set_title("Q-Values")
+
+        # 4. Duração dos episódios
+        ax4 = fig.add_subplot(gs[1, 0])
         if self.episode_durations:
-            ax3.bar(
+            ax4.bar(
                 range(1, len(self.episode_durations) + 1),
                 self.episode_durations,
                 color="orange",
                 alpha=0.7,
             )
-            ax3.axhline(
+            ax4.axhline(
                 np.mean(self.episode_durations),
                 color="red",
                 linestyle="--",
                 label=f"Mean: {np.mean(self.episode_durations):.1f}s",
             )
-            ax3.set_xlabel("Episode")
-            ax3.set_ylabel("Duration (s)")
-            ax3.set_title("Episode Duration")
-            ax3.legend()
-            ax3.grid(True, alpha=0.3)
+            ax4.set_xlabel("Episode")
+            ax4.set_ylabel("Duration (s)")
+            ax4.set_title("Episode Duration")
+            ax4.legend()
+            ax4.grid(True, alpha=0.3)
         else:
-            ax3.text(0.5, 0.5, "No duration data", ha="center", va="center")
-            ax3.set_title("Episode Duration")
+            ax4.text(0.5, 0.5, "No duration data", ha="center", va="center")
+            ax4.set_title("Episode Duration")
 
-        # 4. Reward acumulado
-        ax4 = axes[1, 1]
+        # 5. Reward acumulado
+        ax5 = fig.add_subplot(gs[1, 1])
         cumulative_reward = np.cumsum(self.episode_rewards)
-        ax4.plot(episodes, cumulative_reward, "purple", linewidth=2)
-        ax4.fill_between(episodes, cumulative_reward, alpha=0.3, color="purple")
-        ax4.set_xlabel("Episode")
-        ax4.set_ylabel("Cumulative Reward")
-        ax4.set_title("Cumulative Reward")
-        ax4.grid(True, alpha=0.3)
+        ax5.plot(episodes, cumulative_reward, "purple", linewidth=2)
+        ax5.fill_between(episodes, cumulative_reward, alpha=0.3, color="purple")
+        ax5.set_xlabel("Episode")
+        ax5.set_ylabel("Cumulative Reward")
+        ax5.set_title("Cumulative Reward")
+        ax5.grid(True, alpha=0.3)
 
-        plt.tight_layout()
+        # 6. Epsilon Decay
+        ax6 = fig.add_subplot(gs[1, 2])
+        if self.epsilon_values:
+            steps = range(1, len(self.epsilon_values) + 1)
+            ax6.plot(steps, self.epsilon_values, color="magenta", alpha=0.7, linewidth=1)
+            ax6.set_xlabel("Step")
+            ax6.set_ylabel("Epsilon")
+            ax6.set_title("Epsilon Decay (Exploration Rate)")
+            ax6.set_ylim(-0.05, 1.05)
+            ax6.grid(True, alpha=0.3)
+        else:
+            ax6.text(0.5, 0.5, "No epsilon data", ha="center", va="center")
+            ax6.set_title("Epsilon Decay (Exploration Rate)")
+
+        # 7. Activity Coverage
+        ax7 = fig.add_subplot(gs[2, 0:2])
+        if self.episode_activity_counts:
+            act_episodes = range(1, len(self.episode_activity_counts) + 1)
+            ax7.bar(
+                act_episodes,
+                self.episode_activity_counts,
+                color="mediumseagreen",
+                alpha=0.7,
+                label="Activities per Episode",
+            )
+
+            # Linha cumulativa de activities únicas (eixo secundário)
+            ax7_twin = ax7.twinx()
+            cumulative_activities = np.cumsum(self.episode_activity_counts)
+            ax7_twin.plot(
+                act_episodes,
+                cumulative_activities,
+                color="firebrick",
+                linewidth=2,
+                marker="o",
+                markersize=4,
+                label="Cumulative Activities",
+            )
+            ax7_twin.set_ylabel("Cumulative Activities", color="firebrick")
+            ax7_twin.tick_params(axis="y", labelcolor="firebrick")
+
+            ax7.set_xlabel("Episode")
+            ax7.set_ylabel("Unique Activities", color="mediumseagreen")
+            ax7.tick_params(axis="y", labelcolor="mediumseagreen")
+            ax7.set_title("Activity Coverage")
+            ax7.grid(True, alpha=0.3)
+
+            # Legenda combinada
+            lines1, labels1 = ax7.get_legend_handles_labels()
+            lines2, labels2 = ax7_twin.get_legend_handles_labels()
+            ax7.legend(lines1 + lines2, labels1 + labels2, loc="upper left")
+        else:
+            ax7.text(0.5, 0.5, "No activity data", ha="center", va="center")
+            ax7.set_title("Activity Coverage")
+
+        # Ocultar subplot vazio (2, 2)
+        ax_empty = fig.add_subplot(gs[2, 2])
+        ax_empty.set_visible(False)
 
         # Salva o gráfico na pasta plots
         filepath = self.plots_path / filename
@@ -1098,6 +1197,7 @@ def run(
             activity_actual = env.first_activity
             previous_activity = activity_actual
             activities = [activity_actual]
+            metrics.log_activity(activity_actual)
             env.nametc = env._create_tcfile(activity_actual)
             episode_reward = 0
 
@@ -1166,6 +1266,7 @@ def run(
                     if activity not in activities:
                         reward += 10
                         activities.append(activity)
+                        metrics.log_activity(activity)
                         console.print(f"   [green]✨ New activity discovered: {activity}[/green]")
                         run_logger.info("New activity: %s", activity)
 

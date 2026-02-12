@@ -18,13 +18,13 @@ from rlmobtest.constants.paths import FEW_SHOT_EXAMPLES_PATH
 from rlmobtest.transcription import similarity_filter
 
 # Default LLM configuration
-DEFAULT_MODEL = "ollama/gemma3:4b"
-DEFAULT_BASE_URL = "http://localhost:11434"
+OLLAMA_MODEL = "ollama/gemma3:8b"
+OLLAMA_BASE_URL = "http://localhost:11434"
 
 
 def create_llm(
-    model_name: str = DEFAULT_MODEL,
-    base_url: str = DEFAULT_BASE_URL,
+    model_name: str = OLLAMA_MODEL,
+    base_url: str = OLLAMA_BASE_URL,
     temperature: float = 0.5,
 ) -> LLM:
     """
@@ -254,8 +254,8 @@ def transcribe_single(
 def transcribe_folder(
     input_folder: str | Path,
     output_folder: str | Path,
-    model_name: str = DEFAULT_MODEL,
-    base_url: str = DEFAULT_BASE_URL,
+    model_name: str = OLLAMA_MODEL,
+    base_url: str = OLLAMA_BASE_URL,
     screenshots_folder: str | Path | None = None,
 ) -> None:
     """
