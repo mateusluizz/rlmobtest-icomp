@@ -104,9 +104,7 @@ def the_world_is_our(
     print(len(list(input_folder.iterdir())))
 
     # Identify and discard similar documents
-    _, documents_to_discard = similarity_filter.compare_documents_in_folder(
-        input_folder
-    )
+    _, documents_to_discard = similarity_filter.compare_documents_in_folder(input_folder)
 
     # List the remaining documents after discarding similar ones
     list_docs = similarity_filter.list_arquivos(input_folder, documents_to_discard)

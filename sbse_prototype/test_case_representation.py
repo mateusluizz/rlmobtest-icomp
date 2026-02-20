@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Test Case Representation Module
 Representa casos de teste para otimização SBSE
 """
 
+import hashlib
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Dict, Set, Optional
-import json
-import hashlib
 
 
 @dataclass
@@ -18,12 +16,12 @@ class Action:
 
     step_number: int
     action_type: str  # click, scroll, swipe, back, etc.
-    target: Optional[str] = None  # Resource ID, xpath, ou coordenadas
-    coordinates: Optional[tuple] = None
-    text_input: Optional[str] = None
+    target: str | None = None  # Resource ID, xpath, ou coordenadas
+    coordinates: tuple | None = None
+    text_input: str | None = None
     activity: str = ""
     timestamp: float = 0.0
-    screenshot_path: Optional[str] = None
+    screenshot_path: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -39,9 +37,7 @@ class Action:
 
     def get_signature(self) -> str:
         """Gera uma assinatura única para esta ação."""
-        content = (
-            f"{self.action_type}_{self.target}_{self.coordinates}_{self.text_input}"
-        )
+        content = f"{self.action_type}_{self.target}_{self.coordinates}_{self.text_input}"
         return hashlib.md5(content.encode()).hexdigest()[:8]
 
 
@@ -50,14 +46,14 @@ class TestCase:
     """Representa um caso de teste individual."""
 
     id: str
-    actions: List[Action] = field(default_factory=list)
-    coverage: Set[str] = field(default_factory=set)  # Linhas/métodos cobertos
-    activities_visited: Set[str] = field(default_factory=set)
+    actions: list[Action] = field(default_factory=list)
+    coverage: set[str] = field(default_factory=set)  # Linhas/métodos cobertos
+    activities_visited: set[str] = field(default_factory=set)
     crashes: int = 0
     duration: float = 0.0
     reward: float = 0.0
     episode_number: int = 0
-    metadata: Dict = field(default_factory=dict)
+    metadata: dict = field(default_factory=dict)
 
     def __post_init__(self):
         # Extrair activities das ações
@@ -119,7 +115,7 @@ class TestCase:
     @classmethod
     def load(cls, filepath: Path) -> "TestCase":
         """Carrega caso de teste de arquivo JSON."""
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             data = json.load(f)
 
         actions = [Action(**a) for a in data.get("actions", [])]
@@ -141,8 +137,8 @@ class TestSuite:
     """Representa uma suíte de casos de teste."""
 
     name: str
-    test_cases: List[TestCase] = field(default_factory=list)
-    metadata: Dict = field(default_factory=dict)
+    test_cases: list[TestCase] = field(default_factory=list)
+    metadata: dict = field(default_factory=dict)
 
     def add_test_case(self, tc: TestCase):
         """Adiciona um caso de teste à suíte."""
@@ -156,7 +152,7 @@ class TestSuite:
         """Retorna o número total de ações."""
         return sum(tc.get_length() for tc in self.test_cases)
 
-    def get_total_coverage(self) -> Set[str]:
+    def get_total_coverage(self) -> set[str]:
         """Retorna a união de toda cobertura."""
         coverage = set()
         for tc in self.test_cases:
@@ -181,7 +177,7 @@ class TestSuite:
         """Retorna a duração total de execução."""
         return sum(tc.duration for tc in self.test_cases)
 
-    def get_all_activities(self) -> Set[str]:
+    def get_all_activities(self) -> set[str]:
         """Retorna todas as activities visitadas."""
         activities = set()
         for tc in self.test_cases:
@@ -261,7 +257,7 @@ class TestSuite:
     @classmethod
     def load(cls, filepath: Path) -> "TestSuite":
         """Carrega suíte de arquivo JSON."""
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             data = json.load(f)
 
         test_cases = [
@@ -279,9 +275,7 @@ class TestSuite:
             for tc in data.get("test_cases", [])
         ]
 
-        return cls(
-            name=data["name"], test_cases=test_cases, metadata=data.get("metadata", {})
-        )
+        return cls(name=data["name"], test_cases=test_cases, metadata=data.get("metadata", {}))
 
 
 # =============================================================================
@@ -306,7 +300,7 @@ def create_test_suite_from_rl_output(
     suite = TestSuite(name=name)
 
     # Carregar métricas do treinamento
-    with open(metrics_file, "r") as f:
+    with open(metrics_file) as f:
         metrics_data = json.load(f)
 
     # Processar cada arquivo de caso de teste
@@ -342,11 +336,11 @@ def create_test_suite_from_rl_output(
     return suite
 
 
-def _parse_test_case_file(filepath: Path) -> List[Action]:
+def _parse_test_case_file(filepath: Path) -> list[Action]:
     """Parse de arquivo de caso de teste do formato do RLMobTest."""
     actions = []
 
-    with open(filepath, "r") as f:
+    with open(filepath) as f:
         content = f.read()
 
     # Parse básico - pode ser refinado conforme formato real

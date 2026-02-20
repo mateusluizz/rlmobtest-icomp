@@ -86,9 +86,7 @@ def select_action(state, actions):
     """Select an action using epsilon-greedy policy."""
     global steps_done
     sample = random.random()
-    eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(
-        -1.0 * steps_done / EPS_DECAY
-    )
+    eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(-1.0 * steps_done / EPS_DECAY)
     steps_done += 1
     if sample > eps_threshold:
         with torch.no_grad():
@@ -115,9 +113,9 @@ def optimize_model():
     batch = Transition(*zip(*transitions))
 
     non_final_mask = BoolTensor(tuple(map(lambda s: s is not None, batch.next_state)))
-    non_final_next_states_t = torch.cat(
-        tuple(s for s in batch.next_state if s is not None)
-    ).type(dtype)
+    non_final_next_states_t = torch.cat(tuple(s for s in batch.next_state if s is not None)).type(
+        dtype
+    )
 
     with torch.no_grad():
         non_final_next_states = Variable(non_final_next_states_t)

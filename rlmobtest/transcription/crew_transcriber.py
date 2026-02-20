@@ -18,7 +18,7 @@ from rlmobtest.constants.paths import FEW_SHOT_EXAMPLES_PATH
 from rlmobtest.transcription import similarity_filter
 
 # Default LLM configuration
-OLLAMA_MODEL = "ollama/gemma3:8b"
+OLLAMA_MODEL = "ollama/gemma3:4b"
 OLLAMA_BASE_URL = "http://localhost:11434"
 
 
@@ -186,10 +186,19 @@ Your task:
 4. Maintain the logical flow of the test scenario
 5. Use consistent terminology for UI elements and actions
 
+IMPORTANT — Element naming rules:
+- NEVER include raw resource-ids (e.g. `protect.budgetwatch:id/action_settings`) in the output.
+  Instead, derive a human-readable name from the id: "Settings button", "Add button", etc.
+- NEVER include Android widget class names (e.g. `android.widget.Button`) in the output.
+  Replace with the plain element type: "button", "text field", "spinner", etc.
+- NEVER include pixel coordinates or bounds (e.g. `bounds:[28,667][692,751]`) in the output.
+- For resource-ids with package prefix (`com.pkg:id/foo`), use only the short part (`foo`)
+  and convert underscores/camelCase to natural language (e.g. `action_add` → "Add button",
+  `edit_amount` → "Amount field").
+
 Follow the exact format shown in the examples provided in your context.
 """
 
-    # Future: Add image context when multimodal support is implemented
     if image_path:
         description += f"""
 
@@ -297,7 +306,8 @@ def transcribe_folder(
             image_path = None
             if screenshots_folder:
                 screenshots_folder = Path(screenshots_folder)
-                possible_image = screenshots_folder / tc_name.replace(".txt", ".png")
+                stem = Path(tc_name).stem
+                possible_image = screenshots_folder / f"{stem}.png"
                 if possible_image.exists():
                     image_path = str(possible_image)
 
@@ -315,6 +325,66 @@ def transcribe_folder(
     print("=" * 50)
     print("CrewAI transcription pipeline completed")
     print("=" * 50)
+
+
+def create_annotation_task(
+    agent: "Agent",
+    xml_content: str,
+    screenshot_path,
+    activity_name: str,
+) -> "Task":
+    """
+    Create a CrewAI Task for semantic annotation of an Android activity.
+    Used in Phase 0b (Semantic Crawling) to interpret UI hierarchy.
+
+    Args:
+        agent: CrewAI Agent with mobile testing expertise
+        xml_content: Raw XML from uiautomator2 dump_hierarchy()
+        screenshot_path: Path to screenshot PNG (optional)
+        activity_name: Full activity class name
+
+    Returns:
+        CrewAI Task configured for activity annotation
+    """
+    xml_snippet = xml_content[:3000] + ("..." if len(xml_content) > 3000 else "")
+
+    description = f"""Analyze the Android activity '{activity_name}'.
+
+**UI Hierarchy (XML):**
+```xml
+{xml_snippet}
+```
+
+Your tasks:
+1. Write a 2-3 sentence description of what this screen does functionally
+2. List all interactive element resource-ids (clickable, editable, scrollable)
+3. Identify the likely user workflows on this screen
+4. For EditText fields: identify if they accept text, numbers, emails, etc.
+
+Extract the ACTUAL resource-id values from the XML above (the `resource-id` attribute of each node).
+Output ONLY a valid JSON object — no markdown, no explanation, just the JSON:
+{{
+  "description": "two sentences describing what this screen does",
+  "elements": ["action_settings", "btn_add_transaction", "edit_amount"],
+  "workflows": ["User taps Add to create a new transaction"],
+  "field_types": {{"edit_amount": "number", "edit_note": "text"}}
+}}
+
+IMPORTANT: The values in "elements" must be the EXACT resource-id strings found in the XML,
+not placeholders like element_1 or resource_id_1."""
+
+    if screenshot_path:
+        try:
+            img_b64 = encode_image_to_base64(screenshot_path)
+            description += f"\n\n**Screenshot (base64):** data:image/png;base64,{img_b64}"
+        except Exception:
+            pass
+
+    return Task(
+        description=description,
+        agent=agent,
+        expected_output="JSON object with description, elements list, workflows list, and field_types dict",
+    )
 
 
 # Multimodal support utilities (for future implementation)

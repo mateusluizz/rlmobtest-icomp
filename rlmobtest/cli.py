@@ -65,7 +65,7 @@ def train(
             "-m",
             help="DQN mode: 'original' or 'improved'",
         ),
-    ] = None,
+    ] = DQNMode.improved,
     app_filter: Annotated[
         list[str] | None,
         typer.Option(
@@ -157,10 +157,6 @@ def train(
     else:
         configs = all_configs
 
-    # Apply mode default
-    if mode is None:
-        mode = DQNMode.improved
-
     # Override time/episodes if specified via CLI
     if time is not None or episodes is not None:
         for config in configs:
@@ -180,7 +176,7 @@ def train(
     print_device_info()
 
     # Import here to avoid circular imports and speed up CLI help
-    from rlmobtest.__main__ import run, run_all
+    from rlmobtest.training.runner import run, run_all
 
     # Single app training
     if len(configs) == 1:
@@ -208,6 +204,248 @@ def train(
             mode=mode.value,
             max_steps=max_steps,
         )
+
+
+@app.command(name="train-phases")
+def train_phases(
+    mode: Annotated[
+        DQNMode,
+        typer.Option("--mode", "-m", help="DQN mode: 'original' or 'improved'"),
+    ] = DQNMode.improved,
+    app_name: Annotated[
+        str | None,
+        typer.Option(
+            "--app",
+            "-a",
+            help="App package name to train. Defaults to first entry in settings.json.",
+        ),
+    ] = None,
+    time: Annotated[
+        int | None,
+        typer.Option("--time", "-t", help="Training time limit in seconds."),
+    ] = None,
+    episodes: Annotated[
+        int | None,
+        typer.Option("--episodes", "-e", help="Number of training episodes."),
+    ] = None,
+    max_steps: Annotated[
+        int,
+        typer.Option("--max-steps", "-s", help="Maximum steps per episode (default: 100)."),
+    ] = 100,
+    llm_model: Annotated[
+        str,
+        typer.Option("--llm-model", help="LLM model for semantic crawling annotations."),
+    ] = "ollama/gemma3:4b",
+    llm_base_url: Annotated[
+        str,
+        typer.Option("--llm-base-url", help="LLM API base URL."),
+    ] = "http://localhost:11434",
+    skip: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--skip",
+            help="Skip a phase by ID. Can repeat: --skip 0b --skip 0c. "
+            "Valid values: 0a, 0b, 0c, 1, 2.",
+        ),
+    ] = None,
+):
+    """
+    Train with the full multi-phase pipeline (manifest → crawl → warmup → train → transcribe).
+
+    Outputs per run: JSON phase report, 4 coverage plots, HTML report.
+
+    Examples:
+        rlmobtest train-phases                      # Full pipeline, improved DQN
+        rlmobtest train-phases --episodes 50        # 50 episodes
+        rlmobtest train-phases --skip 0b --skip 0c  # Skip crawling + warmup
+        rlmobtest train-phases --mode original      # Use original DQN
+        rlmobtest train-phases --llm-model ollama/gemma3:4b
+    """
+    if time is not None and episodes is not None:
+        console.print("[red]❌ Error: --time and --episodes are mutually exclusive[/red]")
+        raise typer.Exit(code=1)
+
+    valid_phases = {"0a", "0b", "0c", "1", "2"}
+    skip_phases = skip or []
+    bad = [p for p in skip_phases if p not in valid_phases]
+    if bad:
+        console.print(f"[red]❌ Invalid phase(s) to skip: {', '.join(bad)}[/red]")
+        console.print(f"[dim]Valid: {', '.join(sorted(valid_phases))}[/dim]")
+        raise typer.Exit(code=1)
+
+    try:
+        settings_reader = ConfRead(CONFIG_JSON_PATH.as_posix())
+        all_configs = settings_reader.read_all_settings()
+    except Exception as e:
+        console.print(f"[red]❌ Error loading config: {e}[/red]")
+        raise typer.Exit(code=1) from None
+
+    if not all_configs:
+        console.print("[red]❌ No app configurations found in settings.json[/red]")
+        raise typer.Exit(code=1)
+
+    if app_name:
+        configs = [c for c in all_configs if c.package_name == app_name]
+        if not configs:
+            console.print(f"[red]❌ App '{app_name}' not found in config[/red]")
+            for c in all_configs:
+                console.print(f"  - {c.package_name}")
+            raise typer.Exit(code=1)
+        config = configs[0]
+    else:
+        config = all_configs[0]
+
+    if time is not None:
+        config.time = time
+
+    console.print()
+    console.print(
+        Panel.fit(
+            "[bold cyan]RLMobTest[/bold cyan]\n"
+            "[dim]Reinforcement Learning Mobile App Testing — Multi-Phase[/dim]",
+            border_style="cyan",
+        )
+    )
+    print_device_info()
+
+    from rlmobtest.training.runner import run_with_phases
+
+    run_with_phases(
+        mode=mode.value,
+        max_time=config.time if episodes is None else None,
+        max_episodes=episodes,
+        max_steps=max_steps,
+        config=config,
+        skip_phases=skip_phases,
+        llm_model=llm_model,
+        llm_base_url=llm_base_url,
+    )
+
+
+@app.command()
+def transcribe(
+    run_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--run-dir",
+            "-d",
+            help="Path to an existing run directory (e.g. output/app/improved/2026/02/20).",
+            exists=True,
+            file_okay=False,
+        ),
+    ] = None,
+    app_name: Annotated[
+        str | None,
+        typer.Option(
+            "--app",
+            "-a",
+            help="App package name. Uses the latest run for that app if --run-dir not given.",
+        ),
+    ] = None,
+    llm_model: Annotated[
+        str,
+        typer.Option("--llm-model", help="LLM model for transcription."),
+    ] = "ollama/gemma3:4b",
+    llm_base_url: Annotated[
+        str,
+        typer.Option("--llm-base-url", help="LLM API base URL."),
+    ] = "http://localhost:11434",
+):
+    """
+    Run Phase 2 (enriched transcription) on an existing run's test cases.
+
+    Can point to a specific run directory, or auto-detect the latest run for an app.
+
+    Examples:
+        rlmobtest transcribe --run-dir output/protect.budgetwatch/improved_phases/2026/02/20
+        rlmobtest transcribe --app protect.budgetwatch
+        rlmobtest transcribe --app protect.budgetwatch --llm-model ollama/gemma3:4b
+    """
+    import types
+
+    # ── resolve run directory ──────────────────────────────────────────────────
+    if run_dir is None:
+        # Auto-detect: find latest run for the given app (or any app)
+        if app_name is None:
+            # Try first app in config
+            try:
+                settings_reader = ConfRead(CONFIG_JSON_PATH.as_posix())
+                cfg = settings_reader.read_setting()
+                app_name = cfg.package_name
+            except Exception:
+                console.print("[red]❌ Cannot determine app name. Use --app or --run-dir.[/red]")
+                raise typer.Exit(code=1)
+
+        app_dir = OUTPUT_BASE / app_name
+        if not app_dir.exists():
+            console.print(f"[red]❌ No output found for app '{app_name}' in {OUTPUT_BASE}[/red]")
+            raise typer.Exit(code=1)
+
+        # Walk agent_type/year/month/day to find directories containing test_cases/
+        candidates = sorted(
+            (d for d in app_dir.rglob("test_cases") if d.is_dir()),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        if not candidates:
+            console.print(f"[red]❌ No test_cases directory found under {app_dir}[/red]")
+            raise typer.Exit(code=1)
+
+        run_dir = candidates[0].parent
+        console.print(f"[dim]Auto-detected run directory: {run_dir}[/dim]")
+
+    # ── build a minimal paths namespace ───────────────────────────────────────
+    paths = types.SimpleNamespace(
+        run_path=run_dir,
+        test_cases=run_dir / "test_cases",
+        transcriptions=run_dir / "transcriptions",
+        screenshots=run_dir / "screenshots",
+    )
+    (run_dir / "transcriptions").mkdir(parents=True, exist_ok=True)
+
+    tc_count = len(list(paths.test_cases.glob("*.md")))
+    if tc_count == 0:
+        console.print(f"[yellow]⚠ No .md test case files found in {paths.test_cases}[/yellow]")
+        raise typer.Exit(code=0)
+
+    console.print()
+    console.print(
+        Panel.fit(
+            "[bold cyan]RLMobTest — Phase 2: Transcription[/bold cyan]\n"
+            f"[dim]{run_dir}[/dim]",
+            border_style="cyan",
+        )
+    )
+    console.print(f"\n[dim]Found {tc_count} test case file(s) to transcribe.[/dim]")
+
+    from rlmobtest.metrics.phase_observer import PhaseObserver
+    from rlmobtest.phases.phase_2_transcription import run_enriched_transcription
+
+    observer = PhaseObserver(
+        run_id=run_dir.name,
+        output_path=run_dir / "phase_reports",
+    )
+    (run_dir / "phase_reports").mkdir(parents=True, exist_ok=True)
+    observer.begin_phase("2", "Enriched Transcription", {"test_cases_dir": str(paths.test_cases)})
+
+    try:
+        result = run_enriched_transcription(
+            paths=paths,
+            crawl_result=None,
+            observer=observer,
+            model_name=llm_model,
+            base_url=llm_base_url,
+        )
+        observer.end_phase("2", {"files_transcribed": result.files_transcribed})
+        console.print(
+            f"\n[green]✅ Transcription complete:[/green] "
+            f"{result.files_transcribed} transcribed, {result.files_skipped} skipped"
+        )
+        console.print(f"[dim]Output: {paths.transcriptions}[/dim]")
+    except Exception as exc:
+        observer.fail_phase("2", exc)
+        console.print(f"\n[red]❌ Transcription failed: {exc}[/red]")
+        raise typer.Exit(code=1) from exc
 
 
 @app.command()

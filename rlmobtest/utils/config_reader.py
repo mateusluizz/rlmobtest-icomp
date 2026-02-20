@@ -5,17 +5,23 @@ Configuration reader module for parsing settings files.
 
 import json
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AppConfig(BaseModel):
     """Model for application configuration."""
 
+    # populate_by_name allows both the alias ("is_req") and the field name
+    # ("is_req_analysis") to be used when constructing the model.
+    model_config = ConfigDict(populate_by_name=True)
+
     apk_name: str = Field(..., description="Name of the APK file")
     package_name: str = Field(..., description="Android package name")
     is_coverage: bool = Field(default=False, description="Coverage analysis flag")
     is_req_analysis: bool = Field(
-        default=False, description="Requirement analysis flag"
+        default=False,
+        alias="is_req",
+        description="Requirement analysis flag (JSON key: is_req)",
     )
     time: int = Field(..., description="Execution time in seconds")
 

@@ -59,6 +59,8 @@ class OutputPaths:
         self.crashes = self.run_path / "crashes"
         self.errors = self.run_path / "errors"
         self.coverage = self.run_path / "coverage"
+        self.xml_dumps = self.run_path / "xml_dumps"
+        self.phase_reports = self.run_path / "phase_reports"
 
     def create_all(self):
         """Create all output directories."""
@@ -73,6 +75,8 @@ class OutputPaths:
             self.crashes,
             self.errors,
             self.coverage,
+            self.xml_dumps,
+            self.phase_reports,
         ]:
             path.mkdir(parents=True, exist_ok=True)
 

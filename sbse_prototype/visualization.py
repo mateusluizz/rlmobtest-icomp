@@ -321,17 +321,13 @@ class ParetoVisualizer:
         fig, axes = plt.subplots(3, 1, figsize=(10, 10), dpi=self.dpi)
 
         # Coverage
-        axes[0].plot(
-            generations, avg_coverage, "b-", linewidth=2, marker="o", markersize=4
-        )
+        axes[0].plot(generations, avg_coverage, "b-", linewidth=2, marker="o", markersize=4)
         axes[0].set_ylabel("Avg Coverage", fontsize=10, fontweight="bold")
         axes[0].set_title("Coverage Convergence", fontsize=11, fontweight="bold")
         axes[0].grid(True, alpha=0.3)
 
         # Diversity
-        axes[1].plot(
-            generations, avg_diversity, "g-", linewidth=2, marker="s", markersize=4
-        )
+        axes[1].plot(generations, avg_diversity, "g-", linewidth=2, marker="s", markersize=4)
         axes[1].set_ylabel("Avg Diversity", fontsize=10, fontweight="bold")
         axes[1].set_title("Diversity Convergence", fontsize=11, fontweight="bold")
         axes[1].grid(True, alpha=0.3)
@@ -392,9 +388,7 @@ class ComparisonVisualizer:
         # Normalizar para comparação visual
         max_vals = [max(b, o) for b, o in zip(baseline_vals, optimized_vals)]
         baseline_norm = [b / m if m > 0 else 0 for b, m in zip(baseline_vals, max_vals)]
-        optimized_norm = [
-            o / m if m > 0 else 0 for o, m in zip(optimized_vals, max_vals)
-        ]
+        optimized_norm = [o / m if m > 0 else 0 for o, m in zip(optimized_vals, max_vals)]
 
         x = np.arange(len(objectives))
         width = 0.35
@@ -479,17 +473,13 @@ class ComparisonVisualizer:
             optimized_metrics.coverage,
             optimized_metrics.diversity,
             optimized_metrics.fault_detection_rate,
-            1.0 / optimized_metrics.suite_size
-            if optimized_metrics.suite_size > 0
-            else 0,
+            1.0 / optimized_metrics.suite_size if optimized_metrics.suite_size > 0 else 0,
         ]
 
         # Normalizar
         max_vals = [max(b, o) for b, o in zip(baseline_vals, optimized_vals)]
         baseline_norm = [b / m if m > 0 else 0 for b, m in zip(baseline_vals, max_vals)]
-        optimized_norm = [
-            o / m if m > 0 else 0 for o, m in zip(optimized_vals, max_vals)
-        ]
+        optimized_norm = [o / m if m > 0 else 0 for o, m in zip(optimized_vals, max_vals)]
 
         # Criar radar chart
         angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
@@ -497,13 +487,9 @@ class ComparisonVisualizer:
         optimized_norm += optimized_norm[:1]
         angles += angles[:1]
 
-        fig, ax = plt.subplots(
-            figsize=(8, 8), subplot_kw=dict(projection="polar"), dpi=self.dpi
-        )
+        fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(projection="polar"), dpi=self.dpi)
 
-        ax.plot(
-            angles, baseline_norm, "o-", linewidth=2, label="Baseline", color="coral"
-        )
+        ax.plot(angles, baseline_norm, "o-", linewidth=2, label="Baseline", color="coral")
         ax.fill(angles, baseline_norm, alpha=0.25, color="coral")
 
         ax.plot(

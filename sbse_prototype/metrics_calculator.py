@@ -83,9 +83,7 @@ class MetricsCalculator:
         activity_coverage = len(suite.get_all_activities())
 
         # Score combinado (pode ajustar pesos)
-        coverage_score = code_coverage + (
-            activity_coverage * 10
-        )  # Activities valem mais
+        coverage_score = code_coverage + (activity_coverage * 10)  # Activities valem mais
 
         return float(coverage_score)
 
@@ -240,9 +238,7 @@ class MetricsCalculator:
             # Fallback para cálculo aproximado
             return self._approximate_hypervolume(points, reference_point)
 
-    def _approximate_hypervolume(
-        self, points: np.ndarray, reference_point: np.ndarray
-    ) -> float:
+    def _approximate_hypervolume(self, points: np.ndarray, reference_point: np.ndarray) -> float:
         """Cálculo aproximado de hypervolume (2D/3D)."""
         # Implementação simplificada para 2D
         if points.shape[1] == 2:
@@ -298,9 +294,7 @@ class MetricsCalculator:
 
         return std_dist / mean_dist
 
-    def compare_suites(
-        self, suite1: TestSuite, suite2: TestSuite
-    ) -> Dict[str, Dict[str, float]]:
+    def compare_suites(self, suite1: TestSuite, suite2: TestSuite) -> Dict[str, Dict[str, float]]:
         """
         Compara duas suítes de teste.
 
@@ -373,9 +367,7 @@ class QualityIndicators:
         distances = []
         for point in approximation_set:
             # Encontrar ponto mais próximo na fronteira verdadeira
-            min_dist = min(
-                np.linalg.norm(point - pf_point, ord=p) for pf_point in pareto_front
-            )
+            min_dist = min(np.linalg.norm(point - pf_point, ord=p) for pf_point in pareto_front)
             distances.append(min_dist)
 
         gd = (sum(d**p for d in distances) / len(distances)) ** (1 / p)
@@ -405,9 +397,7 @@ class QualityIndicators:
         distances = []
         for pf_point in pareto_front:
             # Encontrar ponto mais próximo na aproximação
-            min_dist = min(
-                np.linalg.norm(pf_point - point, ord=p) for point in approximation_set
-            )
+            min_dist = min(np.linalg.norm(pf_point - point, ord=p) for point in approximation_set)
             distances.append(min_dist)
 
         igd = (sum(d**p for d in distances) / len(distances)) ** (1 / p)

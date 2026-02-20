@@ -1,11 +1,18 @@
 [
-    {
-        "apk_name": "budgetwatch.apk",
-        "package_name": "protect.budgetwatch",
-        "is_coverage": false,
-        "is_req": false,
-        "time": 3600,
-        "episodes": 20
-    }
+  {
+    "apk_name": "budgetwatch.apk",
+    "package_name": "protect.budgetwatch",
+    "is_coverage": false,
+    "is_req": true,
+    "time": 7200,
+    "episodes": 20
+  },
+  {
+    "apk_name": "org.totschnig.myexpenses",
+    "package_name": "org.totschnig.myexpenses",
+    "is_coverage": false,
+    "is_req": true,
+    "time": 7200,
+    "episodes": 20
+  }
 ]
-

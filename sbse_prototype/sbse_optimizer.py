@@ -68,9 +68,7 @@ class TestSuiteOptimizationProblem(Problem):
         # - n_var: número de variáveis = número de TCs no pool (seleção binária)
         # - n_obj: número de objetivos = 4
         # - xl, xu: limites (0 ou 1 para cada TC)
-        super().__init__(
-            n_var=self.n_test_cases, n_obj=4, n_constr=0, xl=0, xu=1, vtype=int
-        )
+        super().__init__(n_var=self.n_test_cases, n_obj=4, n_constr=0, xl=0, xu=1, vtype=int)
 
     def _evaluate(self, X, out, *args, **kwargs):
         """
@@ -346,14 +344,10 @@ class SBSEOptimizer:
             def score(metrics):
                 norm_cov = metrics.coverage / max_cov if max_cov > 0 else 0
                 norm_div = metrics.diversity / max_div if max_div > 0 else 0
-                norm_size = (
-                    min_size / metrics.suite_size if metrics.suite_size > 0 else 0
-                )
+                norm_size = min_size / metrics.suite_size if metrics.suite_size > 0 else 0
 
                 # Distância ao ideal (1, 1, 1)
-                return np.sqrt(
-                    (1 - norm_cov) ** 2 + (1 - norm_div) ** 2 + (1 - norm_size) ** 2
-                )
+                return np.sqrt((1 - norm_cov) ** 2 + (1 - norm_div) ** 2 + (1 - norm_size) ** 2)
 
             best = min(pareto_front, key=lambda x: score(x[1]))
 
@@ -484,10 +478,7 @@ if __name__ == "__main__":
     for i in range(20):
         tc = TestCase(
             id=f"TC_{i:03d}",
-            actions=[
-                Action(j, "click", f"button_{j}")
-                for j in range(np.random.randint(5, 15))
-            ],
+            actions=[Action(j, "click", f"button_{j}") for j in range(np.random.randint(5, 15))],
             coverage={f"Class.java:{k}" for k in range(i * 5, (i + 1) * 5)},
             activities_visited={f"Activity{k}" for k in range(i % 3 + 1)},
             crashes=np.random.randint(0, 2),
