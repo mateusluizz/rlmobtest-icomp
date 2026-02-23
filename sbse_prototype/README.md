@@ -11,6 +11,7 @@ Este framework integra **Search-Based Software Engineering (SBSE)** com **Deep R
 ### Problema que Resolve
 
 O **DRL-MobTest** gera casos de teste automaticamente, mas:
+
 - ❌ Produz muitos casos redundantes
 - ❌ Não otimiza explicitamente para múltiplos objetivos
 - ❌ Falta trade-offs claros entre cobertura, diversidade e tamanho
@@ -27,12 +28,12 @@ RL Agent (DQN) → Pool de TCs → SBSE (NSGA-II) → Fronteira de Pareto → Su
 
 ## 🎯 Objetivos de Otimização
 
-| Objetivo | Descrição | Meta |
-|----------|-----------|------|
-| **Cobertura** | Linhas/métodos/activities cobertos | Maximizar |
-| **Diversidade** | Variedade de ações e fluxos | Maximizar |
-| **Tamanho** | Número de casos de teste | Minimizar |
-| **Detecção de Falhas** | Taxa de crashes encontrados | Maximizar |
+| Objetivo               | Descrição                          | Meta      |
+| ---------------------- | ---------------------------------- | --------- |
+| **Cobertura**          | Linhas/métodos/activities cobertos | Maximizar |
+| **Diversidade**        | Variedade de ações e fluxos        | Maximizar |
+| **Tamanho**            | Número de casos de teste           | Minimizar |
+| **Detecção de Falhas** | Taxa de crashes encontrados        | Maximizar |
 
 ---
 
@@ -97,6 +98,7 @@ jupyter notebook SBSE_RL_Integration.ipynb
 ```
 
 Execute todas as células para:
+
 1. Gerar casos de teste simulados
 2. Otimizar com NSGA-II
 3. Visualizar fronteira de Pareto
@@ -169,12 +171,12 @@ best_suite.save("output/sbse_results/optimized_suite.json")
 
 ### Comparação Típica
 
-| Métrica | Baseline (50 TCs) | SBSE Otimizada (~20 TCs) | Melhoria |
-|---------|-------------------|--------------------------|----------|
-| **Tamanho** | 50 | 20 | **-60%** ✅ |
-| **Cobertura** | 100% | 98-102% | **~0%** ✅ |
-| **Diversidade** | 0.45 | 0.68 | **+51%** ✅ |
-| **Tempo Execução** | 500s | 200s | **-60%** ✅ |
+| Métrica            | Baseline (50 TCs) | SBSE Otimizada (~20 TCs) | Melhoria    |
+| ------------------ | ----------------- | ------------------------ | ----------- |
+| **Tamanho**        | 50                | 20                       | **-60%** ✅ |
+| **Cobertura**      | 100%              | 98-102%                  | **~0%** ✅  |
+| **Diversidade**    | 0.45              | 0.68                     | **+51%** ✅ |
+| **Tempo Execução** | 500s              | 200s                     | **-60%** ✅ |
 
 ### Evidência Estatística
 
@@ -287,6 +289,7 @@ best = optimizer.select_best_solution(criterion="minimal")
 Ver: [`SBSE_RL_Integration.ipynb`](SBSE_RL_Integration.ipynb)
 
 O notebook contém:
+
 - ✅ Geração de dados sintéticos
 - ✅ Otimização com NSGA-II
 - ✅ Análise estatística completa
@@ -385,4 +388,4 @@ MIT License - Ver arquivo `LICENSE`
 
 ---
 
-*Última atualização: Dezembro 2025*
+_Última atualização: Dezembro 2025_

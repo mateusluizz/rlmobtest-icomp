@@ -1,3 +1,70 @@
-    Activities=[ActivityRecord{dd1e6f6 u0 protect.budgetwatch/.MainActivity t363}, ActivityRecord{bff2867 u0 protect.budgetwatch/.ImportExportActivity t363}, ActivityRecord{b7a917f u0 com.android.intentresolver/.ChooserActivityLauncher t363 f}}]
-    Activities=[ActivityRecord{468bb90 u0 com.android.chrome/org.chromium.chrome.browser.ChromeTabbedActivity t144}]
-    Activities=[ActivityRecord{a4b02c0 u0 com.motorola.launcher3/com.android.launcher3.CustomizationPanelLauncher t46}]
+// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+/**
+ *******************************************************************************
+ * Copyright (C) 2006-2014, International Business Machines Corporation   *
+ * and others. All Rights Reserved.                                            *
+ *******************************************************************************
+ */
+
+#ifndef DICTBE_H
+#define DICTBE_H
+
+#include "unicode/utypes.h"
+#include "unicode/uniset.h"
+#include "unicode/utext.h"
+
+#include "brkeng.h"
+#include "uvectr32.h"
+
+U_NAMESPACE_BEGIN
+
+class DictionaryMatcher;
+class Normalizer2;
+
+/*******************************************************************
+ * DictionaryBreakEngine
+ */
+
+/**
+ * <p>DictionaryBreakEngine is a kind of LanguageBreakEngine that uses a
+ * dictionary to determine language-specific breaks.</p>
+ *
+ * <p>After it is constructed a DictionaryBreakEngine may be shared between
+ * threads without synchronization.</p>
+ */
+class DictionaryBreakEngine : public LanguageBreakEngine {
+ private:
+    /**
+     * The set of characters handled by this engine
+     * @internal
+     */
+
+  UnicodeSet    fSet;
+
+ public:
+
+  /**
+   * <p>Constructor </p>
+   */
+  DictionaryBreakEngine();
+
+  /**
+   * <p>Virtual destructor.</p>
+   */
+  virtual ~DictionaryBreakEngine();
+
+  /**
+   * <p>Indicate whether this engine handles a particular character for
+   * a particular kind of break.</p>
+   *
+   * @param c A character which begins a run that the engine might handle
+   * @return true if this engine handles the particular character and break
+   * type.
+   */
+  virtual UBool handles(UChar32 c) const;
+
+  /**
+   * <p>Find any breaks within a run in the supplied text.</p>
+   *
+ 

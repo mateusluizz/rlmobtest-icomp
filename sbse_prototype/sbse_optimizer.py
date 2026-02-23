@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 SBSE Optimizer Module
 Otimização multi-objetivo de casos de teste usando NSGA-II/SPEA2
 """
 
-import numpy as np
-from typing import List, Dict, Tuple, Optional
-from pathlib import Path
 import json
 import time
+from pathlib import Path
 
+import numpy as np
+from metrics_calculator import MetricsCalculator, ObjectiveMetrics
+from pymoo.algorithms.moo.moead import MOEAD
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.algorithms.moo.nsga3 import NSGA3
 from pymoo.algorithms.moo.spea2 import SPEA2
-from pymoo.algorithms.moo.moead import MOEAD
 from pymoo.core.problem import Problem
 from pymoo.core.result import Result
 from pymoo.operators.crossover.sbx import SBX
@@ -22,9 +21,7 @@ from pymoo.operators.mutation.pm import PM
 from pymoo.operators.sampling.rnd import IntegerRandomSampling
 from pymoo.optimize import minimize
 from pymoo.util.ref_dirs import get_reference_directions
-
 from test_case_representation import TestCase, TestSuite
-from metrics_calculator import MetricsCalculator, ObjectiveMetrics
 
 
 class TestSuiteOptimizationProblem(Problem):
@@ -40,7 +37,7 @@ class TestSuiteOptimizationProblem(Problem):
 
     def __init__(
         self,
-        test_cases_pool: List[TestCase],
+        test_cases_pool: list[TestCase],
         min_suite_size: int = 1,
         max_suite_size: int = None,
     ):
@@ -68,9 +65,7 @@ class TestSuiteOptimizationProblem(Problem):
         # - n_var: número de variáveis = número de TCs no pool (seleção binária)
         # - n_obj: número de objetivos = 4
         # - xl, xu: limites (0 ou 1 para cada TC)
-        super().__init__(
-            n_var=self.n_test_cases, n_obj=4, n_constr=0, xl=0, xu=1, vtype=int
-        )
+        super().__init__(n_var=self.n_test_cases, n_obj=4, n_constr=0, xl=0, xu=1, vtype=int)
 
     def _evaluate(self, X, out, *args, **kwargs):
         """
@@ -158,7 +153,7 @@ class SBSEOptimizer:
 
         self.problem = None
         self.algorithm = None
-        self.result: Optional[Result] = None
+        self.result: Result | None = None
 
         # Histórico de execução
         self.execution_time = 0.0
@@ -166,7 +161,7 @@ class SBSEOptimizer:
 
     def setup_problem(
         self,
-        test_cases: List[TestCase],
+        test_cases: list[TestCase],
         min_suite_size: int = 1,
         max_suite_size: int = None,
     ):
@@ -282,7 +277,7 @@ class SBSEOptimizer:
 
         return self.result
 
-    def get_pareto_front(self) -> List[Tuple[TestSuite, ObjectiveMetrics]]:
+    def get_pareto_front(self) -> list[tuple[TestSuite, ObjectiveMetrics]]:
         """
         Retorna a fronteira de Pareto com as suítes otimizadas.
 
@@ -308,7 +303,7 @@ class SBSEOptimizer:
 
     def select_best_solution(
         self, criterion: str = "coverage"
-    ) -> Tuple[TestSuite, ObjectiveMetrics]:
+    ) -> tuple[TestSuite, ObjectiveMetrics]:
         """
         Seleciona a melhor solução da fronteira de Pareto.
 
@@ -346,14 +341,10 @@ class SBSEOptimizer:
             def score(metrics):
                 norm_cov = metrics.coverage / max_cov if max_cov > 0 else 0
                 norm_div = metrics.diversity / max_div if max_div > 0 else 0
-                norm_size = (
-                    min_size / metrics.suite_size if metrics.suite_size > 0 else 0
-                )
+                norm_size = min_size / metrics.suite_size if metrics.suite_size > 0 else 0
 
                 # Distância ao ideal (1, 1, 1)
-                return np.sqrt(
-                    (1 - norm_cov) ** 2 + (1 - norm_div) ** 2 + (1 - norm_size) ** 2
-                )
+                return np.sqrt((1 - norm_cov) ** 2 + (1 - norm_div) ** 2 + (1 - norm_size) ** 2)
 
             best = min(pareto_front, key=lambda x: score(x[1]))
 
@@ -374,7 +365,7 @@ class SBSEOptimizer:
 
         return best
 
-    def get_optimization_summary(self) -> Dict:
+    def get_optimization_summary(self) -> dict:
         """
         Retorna resumo da otimização.
 
@@ -473,7 +464,7 @@ class SBSEOptimizer:
 
 if __name__ == "__main__":
     # Exemplo de uso
-    from test_case_representation import TestCase, Action
+    from test_case_representation import Action, TestCase
 
     print("SBSE Optimizer Module")
     print("=" * 60)
@@ -484,10 +475,7 @@ if __name__ == "__main__":
     for i in range(20):
         tc = TestCase(
             id=f"TC_{i:03d}",
-            actions=[
-                Action(j, "click", f"button_{j}")
-                for j in range(np.random.randint(5, 15))
-            ],
+            actions=[Action(j, "click", f"button_{j}") for j in range(np.random.randint(5, 15))],
             coverage={f"Class.java:{k}" for k in range(i * 5, (i + 1) * 5)},
             activities_visited={f"Activity{k}" for k in range(i % 3 + 1)},
             crashes=np.random.randint(0, 2),
@@ -521,7 +509,7 @@ if __name__ == "__main__":
 
     # Selecionar melhor solução
     best_suite, best_metrics = optimizer.select_best_solution(criterion="balanced")
-    print(f"Best solution (balanced):")
+    print("Best solution (balanced):")
     print(f"  Size: {best_metrics.suite_size}")
     print(f"  Coverage: {best_metrics.coverage:.2f}")
     print(f"  Diversity: {best_metrics.diversity:.2f}")

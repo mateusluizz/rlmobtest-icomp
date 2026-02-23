@@ -21,20 +21,25 @@ pip install -r requirements_sbse.txt
 ### Passo 2: Executar Demonstração
 
 **Opção A - Notebook (Recomendado):**
+
 ```bash
 jupyter notebook SBSE_RL_Integration.ipynb
 ```
+
 → Run All Cells → Ver resultados completos
 
 **Opção B - Script Python:**
+
 ```bash
 python example_full_pipeline.py
 ```
+
 → Pipeline completo em terminal
 
 ### Passo 3: Ver Resultados
 
 Arquivos gerados em `output/sbse_results/`:
+
 - ✅ Fronteira de Pareto (JSON)
 - ✅ Suíte otimizada
 - ✅ Visualizações (PNG)
@@ -47,50 +52,59 @@ Arquivos gerados em `output/sbse_results/`:
 ### Se você quer...
 
 #### 📖 **Entender o projeto**
+
 → Leia: [`EXECUTIVE_SUMMARY.md`](EXECUTIVE_SUMMARY.md) (10 min)
 
 #### 💻 **Ver o código rodando**
+
 → Execute: [`SBSE_RL_Integration.ipynb`](SBSE_RL_Integration.ipynb) (15 min)
 
 #### 🔗 **Integrar ao seu RLMobTest**
+
 → Siga: [`INTEGRATION_GUIDE.md`](INTEGRATION_GUIDE.md) (1 hora)
 
 #### 📚 **Aprender a API**
+
 → Leia: [`README.md`](README.md) (30 min)
 
 #### 🗺️ **Navegar pelos arquivos**
+
 → Consulte: [`INDEX.md`](INDEX.md) (referência rápida)
 
 ---
 
 ## 📁 Arquivos Principais
 
-| Arquivo | O que é | Quando usar |
-|---------|---------|-------------|
-| **START_HERE.md** | Este arquivo (início rápido) | Agora! |
-| **EXECUTIVE_SUMMARY.md** | Visão geral do projeto | Apresentar ao professor |
-| **SBSE_RL_Integration.ipynb** | Notebook completo | Demonstração |
-| **README.md** | Documentação da API | Usar os módulos |
-| **INTEGRATION_GUIDE.md** | Como integrar | Produção |
-| **INDEX.md** | Navegação completa | Referência |
-| **PROJECT_SUMMARY.md** | Resumo final | Revisão |
+| Arquivo                       | O que é                      | Quando usar             |
+| ----------------------------- | ---------------------------- | ----------------------- |
+| **START_HERE.md**             | Este arquivo (início rápido) | Agora!                  |
+| **EXECUTIVE_SUMMARY.md**      | Visão geral do projeto       | Apresentar ao professor |
+| **SBSE_RL_Integration.ipynb** | Notebook completo            | Demonstração            |
+| **README.md**                 | Documentação da API          | Usar os módulos         |
+| **INTEGRATION_GUIDE.md**      | Como integrar                | Produção                |
+| **INDEX.md**                  | Navegação completa           | Referência              |
+| **PROJECT_SUMMARY.md**        | Resumo final                 | Revisão                 |
 
 ---
 
 ## 🎯 O que Este Projeto Faz?
 
 ### Problema
+
 O DRL-MobTest gera **muitos casos de teste redundantes** usando Deep Q-Learning.
 
 ### Solução
+
 Usar **SBSE (NSGA-II)** para otimizar e reduzir a suíte mantendo qualidade.
 
 ### Resultado
+
 ```
 50 TCs (baseline) → 20 TCs (otimizada) = -60% de redução ✅
 ```
 
 Com:
+
 - ✅ Mesma cobertura (~100%)
 - ✅ Maior diversidade (+51%)
 - ✅ Mais crashes detectados (+20%)
@@ -111,6 +125,7 @@ Com:
 ```
 
 **4 Objetivos Multi-Objetivo:**
+
 1. Cobertura (maximizar)
 2. Diversidade (maximizar)
 3. Tamanho da suíte (minimizar)
@@ -148,18 +163,21 @@ print(f"Cobertura: {best_metrics.coverage:.2f}")
 ## ✅ Checklist de Exploração
 
 ### Dia 1: Compreensão
+
 - [ ] Ler `START_HERE.md` (este arquivo)
 - [ ] Ler `EXECUTIVE_SUMMARY.md`
 - [ ] Executar `SBSE_RL_Integration.ipynb`
 - [ ] Ver visualizações geradas
 
 ### Dia 2: Profundidade
+
 - [ ] Ler `README.md` completo
 - [ ] Explorar código em `sbse_optimizer.py`
 - [ ] Executar `example_full_pipeline.py`
 - [ ] Entender métricas em `metrics_calculator.py`
 
 ### Dia 3: Integração (Opcional)
+
 - [ ] Ler `INTEGRATION_GUIDE.md`
 - [ ] Integrar ao RLMobTest
 - [ ] Testar com app real
@@ -172,11 +190,13 @@ print(f"Cobertura: {best_metrics.coverage:.2f}")
 ### Demonstração ao Vivo (10 min)
 
 1. **Mostrar estrutura** (1 min)
+
    ```bash
    ls -lh sbse_prototype/
    ```
 
 2. **Executar pipeline** (5 min)
+
    ```bash
    python example_full_pipeline.py
    ```
@@ -203,12 +223,12 @@ print(f"Cobertura: {best_metrics.coverage:.2f}")
 
 ## 📊 Resultados Esperados
 
-| Métrica | Antes (RL) | Depois (SBSE+RL) | Melhoria |
-|---------|------------|------------------|----------|
-| Tamanho | 50 TCs | 20 TCs | **-60%** |
-| Cobertura | 100% | ~100% | **0%** |
-| Diversidade | 0.45 | 0.68 | **+51%** |
-| Tempo | 500s | 200s | **-60%** |
+| Métrica     | Antes (RL) | Depois (SBSE+RL) | Melhoria |
+| ----------- | ---------- | ---------------- | -------- |
+| Tamanho     | 50 TCs     | 20 TCs           | **-60%** |
+| Cobertura   | 100%       | ~100%            | **0%**   |
+| Diversidade | 0.45       | 0.68             | **+51%** |
+| Tempo       | 500s       | 200s             | **-60%** |
 
 **Evidência Estatística**: p < 0.001 (altamente significativo)
 
@@ -217,20 +237,24 @@ print(f"Cobertura: {best_metrics.coverage:.2f}")
 ## 🆘 Ajuda Rápida
 
 ### Erro: "No module named 'pymoo'"
+
 ```bash
 pip install pymoo>=0.6.0
 ```
 
 ### Erro: Notebook não abre
+
 ```bash
 pip install jupyter
 jupyter notebook
 ```
 
 ### Dúvidas sobre código
+
 → Ver docstrings em cada módulo `.py`
 
 ### Dúvidas sobre integração
+
 → Consultar `INTEGRATION_GUIDE.md`
 
 ---
@@ -255,9 +279,9 @@ jupyter notebook
 
 **Boa sorte! 🚀**
 
-*Se tiver qualquer dúvida, consulte [`INDEX.md`](INDEX.md) para navegação completa.*
+_Se tiver qualquer dúvida, consulte [`INDEX.md`](INDEX.md) para navegação completa._
 
 ---
 
-*Desenvolvido para demonstrar excelência em SBSE + IA*
-*Dezembro 2025*
+_Desenvolvido para demonstrar excelência em SBSE + IA_
+_Dezembro 2025_

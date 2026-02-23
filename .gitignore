@@ -10,6 +10,8 @@ metrics/
 
 # Output directories (generated during execution)
 output/*
+apks/*
+content/*
 
 # Logs
 logs/

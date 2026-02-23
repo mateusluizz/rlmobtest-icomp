@@ -16,14 +16,14 @@
 
 ### Distribuição de Código
 
-| Módulo | Linhas | Função |
-|--------|--------|--------|
-| `test_case_representation.py` | ~400 | Estruturas de dados |
-| `metrics_calculator.py` | ~500 | Métricas multi-objetivo |
-| `sbse_optimizer.py` | ~600 | Otimizador NSGA-II |
-| `statistical_analysis.py` | ~550 | Testes estatísticos |
-| `visualization.py` | ~550 | Visualizações |
-| **Total** | **~2.600** | - |
+| Módulo                        | Linhas     | Função                  |
+| ----------------------------- | ---------- | ----------------------- |
+| `test_case_representation.py` | ~400       | Estruturas de dados     |
+| `metrics_calculator.py`       | ~500       | Métricas multi-objetivo |
+| `sbse_optimizer.py`           | ~600       | Otimizador NSGA-II      |
+| `statistical_analysis.py`     | ~550       | Testes estatísticos     |
+| `visualization.py`            | ~550       | Visualizações           |
+| **Total**                     | **~2.600** | -                       |
 
 ---
 
@@ -94,6 +94,7 @@
 **Solução**: Otimização automática de suítes geradas por RL
 
 **Impacto**:
+
 - Redução de 60% no tamanho da suíte
 - Manutenção de cobertura
 - Aumento de diversidade
@@ -105,6 +106,7 @@
 **Framework**: Pymoo (Python Multi-objective Optimization)
 
 **Implementação**:
+
 - 4 objetivos simultâneos
 - População: 100 indivíduos
 - Gerações: 50
@@ -129,11 +131,13 @@
 ### 4. Validação e Análise (Demonstração de Valor) ✅
 
 **Testes Estatísticos**:
+
 - Mann-Whitney U Test: p < 0.001
 - Vargha-Delaney A12: 0.78 (large effect)
 - Cohen's d: 1.2 (large effect)
 
 **Baselines Comparados**:
+
 - Random sampling
 - Greedy (cobertura)
 - RL-only (sem otimização)
@@ -146,13 +150,13 @@
 
 ### Métricas de Desempenho
 
-| Métrica | Baseline | SBSE+RL | Melhoria | Status |
-|---------|----------|---------|----------|--------|
-| **Tamanho** | 50 TCs | 20 TCs | **-60%** | ✅ |
-| **Cobertura** | 100% | 98-102% | **~0%** | ✅ |
-| **Diversidade** | 0.45 | 0.68 | **+51%** | ✅ |
-| **Fault Rate** | 0.10 | 0.12 | **+20%** | ✅ |
-| **Tempo Exec** | 500s | 200s | **-60%** | ✅ |
+| Métrica         | Baseline | SBSE+RL | Melhoria | Status |
+| --------------- | -------- | ------- | -------- | ------ |
+| **Tamanho**     | 50 TCs   | 20 TCs  | **-60%** | ✅     |
+| **Cobertura**   | 100%     | 98-102% | **~0%**  | ✅     |
+| **Diversidade** | 0.45     | 0.68    | **+51%** | ✅     |
+| **Fault Rate**  | 0.10     | 0.12    | **+20%** | ✅     |
+| **Tempo Exec**  | 500s     | 200s    | **-60%** | ✅     |
 
 ### Evidência Estatística
 
@@ -248,6 +252,7 @@ jupyter notebook SBSE_RL_Integration.ipynb
 #### 1️⃣ Integração Harmoniosa ✅
 
 Não é apenas "usar SBSE" ou "usar RL", mas **combinar ambos sinergicamente**:
+
 - RL gera pool diverso de TCs
 - SBSE seleciona subconjunto ótimo
 - Resultado: melhor que ambos isoladamente
@@ -277,13 +282,13 @@ Não é apenas "usar SBSE" ou "usar RL", mas **combinar ambos sinergicamente**:
 
 ## 📊 Comparação com Estado da Arte
 
-| Aspecto | Monkey | Sapienz | RLMobTest | **SBSE+RL (Este)** |
-|---------|--------|---------|-----------|---------------------|
-| **Geração TCs** | Random | SBSE | RL (DQN) | **RL + SBSE** ✅ |
-| **Objetivos** | - | Multi | Single | **Multi (4)** ✅ |
-| **Otimização** | - | Online | - | **Offline (Pareto)** ✅ |
-| **Validação** | - | Ad-hoc | Empírica | **Estatística rigorosa** ✅ |
-| **Código Aberto** | Sim | Não | Sim | **Sim** ✅ |
+| Aspecto           | Monkey | Sapienz | RLMobTest | **SBSE+RL (Este)**          |
+| ----------------- | ------ | ------- | --------- | --------------------------- |
+| **Geração TCs**   | Random | SBSE    | RL (DQN)  | **RL + SBSE** ✅            |
+| **Objetivos**     | -      | Multi   | Single    | **Multi (4)** ✅            |
+| **Otimização**    | -      | Online  | -         | **Offline (Pareto)** ✅     |
+| **Validação**     | -      | Ad-hoc  | Empírica  | **Estatística rigorosa** ✅ |
+| **Código Aberto** | Sim    | Não     | Sim       | **Sim** ✅                  |
 
 **Vantagem competitiva**: Primeiro framework que combina RL + SBSE multi-objetivo para testes Android com validação estatística completa.
 
@@ -294,21 +299,25 @@ Não é apenas "usar SBSE" ou "usar RL", mas **combinar ambos sinergicamente**:
 ### 4 Dimensões Obrigatórias
 
 #### ✅ 1. Problema de Base (ES)
+
 - **O quê**: Otimização de suítes de teste Android
 - **Por quê**: Testes custosos, suítes redundantes
 - **Evidência**: Apps reais do Google Play (futuro)
 
 #### ✅ 2. Técnica SBSE
+
 - **Algoritmo**: NSGA-II (estado da arte)
 - **Framework**: Pymoo (moderno, bem suportado)
 - **Implementação**: Completa e funcional
 
 #### ✅ 3. Componente IA
+
 - **RL**: DQN para gerar TCs
 - **SBSE**: Otimizar seleção
 - **Sinergia**: RL explora, SBSE explota
 
 #### ✅ 4. Validação
+
 - **Estatística**: p < 0.001, large effect
 - **Baselines**: Random, greedy, RL-only
 - **Reprodutível**: Código e dados disponíveis
@@ -429,9 +438,9 @@ MIT License - Ver arquivo `LICENSE`
 
 ---
 
-*Este projeto exemplifica a integração harmoniosa de Engenharia de Software, SBSE e IA conforme solicitado.*
+_Este projeto exemplifica a integração harmoniosa de Engenharia de Software, SBSE e IA conforme solicitado._
 
-*Desenvolvido com dedicação para demonstrar excelência técnica e rigor acadêmico.*
+_Desenvolvido com dedicação para demonstrar excelência técnica e rigor acadêmico._
 
 ---
 

@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Metrics Calculator Module
 Calcula métricas para avaliação de suítes de teste
 """
 
-import numpy as np
-from typing import List, Set, Dict, Tuple
 from dataclasses import dataclass
+
+import numpy as np
 from test_case_representation import TestCase, TestSuite
 
 
@@ -83,9 +82,7 @@ class MetricsCalculator:
         activity_coverage = len(suite.get_all_activities())
 
         # Score combinado (pode ajustar pesos)
-        coverage_score = code_coverage + (
-            activity_coverage * 10
-        )  # Activities valem mais
+        coverage_score = code_coverage + (activity_coverage * 10)  # Activities valem mais
 
         return float(coverage_score)
 
@@ -210,7 +207,7 @@ class MetricsCalculator:
         return metrics
 
     def calculate_hypervolume(
-        self, pareto_front: List[ObjectiveMetrics], reference_point: np.ndarray
+        self, pareto_front: list[ObjectiveMetrics], reference_point: np.ndarray
     ) -> float:
         """
         Calcula o hypervolume da fronteira de Pareto.
@@ -240,9 +237,7 @@ class MetricsCalculator:
             # Fallback para cálculo aproximado
             return self._approximate_hypervolume(points, reference_point)
 
-    def _approximate_hypervolume(
-        self, points: np.ndarray, reference_point: np.ndarray
-    ) -> float:
+    def _approximate_hypervolume(self, points: np.ndarray, reference_point: np.ndarray) -> float:
         """Cálculo aproximado de hypervolume (2D/3D)."""
         # Implementação simplificada para 2D
         if points.shape[1] == 2:
@@ -265,7 +260,7 @@ class MetricsCalculator:
             dominated_volume = np.prod(reference_point - points.min(axis=0))
             return float(dominated_volume)
 
-    def calculate_spread(self, pareto_front: List[ObjectiveMetrics]) -> float:
+    def calculate_spread(self, pareto_front: list[ObjectiveMetrics]) -> float:
         """
         Calcula o spread (espalhamento) da fronteira de Pareto.
 
@@ -298,9 +293,7 @@ class MetricsCalculator:
 
         return std_dist / mean_dist
 
-    def compare_suites(
-        self, suite1: TestSuite, suite2: TestSuite
-    ) -> Dict[str, Dict[str, float]]:
+    def compare_suites(self, suite1: TestSuite, suite2: TestSuite) -> dict[str, dict[str, float]]:
         """
         Compara duas suítes de teste.
 
@@ -373,9 +366,7 @@ class QualityIndicators:
         distances = []
         for point in approximation_set:
             # Encontrar ponto mais próximo na fronteira verdadeira
-            min_dist = min(
-                np.linalg.norm(point - pf_point, ord=p) for pf_point in pareto_front
-            )
+            min_dist = min(np.linalg.norm(point - pf_point, ord=p) for pf_point in pareto_front)
             distances.append(min_dist)
 
         gd = (sum(d**p for d in distances) / len(distances)) ** (1 / p)
@@ -405,9 +396,7 @@ class QualityIndicators:
         distances = []
         for pf_point in pareto_front:
             # Encontrar ponto mais próximo na aproximação
-            min_dist = min(
-                np.linalg.norm(pf_point - point, ord=p) for point in approximation_set
-            )
+            min_dist = min(np.linalg.norm(pf_point - point, ord=p) for point in approximation_set)
             distances.append(min_dist)
 
         igd = (sum(d**p for d in distances) / len(distances)) ** (1 / p)
@@ -416,7 +405,7 @@ class QualityIndicators:
 
 if __name__ == "__main__":
     # Exemplo de uso
-    from test_case_representation import TestCase, TestSuite, Action
+    from test_case_representation import Action, TestCase, TestSuite
 
     print("Metrics Calculator Module")
     print("=" * 60)
