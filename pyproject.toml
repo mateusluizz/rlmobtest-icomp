@@ -1,6 +1,6 @@
 [project]
 name = "rlmobtest-icomp"
-version = "0.1.5"
+version = "0.1.6"
 description = "IARTES Project Testing Tool to automatize mobile test creating with Reinforcement Learning"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -12,9 +12,9 @@ maintainers = [{ name = "Maintainers", email = "mateusluizz@hotmail.com" }]
 keywords = ["Deep Q Learning", "Exploratory Tests"]
 
 dependencies = [
-  "crewai>=1.9.3",
+  "crewai>=0.95.0",
   "langchain-ollama>=1.0.0",
-  "litellm>=1.75.3",
+  "litellm[proxy]>=1.75.3",
   "matplotlib>=3.10.7",
   "pandas>=2.3.3",
   "tensorflow>=2.20.0",

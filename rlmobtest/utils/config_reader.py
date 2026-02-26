@@ -15,9 +15,10 @@ class AppConfig(BaseModel):
     package_name: str = Field(..., description="Android package name")
     is_coverage: bool = Field(default=False, description="Coverage analysis flag")
     is_req_analysis: bool = Field(
-        default=False, description="Requirement analysis flag"
+        default=False, alias="is_req", description="Requirement analysis flag"
     )
     time: int = Field(..., description="Execution time in seconds")
+    source_code: str = Field(default="", description="Source code zip in inputs/source_codes/")
 
     def to_tuple(self) -> tuple:
         """Convert to legacy tuple format for backwards compatibility."""

@@ -25,7 +25,7 @@ Novo módulo que implementa transcrição de test cases usando CrewAI.
 | `MultimodalInput` | Classe para suporte futuro a texto + imagens |
 
 **Configuração padrão:**
-- Modelo: `ollama/llama3.2:3b`
+- Modelo: `ollama/gemma3:4b`
 - Base URL: `http://localhost:11434`
 - Temperatura: `0.5`
 
@@ -87,7 +87,7 @@ from constants.paths import TEST_CASES_PATH, TRANSCRIPTIONS_PATH
 transcribe_folder(
     input_folder=TEST_CASES_PATH,
     output_folder=TRANSCRIPTIONS_PATH,
-    model_name="ollama/llama3.2:3b",
+    model_name="ollama/gemma3:4b",
 )
 ```
 

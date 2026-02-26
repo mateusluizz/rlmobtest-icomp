@@ -12,7 +12,7 @@ from rlmobtest.constants.paths import FEW_SHOT_EXAMPLES_PATH
 from rlmobtest.transcription import similarity_filter
 
 # Default Ollama model configuration
-DEFAULT_MODEL = "llama3.2:3b"
+DEFAULT_MODEL = "gemma3:4b"
 
 
 def create_llm(model_name: str = DEFAULT_MODEL, temperature: float = 0.5):
@@ -93,7 +93,7 @@ def the_world_is_our(
     Args:
         input_folder: Path to folder containing raw test cases
         output_folder: Path to folder for transcribed test cases
-        model_name: Ollama model to use (default: llama3.2)
+        model_name: Ollama model to use (default: gemma3:4b)
     """
     input_folder = Path(input_folder)
     output_folder = Path(output_folder)
@@ -104,9 +104,7 @@ def the_world_is_our(
     print(len(list(input_folder.iterdir())))
 
     # Identify and discard similar documents
-    _, documents_to_discard = similarity_filter.compare_documents_in_folder(
-        input_folder
-    )
+    _, documents_to_discard = similarity_filter.compare_documents_in_folder(input_folder)
 
     # List the remaining documents after discarding similar ones
     list_docs = similarity_filter.list_arquivos(input_folder, documents_to_discard)

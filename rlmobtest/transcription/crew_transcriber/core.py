@@ -1,12 +1,5 @@
-#!/usr/bin/env python3
-"""
-Module for transcribing test cases using CrewAI agents.
+"""Core CrewAI transcription logic: LLM, agents, tasks, and transcription functions."""
 
-This module provides an agent-based approach to generate test cases
-from text inputs (with future support for images).
-"""
-
-import base64
 import logging
 import os
 from pathlib import Path
@@ -58,20 +51,6 @@ def write_text_file(file_path: str | Path, text: str) -> None:
     """Write text to a file."""
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(text)
-
-
-def encode_image_to_base64(image_path: str | Path) -> str:
-    """
-    Encode an image file to base64 string.
-
-    Args:
-        image_path: Path to the image file
-
-    Returns:
-        Base64 encoded string of the image
-    """
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode("utf-8")
 
 
 def load_few_shot_examples() -> str:
@@ -165,7 +144,7 @@ def create_transcription_task(
     Args:
         agent: The agent to perform the task
         input_text: Raw test case text to transcribe
-        image_path: Optional path to screenshot image (for future multimodal support)
+        image_path: Optional path to screenshot image
 
     Returns:
         Configured Task for transcription
@@ -189,7 +168,6 @@ Your task:
 Follow the exact format shown in the examples provided in your context.
 """
 
-    # Future: Add image context when multimodal support is implemented
     if image_path:
         description += f"""
 
@@ -266,7 +244,7 @@ def transcribe_folder(
         output_folder: Path to folder for transcribed test cases
         model_name: Model to use (format: provider/model)
         base_url: Base URL for the LLM API
-        screenshots_folder: Optional folder containing screenshots for multimodal processing
+        screenshots_folder: Optional folder containing screenshots
     """
     input_folder = Path(input_folder)
     output_folder = Path(output_folder)
@@ -293,7 +271,7 @@ def transcribe_folder(
             tc_name = os.path.basename(doc_path)
             input_text = read_text_file(doc_path)
 
-            # Check for corresponding screenshot (future multimodal support)
+            # Check for corresponding screenshot
             image_path = None
             if screenshots_folder:
                 screenshots_folder = Path(screenshots_folder)
@@ -315,150 +293,3 @@ def transcribe_folder(
     print("=" * 50)
     print("CrewAI transcription pipeline completed")
     print("=" * 50)
-
-
-# Multimodal support utilities (for future implementation)
-class MultimodalInput:
-    """
-    Container for multimodal test case inputs.
-
-    Attributes:
-        text: The raw interaction log text
-        images: List of image paths or base64 encoded images
-        metadata: Additional context metadata
-    """
-
-    def __init__(
-        self,
-        text: str,
-        images: list[str | Path] | None = None,
-        metadata: dict | None = None,
-    ):
-        self.text = text
-        self.images = images or []
-        self.metadata = metadata or {}
-
-    def get_encoded_images(self) -> list[str]:
-        """Get base64 encoded versions of all images."""
-        encoded = []
-        for img in self.images:
-            if isinstance(img, (str, Path)) and Path(img).exists():
-                encoded.append(encode_image_to_base64(img))
-            elif isinstance(img, str):
-                # Assume already base64 encoded
-                encoded.append(img)
-        return encoded
-
-
-def find_all_days(app: str, agent: str, base_path: Path) -> list[tuple[str, str, str]]:
-    """
-    Find all available days in the output structure.
-
-    Returns:
-        List of (year, month, day) tuples sorted chronologically
-    """
-    agent_path = base_path / app / agent
-    if not agent_path.exists():
-        return []
-
-    days = []
-    for year_dir in sorted(agent_path.iterdir()):
-        if not year_dir.is_dir() or not year_dir.name.isdigit():
-            continue
-        for month_dir in sorted(year_dir.iterdir()):
-            if not month_dir.is_dir() or not month_dir.name.isdigit():
-                continue
-            for day_dir in sorted(month_dir.iterdir()):
-                if not day_dir.is_dir() or not day_dir.name.isdigit():
-                    continue
-                # Check if test_cases folder exists and has files
-                tc_path = day_dir / "test_cases"
-                if tc_path.exists() and any(tc_path.iterdir()):
-                    days.append((year_dir.name, month_dir.name, day_dir.name))
-
-    return days
-
-
-if __name__ == "__main__":
-    import argparse
-    from datetime import datetime
-
-    from rlmobtest.constants.paths import OUTPUT_BASE
-
-    parser = argparse.ArgumentParser(description="Transcribe test cases using CrewAI")
-    parser.add_argument(
-        "--app",
-        required=True,
-        help="App name (e.g., protect.budgetwatch)",
-    )
-    parser.add_argument(
-        "--agent",
-        default="improved",
-        choices=["original", "improved"],
-        help="Agent type (default: improved)",
-    )
-    parser.add_argument(
-        "--date",
-        default=None,
-        help="Specific date to process (YYYY-MM-DD). If omitted, processes all available days.",
-    )
-    parser.add_argument(
-        "--model",
-        default="ollama/llama3.2:3b",
-        help="Model to use (default: ollama/llama3.2:3b)",
-    )
-    parser.add_argument(
-        "--base-url",
-        default="http://localhost:11434",
-        help="LLM API base URL (default: http://localhost:11434)",
-    )
-
-    args = parser.parse_args()
-
-    # Determine which days to process
-    if args.date:
-        # Parse specific date
-        try:
-            dt = datetime.strptime(args.date, "%Y-%m-%d")
-            days_to_process = [(dt.strftime("%Y"), dt.strftime("%m"), dt.strftime("%d"))]
-        except ValueError:
-            print(f"Error: Invalid date format '{args.date}'. Use YYYY-MM-DD.")
-            exit(1)
-    else:
-        # Find all available days
-        days_to_process = find_all_days(args.app, args.agent, OUTPUT_BASE)
-        if not days_to_process:
-            print(f"No test cases found for {args.app}/{args.agent}")
-            exit(1)
-        print(f"Found {len(days_to_process)} day(s) with test cases")
-
-    # Process each day
-    for year, month, day in days_to_process:
-        print(f"\n{'=' * 50}")
-        print(f"Processing: {year}-{month}-{day}")
-        print(f"{'=' * 50}")
-
-        # Build paths for this specific day
-        day_path = OUTPUT_BASE / args.app / args.agent / year / month / day
-        test_cases_path = day_path / "test_cases"
-        apk_transcriptions_path = day_path / "transcriptions"
-        screenshots_path = day_path / "screenshots"
-
-        if not test_cases_path.exists():
-            print(f"Skipping {year}-{month}-{day}: no test_cases folder")
-            continue
-
-        print(f"Input folder: {test_cases_path}")
-        print(f"Output folder: {apk_transcriptions_path}")
-
-        transcribe_folder(
-            input_folder=test_cases_path,
-            output_folder=apk_transcriptions_path,
-            model_name=args.model,
-            base_url=args.base_url,
-            screenshots_folder=screenshots_path,
-        )
-
-    print(f"\n{'=' * 50}")
-    print("All days processed!")
-    print(f"{'=' * 50}")

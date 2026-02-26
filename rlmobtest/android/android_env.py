@@ -114,9 +114,7 @@ class Action:
                 future.result(timeout=timeout)
                 return True
         except FuturesTimeoutError:
-            print(
-                f"   ⏰ ACTION TIMEOUT: {self.action_type} took longer than {timeout}s"
-            )
+            print(f"   ⏰ ACTION TIMEOUT: {self.action_type} took longer than {timeout}s")
             logging.debug(f"Action timeout: {self.action_type} after {timeout}s")
             # Força retorno à home do app
             print("   🏠 Forcing return to app home...")
@@ -200,15 +198,11 @@ class Action:
                             file.write(f"\n\n⏰ Timeout on long-click: {self.elem}")
                     else:
                         file.write(f"\n\n⚠️ Element not found: {self.elem}")
-                        print(
-                            f"   ⚠️ Element not found for long-click: {self.elem[:50]}"
-                        )
+                        print(f"   ⚠️ Element not found for long-click: {self.elem[:50]}")
 
                 elif self.action_type == "check":
                     if self._check_element_exists():
-                        success = self._execute_with_timeout(
-                            lambda: self._execute_check(file), env
-                        )
+                        success = self._execute_with_timeout(lambda: self._execute_check(file), env)
                         if not success:
                             file.write(f"\n\n⏰ Timeout on check: {self.elem}")
                     else:
@@ -217,9 +211,7 @@ class Action:
 
                 elif self.action_type == "click":
                     if self._check_element_exists():
-                        success = self._execute_with_timeout(
-                            lambda: self._execute_click(file), env
-                        )
+                        success = self._execute_with_timeout(lambda: self._execute_click(file), env)
                         if not success:
                             file.write(f"\n\n⏰ Timeout on click: {self.elem}")
                     else:
@@ -239,17 +231,12 @@ class Action:
 
             except Exception as e:
                 error_msg = str(e)
-                if (
-                    "UiObjectNotFoundError" in error_msg
-                    or "UiObjectNotFoundException" in error_msg
-                ):
+                if "UiObjectNotFoundError" in error_msg or "UiObjectNotFoundException" in error_msg:
                     file.write(f"\n\n⚠️ Element disappeared: {self.elem}")
                     print(f"   ⚠️ Element disappeared during action: {self.action_type}")
                     logging.debug(f"UiObjectNotFoundError: {self.elem}")
                 else:
-                    file.write(
-                        f"\n\n❌ Error executing {self.action_type}: {error_msg}"
-                    )
+                    file.write(f"\n\n❌ Error executing {self.action_type}: {error_msg}")
                     print(f"   ❌ Error: {error_msg[:80]}")
                     logging.debug(f"Action error: {e}")
 
@@ -340,9 +327,7 @@ class Action:
             elif self.action_subtype == "text_less1_start_size":
                 result_str = self._generate_text(int(self.size_start) - 1)
                 self._type_and_log(file, result_str, self.resourceid)
-                file.write(
-                    f"\n\nExpected min size {self.size_start} Actual value: {result_str}"
-                )
+                file.write(f"\n\nExpected min size {self.size_start} Actual value: {result_str}")
 
             elif self.action_subtype == "text_start_size":
                 result_str = self._generate_text(int(self.size_start))
@@ -351,9 +336,7 @@ class Action:
             elif self.action_subtype == "text_greater_end_size":
                 result_str = self._generate_text(int(self.size_end) + 1)
                 self._type_and_log(file, result_str, self.resourceid)
-                file.write(
-                    f"\n\nExpected max size {self.size_end} Actual value: {result_str}"
-                )
+                file.write(f"\n\nExpected max size {self.size_end} Actual value: {result_str}")
 
             elif self.action_subtype == "text_end_size":
                 result_str = self._generate_text(int(self.size_end))
@@ -372,9 +355,7 @@ class Action:
                 else:
                     result_str = self._generate_number(int(self.size_start) - 1)
                 self._type_and_log(file, result_str, self.resourceid)
-                file.write(
-                    f"\n\nExpected min size {self.size_start} Actual value: {result_str}"
-                )
+                file.write(f"\n\nExpected min size {self.size_start} Actual value: {result_str}")
 
             elif self.action_subtype == "number_start_size":
                 result_str = self._generate_number(int(self.size_start))
@@ -387,9 +368,7 @@ class Action:
             elif self.action_subtype == "number_greater_end_size":
                 result_str = self._generate_number(int(self.size_end) + 1)
                 self._type_and_log(file, result_str, self.resourceid)
-                file.write(
-                    f"\n\nExpected max size {self.size_end} Actual value: {result_str}"
-                )
+                file.write(f"\n\nExpected max size {self.size_end} Actual value: {result_str}")
 
             elif self.action_subtype == "textLarge":
                 result_str = self._generate_text(100)
@@ -416,9 +395,7 @@ class Action:
                 self._type_and_log(file, result_str, self.elem)
 
             elif self.action_subtype == "symbols":
-                result_str = "".join(
-                    random.choice(string.punctuation) for _ in range(10)
-                )
+                result_str = "".join(random.choice(string.punctuation) for _ in range(10))
                 self.gui_object.send_keys(result_str)
                 file.write(f"\n\ntyped in {self.elem} value: {result_str}")
                 logging.debug(f"type: {self.elem} {result_str}")
@@ -426,9 +403,7 @@ class Action:
 
             elif self.action_subtype == "mixed":
                 letters_and_digits = string.ascii_letters + string.digits
-                result_str = "".join(
-                    random.choice(letters_and_digits) for _ in range(15)
-                )
+                result_str = "".join(random.choice(letters_and_digits) for _ in range(15))
                 self._type_and_log(file, result_str, self.elem)
 
         except Exception as e:
@@ -508,21 +483,11 @@ class AndroidEnv:
         self.buttons = []
         self.activities_req = []
         # Use provided paths or defaults
-        self.test_case_path = (
-            str(test_case_path) if test_case_path else str(TEST_CASES_PATH)
-        )
-        self.screenshots_path = (
-            str(screenshots_path) if screenshots_path else str(SCREENSHOTS_PATH)
-        )
-        self.crashes_path = (
-            str(crashes_path) if crashes_path else str(CRASHES_PATH)
-        )
-        self.errors_path = (
-            str(errors_path) if errors_path else str(ERRORS_PATH)
-        )
-        self.coverage_path = (
-            str(coverage_path) if coverage_path else str(COVERAGE_PATH)
-        )
+        self.test_case_path = str(test_case_path) if test_case_path else str(TEST_CASES_PATH)
+        self.screenshots_path = str(screenshots_path) if screenshots_path else str(SCREENSHOTS_PATH)
+        self.crashes_path = str(crashes_path) if crashes_path else str(CRASHES_PATH)
+        self.errors_path = str(errors_path) if errors_path else str(ERRORS_PATH)
+        self.coverage_path = str(coverage_path) if coverage_path else str(COVERAGE_PATH)
         # Controle de stuck/escape por steps
         self.stuck_counter = 0
         self.last_activity = ""
@@ -531,9 +496,7 @@ class AndroidEnv:
             max_same_activity  # Steps na mesma activity antes de tentar escapar
         )
         self.escape_attempts = 0  # Tentativas de escape consecutivas
-        self.max_escape_attempts = (
-            max_escape_attempts  # Máximo antes de voltar para home
-        )
+        self.max_escape_attempts = max_escape_attempts  # Máximo antes de voltar para home
         # Controle de stuck/escape por tempo
         self.activity_start_time = time.time()
         self.max_time_same_activity = (
@@ -609,9 +572,7 @@ class AndroidEnv:
         """Get the current activity name."""
         try:
             # Execute ADB command and write to file
-            self._exec(
-                "adb shell dumpsys activity recents | grep 'ActivityRecord' > std.txt"
-            )
+            self._exec("adb shell dumpsys activity recents | grep 'ActivityRecord' > std.txt")
 
             # Read the file
             with open("std.txt", "r", encoding="utf-8") as file:
@@ -767,9 +728,7 @@ class AndroidEnv:
             self.same_activity_count = 0
             self.last_activity = activity
             self.escape_attempts = 0  # Reset escape attempts quando muda de activity
-            self.activity_start_time = (
-                current_time  # Reset timer quando muda de activity
-            )
+            self.activity_start_time = current_time  # Reset timer quando muda de activity
 
         # Verifica stuck por TEMPO (prioridade mais alta)
         if time_in_activity >= self.max_time_same_activity:
@@ -892,11 +851,7 @@ class AndroidEnv:
             for tc in enumerate(self.tc_action):
                 if activity == tc[1].activity:
                     action_tc.append(
-                        tc[1].elem
-                        + ","
-                        + tc[1].action_type
-                        + ","
-                        + tc[1].action_subtype
+                        tc[1].elem + "," + tc[1].action_type + "," + tc[1].action_subtype
                     )
                     if tc[1].action_type == "EditText" or tc[1].action_type == "type":
                         action_text.append(tc[1].elem)
@@ -908,9 +863,7 @@ class AndroidEnv:
 
         # Process EditText elements
         if editText != empty:
-            self._process_edit_text(
-                editText, activity, action_text, edits, actions, empty
-            )
+            self._process_edit_text(editText, activity, action_text, edits, actions, empty)
 
         # Process long-clickable elements
         if longclicable != empty:
@@ -987,9 +940,7 @@ class AndroidEnv:
 
         return actions
 
-    def _process_edit_text(
-        self, editText, activity, action_text, edits, actions, empty
-    ):
+    def _process_edit_text(self, editText, activity, action_text, edits, actions, empty):
         """Process EditText elements and add corresponding actions."""
         last_class = []
         for edt in editText:
@@ -1012,9 +963,7 @@ class AndroidEnv:
 
                     if contentdesc != "" and not appended:
                         gui_obj = self.device(description=contentdesc)
-                        self._add_default_text_actions(
-                            gui_obj, activity, resourceid, elem, actions
-                        )
+                        self._add_default_text_actions(gui_obj, activity, resourceid, elem, actions)
                         appended = True
 
                     if not resourceid and not contentdesc and not appended:
@@ -1025,9 +974,7 @@ class AndroidEnv:
                                 gui_obj, activity, resourceid, elem, actions
                             )
 
-    def _add_edit_text_actions(
-        self, gui_obj, activity, resourceid, elem, edits, actions, empty
-    ):
+    def _add_edit_text_actions(self, gui_obj, activity, resourceid, elem, edits, actions, empty):
         """Add actions for EditText with requirements."""
         if edits != empty:
             for row in edits:
@@ -1055,13 +1002,9 @@ class AndroidEnv:
                     )
                     # Add specific actions based on field type
                     if row[4] == "text":
-                        self._add_text_field_actions(
-                            gui_obj, activity, row, elem, actions
-                        )
+                        self._add_text_field_actions(gui_obj, activity, row, elem, actions)
                     elif row[4] == "number":
-                        self._add_number_field_actions(
-                            gui_obj, activity, row, elem, actions
-                        )
+                        self._add_number_field_actions(gui_obj, activity, row, elem, actions)
         else:
             self._add_default_text_actions(gui_obj, activity, resourceid, elem, actions)
 
@@ -1573,15 +1516,14 @@ class AndroidEnv:
         if self.coverage_enabled:
             timestr = time.strftime("%Y%m%d-%H%M%S")
             try:
-                shutil.copy(
-                    "coverage.ec", f"{self.coverage_path}/coverage_{timestr}.ec"
-                )
+                shutil.copy("coverage.ec", f"{self.coverage_path}/coverage_{timestr}.ec")
             except Exception:
                 print("Failed Coverage")
 
-    def get_requirements(self):
+    def get_requirements(self, req_file: str | None = None):
         """Load requirements from CSV file."""
-        req_file = str(CONFIG_PATH / "requirements.csv")
+        if req_file is None:
+            req_file = str(CONFIG_PATH / "requirements.csv")
         with open(req_file, encoding="utf-8") as csvfile:
             spamreader = csv.reader(csvfile)
             for row in spamreader:
@@ -1654,7 +1596,9 @@ class AndroidEnv:
         timestr = time.strftime("%Y%m%d-%H%M%S")
         errors_txt = f"{self.errors_path}/errors.txt"
         previous_line = self.get_lines(errors_txt)
-        errors_command = f'adb shell logcat -s -d "System.err" "*:E" | grep "{self.app_package}"> {errors_txt}'
+        errors_command = (
+            f'adb shell logcat -s -d "System.err" "*:E" | grep "{self.app_package}"> {errors_txt}'
+        )
         new_filerr = ""
         try:
             call(errors_command, shell=True, stdout=FNULL)

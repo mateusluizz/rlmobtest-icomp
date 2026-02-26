@@ -180,9 +180,7 @@ for i, screenshot in enumerate(screenshots, start=1):
             dataset_qa.append(entrada)
 
             ct_file = CONTENT_DIR / f"{ct_id}.json"
-            ct_file.write_text(
-                json.dumps(entrada, indent=4, ensure_ascii=False), encoding="utf-8"
-            )
+            ct_file.write_text(json.dumps(entrada, indent=4, ensure_ascii=False), encoding="utf-8")
             log.debug("  Passo salvo: %s", ct_file.name)
     else:
         log.warning("  -> Nenhum fluxo retornado para: %s", screenshot.name)

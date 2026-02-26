@@ -12,81 +12,38 @@ import os
 import re
 import shutil
 import zipfile
-from pathlib import Path
 
 import pandas as pd
-from langchain_ollama import ChatOllama
-from rich.console import Console
-from rich.panel import Panel
-from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
-from rich.table import Table
+from openai import OpenAI
 
-console = Console()
+os.environ["OPENAI_API_KEY"] = "SUA CHAVE AQUI"
 
-BASE_DIR = Path(__file__).resolve().parent
+PASTA_DESTINO = "/content/Telas"
+APK_ZIP = "/content/moneytracker.zip"
+TELAS_ZIP = "/content/Telas.zip"
 
-# Configurações
-APK_ZIP = BASE_DIR / "apks" / "budget-watch-master.zip"
-OUTPUT_DIR = BASE_DIR / "output"
-CONTENT_DIR = BASE_DIR / "content"
-PASTA_DESTINO = CONTENT_DIR / "Telas"
-TELAS_ZIP = CONTENT_DIR / "Telas.zip"
-CSV_OUT = BASE_DIR / "dataset_automacao.csv"
-JSON_OUT = BASE_DIR / "dataset_automacao.json"
-
-
-def zipar_test_cases(apk_path: Path, output_dir: Path, dest_zip: Path) -> None:
-    """Zipa todos os arquivos test_cases do APK encontrado em output_dir."""
-    base_name = re.split(r"[-_]", apk_path.stem)[0].lower()
-    arquivos: list[Path] = [
-        f
-        for app_dir in output_dir.iterdir()
-        if app_dir.is_dir() and base_name in app_dir.name.lower()
-        for f in app_dir.rglob("test_cases/*")
-        if f.is_file()
-    ]
-    console.print(
-        f"[cyan]zipar_test_cases[/] → [bold]{len(arquivos)}[/] "
-        f"arquivo(s) encontrado(s) para '[yellow]{base_name}[/]'"
-    )
-    dest_zip.parent.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(dest_zip, "w", zipfile.ZIP_DEFLATED) as zf:
-        for arq in arquivos:
-            zf.write(arq, arq.name)
-    console.print(f"  ZIP gerado: [dim]{dest_zip}[/]")
-
-
-console.print(Panel("[bold]Iniciando pipeline Iartes CSV[/]", style="blue"))
-console.print(f"[dim]APK:[/] {APK_ZIP}")
-console.print(f"[dim]Output:[/] {OUTPUT_DIR}")
-
-zipar_test_cases(APK_ZIP, OUTPUT_DIR, TELAS_ZIP)
-
-if PASTA_DESTINO.exists():
+if os.path.exists(PASTA_DESTINO):
     shutil.rmtree(PASTA_DESTINO)
-PASTA_DESTINO.mkdir(parents=True)
+os.makedirs(PASTA_DESTINO)
+
 with zipfile.ZipFile(TELAS_ZIP, "r") as zip_ref:
     zip_ref.extractall(PASTA_DESTINO)
-console.print(f"[green]✓[/] Telas extraídas em [dim]{PASTA_DESTINO}[/]")
 
-client = ChatOllama(model="gemma3:4b", base_url="http://localhost:11434")
-console.print("[green]✓[/] Ollama client pronto [dim](gemma3:4b)[/]")
+client = OpenAI()
+MODEL_NAME = "gpt-4o-mini"
 
 
-def extrair_base_conhecimento_apk(caminho_zip: Path):
-    console.print(
-        f"\n[cyan]Extraindo base de conhecimento do APK:[/] [dim]{caminho_zip.name}[/]"
-    )
+def extrair_base_conhecimento_apk(caminho_zip):
     componentes = []
     pacote = "com.blogspot.e_kanivets.moneytracker"
     try:
         with zipfile.ZipFile(caminho_zip, "r") as z:
-            for xml in [f for f in z.namelist() if f.endswith(".xml")]:
+            xml_files = [f for f in z.namelist() if f.endswith(".xml")]
+            for xml in xml_files:
                 with z.open(xml) as f:
                     conteudo = f.read().decode("utf-8", errors="ignore")
-                    matches = re.finditer(
-                        r'<([\w.]+)[^>]+android:id="@+id/([^"]+)"', conteudo
-                    )
+                    # Captura IDs e tenta identificar o tipo da View (Button, EditText, etc)
+                    matches = re.finditer(r'<([\w.]+)[^>]+android:id="@+id/([^"]+)"', conteudo)
                     for m in matches:
                         tipo_view = m.group(1).split(".")[-1]
                         id_nome = m.group(2)
@@ -97,9 +54,8 @@ def extrair_base_conhecimento_apk(caminho_zip: Path):
                                 "id_curto": id_nome,
                             }
                         )
-    except Exception as e:
-        console.print(f"  [red]✗ Falha ao ler APK:[/] {e}")
-    console.print(f"  [green]✓[/] {len(componentes)} componente(s) extraído(s)")
+    except Exception:
+        pass
     return componentes
 
 
@@ -111,6 +67,7 @@ def processar_texto_qa(caminho_arquivo, tipo="texto"):
         "Exemplo de action_type: click, type, select. "
         'Retorne apenas o objeto JSON: {"acoes": []}'
     )
+
     try:
         if tipo == "imagem":
             with open(caminho_arquivo, "rb") as f:
@@ -129,22 +86,12 @@ def processar_texto_qa(caminho_arquivo, tipo="texto"):
                 texto = f.read()
             msg = [{"role": "user", "content": prompt + f"\n\nTexto: {texto}"}]
 
-        res = client.invoke(msg)
-        raw = res.content
-        if isinstance(raw, str):
-            content = raw
-        elif isinstance(raw, list):
-            first = raw[0]
-            content = first["text"] if isinstance(first, dict) else str(first)
-        else:
-            content = str(raw)
-        return json.loads(content.replace("```json", "").replace("```", "").strip())
-    except json.JSONDecodeError as e:
-        console.print(f"    [red]✗ JSON inválido:[/] {e}")
-        return None
-    except Exception as e:
-        console.print(f"    [red]✗ Erro LLM:[/] {e}")
-        return None
+        res = client.chat.completions.create(model=MODEL_NAME, messages=msg, temperature=0.0)
+        return json.loads(
+            res.choices[0].message.content.replace("```json", "").replace("```", "").strip()
+        )
+    except Exception:
+        return
 
 
 def encontrar_melhor_id(id_mencionado, base_apk):
@@ -160,37 +107,19 @@ def encontrar_melhor_id(id_mencionado, base_apk):
 base_apk = extrair_base_conhecimento_apk(APK_ZIP)
 dataset_final = []
 
-arquivos = [
-    (os.path.join(root, nome), nome)
-    for root, _, files in os.walk(PASTA_DESTINO)
-    for nome in files
-    if not nome.startswith(".") and "MACOSX" not in root
-]
+for root, _, files in os.walk(PASTA_DESTINO):
+    for nome in files:
+        if nome.startswith(".") or "MACOSX" in root:
+            continue
 
-console.print(Panel(f"[bold]Processando {len(arquivos)} arquivo(s)[/]", style="blue"))
-
-with Progress(
-    SpinnerColumn(),
-    TextColumn("[progress.description]{task.description}"),
-    BarColumn(),
-    TaskProgressColumn(),
-    console=console,
-) as progress:
-    task = progress.add_task("Aguardando...", total=len(arquivos))
-
-    for caminho, nome in arquivos:
+        caminho = os.path.join(root, nome)
         tipo = "imagem" if nome.lower().endswith(("png", "jpg", "jpeg")) else "texto"
-        progress.update(task, description=f"[cyan]{nome}[/]")
 
         resultado = processar_texto_qa(caminho, tipo)
-
         if resultado and "acoes" in resultado:
-            acoes = resultado["acoes"]
-            progress.console.print(
-                f"  [green]✓[/] {nome} → [bold]{len(acoes)}[/] ação(ões)"
-            )
-            for acao in acoes:
+            for acao in resultado["acoes"]:
                 id_real, tipo_real = encontrar_melhor_id(acao.get("id_ref"), base_apk)
+
                 dataset_final.append(
                     {
                         "activity": acao.get("activity", "UnknownActivity").replace("/.", "."),
@@ -200,40 +129,12 @@ with Progress(
                         "value": acao.get("value", ""),
                     }
                 )
-        else:
-            progress.console.print(f"  [yellow]⚠[/] {nome} → sem ações retornadas")
-
-        progress.advance(task)
 
 if dataset_final:
-    tabela = Table(
-        title=f"Dataset de Automação ({len(dataset_final)} ações)", show_lines=True
-    )
-    tabela.add_column("Activity", style="dim")
-    tabela.add_column("Field", style="cyan")
-    tabela.add_column("ID", style="dim")
-    tabela.add_column("Action", style="magenta")
-    tabela.add_column("Value")
-    for row in dataset_final:
-        tabela.add_row(
-            row["activity"],
-            row["field"],
-            row["id"],
-            row["action_type"],
-            row.get("value") or "",
-        )
-    console.print(tabela)
-
-    df = pd.DataFrame(dataset_final)[["activity", "field", "id", "action_type", "value"]]
-    df.to_csv(CSV_OUT, index=False)
-    with open(JSON_OUT, "w", encoding="utf-8") as f:
-        json.dump(dataset_final, f, indent=4, ensure_ascii=False)
-    console.print(
-        f"\n[bold green]✓ CONCLUÍDO[/] — {len(dataset_final)} ação(ões) "
-        f"salvas em {CSV_OUT.name} e {JSON_OUT.name}"
-    )
-else:
-    console.print(
-        "[bold red]✗ Nenhuma ação gerada.[/] "
-        "Verifique os arquivos e a conexão com o Ollama."
-    )
+    df = pd.DataFrame(dataset_final)
+    # Reordenando colunas para o padrão solicitado
+    df = df[["activity", "field", "id", "action_type", "value"]]
+    df.to_csv("/content/dataset_automacao.csv", index=False)
+    with open("/content/dataset_automacao.json", "w", encoding="utf-8") as f:
+        json.dump(dataset_final, f, indent=4)
+    print(f"Dataset gerado com {len(dataset_final)} linhas.")

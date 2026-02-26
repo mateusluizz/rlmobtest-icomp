@@ -55,6 +55,7 @@ class OutputPaths:
         self.plots = self.run_path / "plots"
         self.test_cases = self.run_path / "test_cases"
         self.transcriptions = self.run_path / "transcriptions"
+        self.old_transcriptions = self.run_path / "old_transcriptions"
         self.screenshots = self.run_path / "screenshots"
         self.crashes = self.run_path / "crashes"
         self.errors = self.run_path / "errors"
@@ -69,6 +70,7 @@ class OutputPaths:
             self.plots,
             self.test_cases,
             self.transcriptions,
+            self.old_transcriptions,
             self.screenshots,
             self.crashes,
             self.errors,

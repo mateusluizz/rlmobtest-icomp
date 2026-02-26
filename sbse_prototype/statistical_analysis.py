@@ -75,9 +75,7 @@ class StatisticalAnalyzer:
             )
 
         # Executar teste
-        statistic, p_value = stats.mannwhitneyu(
-            sample1, sample2, alternative="two-sided"
-        )
+        statistic, p_value = stats.mannwhitneyu(sample1, sample2, alternative="two-sided")
 
         # Calcular effect size (rank-biserial correlation)
         n1, n2 = len(sample1), len(sample2)
@@ -92,9 +90,7 @@ class StatisticalAnalyzer:
             else:
                 interpretation = f"Sample 2 is significantly LOWER than Sample 1 for {metric_name} (p={p_value:.4f})"
         else:
-            interpretation = (
-                f"No significant difference for {metric_name} (p={p_value:.4f})"
-            )
+            interpretation = f"No significant difference for {metric_name} (p={p_value:.4f})"
 
         return StatisticalTestResult(
             test_name="Mann-Whitney U",
@@ -156,9 +152,7 @@ class StatisticalAnalyzer:
             else:
                 interpretation = f"Sample 2 is significantly LOWER than Sample 1 for {metric_name} (p={p_value:.4f})"
         else:
-            interpretation = (
-                f"No significant difference for {metric_name} (p={p_value:.4f})"
-            )
+            interpretation = f"No significant difference for {metric_name} (p={p_value:.4f})"
 
         return StatisticalTestResult(
             test_name="Wilcoxon Signed-Rank",
@@ -228,9 +222,7 @@ class StatisticalAnalyzer:
 
         return (np.mean(sample2) - np.mean(sample1)) / pooled_std
 
-    def interpret_effect_size(
-        self, effect_size: float, measure: str = "cohen_d"
-    ) -> str:
+    def interpret_effect_size(self, effect_size: float, measure: str = "cohen_d") -> str:
         """
         Interpreta o tamanho do efeito.
 
@@ -293,9 +285,7 @@ class StatisticalAnalyzer:
 
             # Escolher teste apropriado
             if paired:
-                result = self.wilcoxon_signed_rank_test(
-                    baseline, optimized, metric_name
-                )
+                result = self.wilcoxon_signed_rank_test(baseline, optimized, metric_name)
             else:
                 result = self.mann_whitney_u_test(baseline, optimized, metric_name)
 
@@ -320,9 +310,7 @@ class StatisticalAnalyzer:
         Returns:
             Relatório em texto formatado
         """
-        results = self.comprehensive_comparison(
-            baseline_samples, optimized_samples, paired
-        )
+        results = self.comprehensive_comparison(baseline_samples, optimized_samples, paired)
 
         report = "=" * 70 + "\n"
         report += "STATISTICAL COMPARISON REPORT\n"
@@ -352,7 +340,9 @@ class StatisticalAnalyzer:
             a12 = self.vargha_delaney_a12(baseline, optimized)
             cohen = self.cohen_d(baseline, optimized)
 
-            report += f"    Effect Size (A12): {a12:.3f} ({self.interpret_effect_size(a12, 'a12')})\n"
+            report += (
+                f"    Effect Size (A12): {a12:.3f} ({self.interpret_effect_size(a12, 'a12')})\n"
+            )
             report += f"    Effect Size (Cohen's d): {cohen:.3f} ({self.interpret_effect_size(cohen, 'cohen_d')})\n\n"
 
             report += f"  Interpretation: {result.interpretation}\n\n"
@@ -383,9 +373,7 @@ class ResultValidator:
         return p_value > 0.05, p_value
 
     @staticmethod
-    def check_homoscedasticity(
-        sample1: List[float], sample2: List[float]
-    ) -> Tuple[bool, float]:
+    def check_homoscedasticity(sample1: List[float], sample2: List[float]) -> Tuple[bool, float]:
         """
         Testa homogeneidade de variâncias usando Levene's test.
 
@@ -403,9 +391,7 @@ class ResultValidator:
         return p_value > 0.05, p_value
 
     @staticmethod
-    def recommend_test(
-        sample1: List[float], sample2: List[float], paired: bool = False
-    ) -> str:
+    def recommend_test(sample1: List[float], sample2: List[float], paired: bool = False) -> str:
         """
         Recomenda o teste estatístico apropriado.
 
@@ -429,9 +415,7 @@ class ResultValidator:
         else:
             if is_normal1 and is_normal2:
                 # Verificar homogeneidade de variâncias
-                has_equal_var, _ = ResultValidator.check_homoscedasticity(
-                    sample1, sample2
-                )
+                has_equal_var, _ = ResultValidator.check_homoscedasticity(sample1, sample2)
 
                 if has_equal_var:
                     return "Independent t-test"
@@ -474,16 +458,12 @@ if __name__ == "__main__":
     print(f"Interpretation: {result.interpretation}")
 
     # Effect sizes
-    a12 = analyzer.vargha_delaney_a12(
-        baseline_coverage.tolist(), optimized_coverage.tolist()
-    )
+    a12 = analyzer.vargha_delaney_a12(baseline_coverage.tolist(), optimized_coverage.tolist())
     cohen = analyzer.cohen_d(baseline_coverage.tolist(), optimized_coverage.tolist())
 
     print(f"\nEffect Sizes:")
     print(f"A12: {a12:.3f} ({analyzer.interpret_effect_size(a12, 'a12')})")
-    print(
-        f"Cohen's d: {cohen:.3f} ({analyzer.interpret_effect_size(cohen, 'cohen_d')})"
-    )
+    print(f"Cohen's d: {cohen:.3f} ({analyzer.interpret_effect_size(cohen, 'cohen_d')})")
 
     # Relatório completo
     print("\n" + "=" * 70)

@@ -39,9 +39,7 @@ class Action:
 
     def get_signature(self) -> str:
         """Gera uma assinatura única para esta ação."""
-        content = (
-            f"{self.action_type}_{self.target}_{self.coordinates}_{self.text_input}"
-        )
+        content = f"{self.action_type}_{self.target}_{self.coordinates}_{self.text_input}"
         return hashlib.md5(content.encode()).hexdigest()[:8]
 
 
@@ -279,9 +277,7 @@ class TestSuite:
             for tc in data.get("test_cases", [])
         ]
 
-        return cls(
-            name=data["name"], test_cases=test_cases, metadata=data.get("metadata", {})
-        )
+        return cls(name=data["name"], test_cases=test_cases, metadata=data.get("metadata", {}))
 
 
 # =============================================================================
