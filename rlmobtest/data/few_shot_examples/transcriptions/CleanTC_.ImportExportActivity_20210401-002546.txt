@@ -1,0 +1,30 @@
+Test Case ID: TC_001
+Test Case Title: Import/Export Activity - File Format Selection and Date Navigation
+Description: Verify the import and export functionality in the Budget Watch application, including file format selection, date navigation, and data review.
+Priority: Medium
+Preconditions:
+- Budget Watch application is installed and launched.
+- The Import/Export screen is open.
+Test Steps:
+| Step | Action | Test Data | Expected Result |
+|------|--------|-----------|-----------------|
+| 1 | Scroll down to reveal additional options on the screen | N/A | Additional import/export options become visible |
+| 2 | Tap the file format dropdown | N/A | A list of available file formats is displayed |
+| 3 | Select a file format from the dropdown list | N/A | The selected format is highlighted and the dropdown closes |
+| 4 | Tap the action button below the format selector | N/A | The application begins processing with the selected format |
+| 5 | Tap the confirmation button | N/A | An error occurs; the application handles it gracefully and displays an appropriate message |
+| 6 | Tap the main action button | N/A | The application returns to a stable state |
+| 7 | Tap the "Previous Month" navigation button | N/A | The calendar view shifts to the previous month |
+| 8 | Tap the "Previous Month" navigation button again | N/A | The calendar view shifts one more month back |
+| 9 | Tap the "Next Month" navigation button | N/A | The calendar view shifts forward by one month |
+| 10 | Tap a date entry in the calendar | N/A | The selected date is highlighted and its details are shown |
+| 11 | Tap a data item in the list | N/A | The item details or summary is displayed |
+| 12 | Tap another data item in the list | N/A | The item details or summary is displayed |
+| 13 | Tap the "Next Month" navigation button | N/A | The calendar view advances to the next month |
+| 14 | Press the Back button | N/A | The application navigates back to the previous screen |
+| 15 | An error occurs during navigation | N/A | The application recovers and displays the previous screen without data loss |
+| 16 | Tap the main action button | N/A | The application proceeds with the selected operation |
+| 17 | Navigate to the Home screen | N/A | The Home screen of the application is displayed |
+Postconditions:
+- The application is on the Home screen in a stable state.
+- No data has been lost during the import/export operations.

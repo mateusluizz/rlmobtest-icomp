@@ -5,14 +5,16 @@ Module for transcribing test cases using LangChain with Ollama.
 
 from pathlib import Path
 
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 
+from rlmobtest.constants.llm import DEFAULT_LLM_MODEL
 from rlmobtest.constants.paths import FEW_SHOT_EXAMPLES_PATH
 from rlmobtest.transcription import similarity_filter
+from rlmobtest.transcription.prompts import SYSTEM_PROMPT
 
 # Default Ollama model configuration
-DEFAULT_MODEL = "gemma3:4b"
+DEFAULT_MODEL = DEFAULT_LLM_MODEL
 
 
 def create_llm(model_name: str = DEFAULT_MODEL, temperature: float = 0.5):
@@ -47,12 +49,13 @@ def write_text_file(file_path, text):
         file.write(text)
 
 
-def build_few_shot_messages(input_text: str) -> list:
+def build_few_shot_messages(input_text: str, app_context: str | None = None) -> list:
     """
     Build messages with few-shot examples for the LLM.
 
     Args:
         input_text: The test case text to transcribe
+        app_context: Optional app context string (screens, components, labels)
 
     Returns:
         List of HumanMessage and AIMessage for few-shot learning
@@ -60,13 +63,13 @@ def build_few_shot_messages(input_text: str) -> list:
     scripts_path = FEW_SHOT_EXAMPLES_PATH / "scripts"
     transcriptions_path = FEW_SHOT_EXAMPLES_PATH / "transcriptions"
 
-    messages = []
+    messages = [SystemMessage(content=SYSTEM_PROMPT)]
 
     # Pairs of (script_filename, transcription_filename)
     example_pairs = [
         (
             "TC_.ImportExportActivity_20210401-002546.txt",
-            "Output2TC_.ImportExportActivity_20210401-002546.txt",
+            "CleanTC_.ImportExportActivity_20210401-002546.txt",
         ),
     ]
 
@@ -78,14 +81,27 @@ def build_few_shot_messages(input_text: str) -> list:
             messages.append(HumanMessage(content=read_text_file(script_path)))
             messages.append(AIMessage(content=read_text_file(transcription_path)))
 
-    # Current input
-    messages.append(HumanMessage(content=input_text))
+    # Current input — enrich with app context when available
+    if app_context:
+        augmented_input = (
+            f"{input_text}\n\n"
+            f"## Application Reference Information\n"
+            f"Use the following to write descriptive, user-friendly test steps. "
+            f"Replace technical IDs with the labels below:\n\n"
+            f"{app_context}"
+        )
+        messages.append(HumanMessage(content=augmented_input))
+    else:
+        messages.append(HumanMessage(content=input_text))
 
     return messages
 
 
 def the_world_is_our(
-    input_folder: str | Path, output_folder: str | Path, model_name: str = DEFAULT_MODEL
+    input_folder: str | Path,
+    output_folder: str | Path,
+    model_name: str = DEFAULT_MODEL,
+    app_context: str | None = None,
 ):
     """
     Transcribe test cases from input folder to output folder using Ollama.
@@ -94,6 +110,7 @@ def the_world_is_our(
         input_folder: Path to folder containing raw test cases
         output_folder: Path to folder for transcribed test cases
         model_name: Ollama model to use (default: gemma3:4b)
+        app_context: Optional app context string (screens, components, labels)
     """
     input_folder = Path(input_folder)
     output_folder = Path(output_folder)
@@ -119,7 +136,7 @@ def the_world_is_our(
             input_text = read_text_file(doc_path)
 
             # Build messages with few-shot examples
-            messages = build_few_shot_messages(input_text)
+            messages = build_few_shot_messages(input_text, app_context=app_context)
 
             # Invoke Ollama
             response = llm.invoke(messages)

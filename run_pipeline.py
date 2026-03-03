@@ -21,6 +21,7 @@ from langchain_ollama import ChatOllama
 from rich.console import Console
 from rich.panel import Panel
 
+from rlmobtest.constants.llm import DEFAULT_LLM_MODEL, DEFAULT_OLLAMA_BASE_URL
 from rlmobtest.constants.paths import CONFIG_JSON_PATH, OUTPUT_BASE
 from rlmobtest.training import run
 from rlmobtest.training.generate_requirements import processar_app
@@ -45,7 +46,7 @@ def make_config(base: AppConfig, is_req: bool) -> AppConfig:
 def run_pipeline(
     mode: str = "improved",
     max_steps: int = 100,
-    llm_model: str = "gemma3:4b",
+    llm_model: str = DEFAULT_LLM_MODEL,
     all_dates: bool = False,
     skip_exploration: bool = False,
     skip_requirements: bool = False,
@@ -68,6 +69,15 @@ def run_pipeline(
         console.print(f"\n[bold yellow]{'=' * 60}[/]")
         console.print(f"[bold yellow]  App {i}/{len(configs)}: {pkg}[/]")
         console.print(f"[bold yellow]{'=' * 60}[/]")
+
+        # Build app context once per app (used in transcription step)
+        app_context = None
+        if config.source_code:
+            from rlmobtest.utils.app_context import build_app_context
+
+            app_context = build_app_context(config.source_code, pkg)
+            if app_context:
+                console.print(f"  [dim]App context: {len(app_context)} chars[/]")
 
         # --- Etapa 1: Exploração (is_req=false) ---
         if not skip_exploration and not only_transcribe:
@@ -94,7 +104,7 @@ def run_pipeline(
                 console.print("[yellow]Sem source_code, pulando requirements.[/]")
             else:
                 try:
-                    client = ChatOllama(model=llm_model, base_url="http://localhost:11434")
+                    client = ChatOllama(model=llm_model, base_url=DEFAULT_OLLAMA_BASE_URL)
                     processar_app(config, client, all_dates=all_dates)
                 except Exception as e:
                     console.print(f"[red]Erro ao gerar requirements: {e}[/]")
@@ -147,6 +157,8 @@ def run_pipeline(
                     input_folder=tc_path,
                     output_folder=tr_path,
                     model_name=f"ollama/{llm_model}",
+                    screenshots_folder=day_path / "screenshots",
+                    app_context=app_context,
                 )
             except Exception as e:
                 console.print(f"  [red]Erro na transcricao: {e}[/]")
@@ -170,8 +182,8 @@ if __name__ == "__main__":
     parser.add_argument("--max-steps", type=int, default=100)
     parser.add_argument(
         "--llm-model",
-        default="gemma3:4b",
-        help="Model for requirements and transcription",
+        default=DEFAULT_LLM_MODEL,
+        help=f"Model for requirements and transcription (default: {DEFAULT_LLM_MODEL})",
     )
     parser.add_argument(
         "--all-dates",

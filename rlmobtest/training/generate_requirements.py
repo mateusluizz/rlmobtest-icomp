@@ -13,7 +13,6 @@ Flow:
 import argparse
 import json
 import re
-import zipfile
 from datetime import datetime
 from pathlib import Path
 
@@ -24,7 +23,9 @@ from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 from rich.table import Table
 
+from rlmobtest.constants.llm import DEFAULT_LLM_MODEL, DEFAULT_OLLAMA_BASE_URL
 from rlmobtest.constants.paths import CONFIG_JSON_PATH, OUTPUT_BASE
+from rlmobtest.utils.app_context import extract_xml_contents as _extract_xml_contents
 from rlmobtest.utils.config_reader import ConfRead
 
 console = Console()
@@ -34,27 +35,24 @@ SOURCE_CODES_DIR = BASE_DIR / "inputs" / "source_codes"
 
 
 def extrair_base_conhecimento_apk(caminho_zip: Path, package_name: str) -> list[dict]:
-    """Extract Android component IDs from source code XML files."""
+    """Extract Android component IDs from source code XML files (zip or tar.gz)."""
     console.print(f"\n[cyan]Extraindo base de conhecimento:[/] [dim]{caminho_zip.name}[/]")
     componentes = []
     try:
-        with zipfile.ZipFile(caminho_zip, "r") as z:
-            for xml in [f for f in z.namelist() if f.endswith(".xml")]:
-                with z.open(xml) as f:
-                    conteudo = f.read().decode("utf-8", errors="ignore")
-                    matches = re.finditer(r'<([\w.]+)[^>]+android:id="@\+id/([^"]+)"', conteudo)
-                    for m in matches:
-                        tipo_view = m.group(1).split(".")[-1]
-                        id_nome = m.group(2)
-                        componentes.append(
-                            {
-                                "field": tipo_view,
-                                "id_completo": f"{package_name}:id/{id_nome}",
-                                "id_curto": id_nome,
-                            }
-                        )
+        for _xml_name, conteudo in _extract_xml_contents(caminho_zip):
+            matches = re.finditer(r'<([\w.]+)[^>]+android:id="@\+id/([^"]+)"', conteudo)
+            for m in matches:
+                tipo_view = m.group(1).split(".")[-1]
+                id_nome = m.group(2)
+                componentes.append(
+                    {
+                        "field": tipo_view,
+                        "id_completo": f"{package_name}:id/{id_nome}",
+                        "id_curto": id_nome,
+                    }
+                )
     except Exception as e:
-        console.print(f"  [red]Falha ao ler ZIP:[/] {e}")
+        console.print(f"  [red]Falha ao ler arquivo:[/] {e}")
     console.print(f"  [green]{len(componentes)}[/] componente(s) extraido(s)")
     return componentes
 
@@ -256,7 +254,7 @@ def processar_app(config, client: ChatOllama, *, all_dates: bool = False) -> Non
         df = pd.DataFrame(dataset_final)[["activity", "field", "id", "action_type", "value"]]
         raw_count = len(df)
         df = df.drop_duplicates()
-        df.to_csv(csv_path, index=False, header=False)
+        df.to_csv(csv_path, index=False)
 
         console.print(f"\n[bold green]requirements.csv salvo:[/] {csv_path}")
         console.print(f"[dim]{len(df)} acao(es) exportadas ({raw_count - len(df)} duplicatas removidas)[/]")
@@ -272,8 +270,8 @@ def main():
     )
     parser.add_argument(
         "--llm-model",
-        default="gemma3:4b",
-        help="Ollama model (default: gemma3:4b)",
+        default=DEFAULT_LLM_MODEL,
+        help=f"Ollama model (default: {DEFAULT_LLM_MODEL})",
     )
     args = parser.parse_args()
 
@@ -299,7 +297,7 @@ def main():
         return
 
     # Initialize Ollama client
-    client = ChatOllama(model=args.llm_model, base_url="http://localhost:11434")
+    client = ChatOllama(model=args.llm_model, base_url=DEFAULT_OLLAMA_BASE_URL)
     console.print(f"[green]Ollama client pronto[/] [dim]({args.llm_model})[/]\n")
 
     # Process each app

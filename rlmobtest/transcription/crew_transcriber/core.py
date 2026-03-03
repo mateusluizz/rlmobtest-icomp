@@ -7,12 +7,14 @@ from pathlib import Path
 from crewai import Agent, Crew, Process, Task
 from crewai.llm import LLM
 
+from rlmobtest.constants.llm import DEFAULT_CREWAI_MODEL, DEFAULT_OLLAMA_BASE_URL
 from rlmobtest.constants.paths import FEW_SHOT_EXAMPLES_PATH
 from rlmobtest.transcription import similarity_filter
+from rlmobtest.transcription.prompts import SYSTEM_PROMPT
 
 # Default LLM configuration
-OLLAMA_MODEL = "ollama/gemma3:8b"
-OLLAMA_BASE_URL = "http://localhost:11434"
+OLLAMA_MODEL = DEFAULT_CREWAI_MODEL
+OLLAMA_BASE_URL = DEFAULT_OLLAMA_BASE_URL
 
 
 def create_llm(
@@ -69,7 +71,7 @@ def load_few_shot_examples() -> str:
     example_pairs = [
         (
             "TC_.ImportExportActivity_20210401-002546.txt",
-            "Output2TC_.ImportExportActivity_20210401-002546.txt",
+            "CleanTC_.ImportExportActivity_20210401-002546.txt",
         ),
     ]
 
@@ -96,40 +98,46 @@ def load_few_shot_examples() -> str:
     return "\n\n".join(examples)
 
 
-def create_test_case_agent(llm: LLM) -> Agent:
+def create_test_case_agent(llm: LLM, app_context: str | None = None) -> Agent:
     """
     Create the test case generation agent.
 
     Args:
         llm: LLM instance to use
+        app_context: Optional app context string (screens, components, labels)
 
     Returns:
         Configured Agent for test case creation
     """
     few_shot_examples = load_few_shot_examples()
 
+    context_parts = [
+        "Here are examples of the expected input/output transformation.\n"
+        "Follow this output format and quality level:\n\n"
+        f"{few_shot_examples}",
+    ]
+
+    if app_context:
+        context_parts.append(
+            "\n\n## Application Reference Information\n"
+            "Use the following information to write more descriptive, "
+            "user-friendly test steps. Replace technical IDs with the "
+            "human-readable labels shown below:\n\n"
+            f"{app_context}"
+        )
+
     return Agent(
         role="Mobile Test Case Specialist",
         goal=(
-            "Transform raw mobile application interaction logs into clear, "
-            "structured test cases that can be understood and executed by QA engineers."
+            "Transform raw mobile application interaction logs into clean, "
+            "human-readable test cases in English. Never include technical "
+            "IDs, screenshot paths, error file references, or widget class names."
         ),
-        backstory=(
-            "You are an expert QA engineer specialized in mobile application testing. "
-            "You have years of experience analyzing user interaction logs and converting "
-            "them into well-structured, reproducible test cases. You understand mobile "
-            "UI patterns, gestures, and can identify the intent behind each action. "
-            "Your test cases are known for being clear, concise, and actionable."
-        ),
+        backstory=SYSTEM_PROMPT,
         llm=llm,
         verbose=True,
         memory=True,
-        context=f"""
-You have access to the following examples of how to transform interaction logs
-into test cases. Follow this format strictly:
-
-{few_shot_examples}
-""",
+        context="\n".join(context_parts),
     )
 
 
@@ -137,6 +145,7 @@ def create_transcription_task(
     agent: Agent,
     input_text: str,
     image_path: str | None = None,
+    app_context: str | None = None,
 ) -> Task:
     """
     Create a task for transcribing a test case.
@@ -145,43 +154,51 @@ def create_transcription_task(
         agent: The agent to perform the task
         input_text: Raw test case text to transcribe
         image_path: Optional path to screenshot image
+        app_context: Optional app context string (screens, components, labels)
 
     Returns:
         Configured Task for transcription
     """
     description = f"""
 Analyze the following mobile application interaction log and convert it into
-a clear, structured test case.
+a clean, structured test case in English following ISO/IEC/IEEE 29119-3.
 
 **Raw Interaction Log:**
 ```
 {input_text}
 ```
-
-Your task:
-1. Identify the sequence of user actions
-2. Understand the purpose of each interaction
-3. Convert actions into clear test steps
-4. Maintain the logical flow of the test scenario
-5. Use consistent terminology for UI elements and actions
-
-Follow the exact format shown in the examples provided in your context.
 """
 
-    if image_path:
+    if app_context:
         description += f"""
-
-**Note:** A screenshot is available at: {image_path}
-Use this visual context to better understand the UI state and elements.
+**Application Context (use for reference only, do not copy verbatim):**
+{app_context}
 """
+
+    description += """
+Your task:
+1. Identify the sequence of user actions from the raw log
+2. Describe each action in plain language (e.g., "Tap the Save button")
+3. Do NOT include Android resource IDs, widget class names, coordinate bounds,
+   screenshot paths, or references to errors.txt / crash.txt
+4. If an error occurred, describe it as an expected application behavior
+5. Maintain the logical flow of the test scenario
+6. Use the exact ISO/IEC/IEEE 29119-3 format shown in the examples provided in your context
+"""
+
+    # image_path is accepted for API compatibility but not injected into the
+    # prompt to avoid screenshot path leakage in output.
 
     return Task(
         description=description,
         agent=agent,
         expected_output=(
-            "A well-structured test case following the format from the examples. "
-            "The output should contain clear steps that describe user actions "
-            "and expected system behaviors."
+            "A test case following ISO/IEC/IEEE 29119-3 format with these sections: "
+            "Test Case ID, Test Case Title, Description, Priority, Preconditions, "
+            "Test Steps (as a table with Step/Action/Test Data/Expected Result columns), "
+            "and Postconditions. "
+            "The output must NOT contain resource IDs, widget types, screenshot paths, "
+            "or error file references."
         ),
     )
 
@@ -209,6 +226,7 @@ def transcribe_single(
     input_text: str,
     llm: LLM,
     image_path: str | None = None,
+    app_context: str | None = None,
 ) -> str:
     """
     Transcribe a single test case.
@@ -217,12 +235,13 @@ def transcribe_single(
         input_text: Raw test case text
         llm: LLM instance to use
         image_path: Optional screenshot path
+        app_context: Optional app context string (screens, components, labels)
 
     Returns:
         Transcribed test case text
     """
-    agent = create_test_case_agent(llm)
-    task = create_transcription_task(agent, input_text, image_path)
+    agent = create_test_case_agent(llm, app_context=app_context)
+    task = create_transcription_task(agent, input_text, image_path, app_context=app_context)
     crew = create_crew(agent, task)
 
     result = crew.kickoff()
@@ -235,6 +254,7 @@ def transcribe_folder(
     model_name: str = OLLAMA_MODEL,
     base_url: str = OLLAMA_BASE_URL,
     screenshots_folder: str | Path | None = None,
+    app_context: str | None = None,
 ) -> None:
     """
     Transcribe test cases from input folder to output folder using CrewAI.
@@ -245,6 +265,7 @@ def transcribe_folder(
         model_name: Model to use (format: provider/model)
         base_url: Base URL for the LLM API
         screenshots_folder: Optional folder containing screenshots
+        app_context: Optional app context string (screens, components, labels)
     """
     input_folder = Path(input_folder)
     output_folder = Path(output_folder)
@@ -280,7 +301,7 @@ def transcribe_folder(
                     image_path = str(possible_image)
 
             # Transcribe using CrewAI agent
-            output_text = transcribe_single(input_text, llm, image_path)
+            output_text = transcribe_single(input_text, llm, image_path, app_context=app_context)
 
             output_file_path = output_folder / tc_name
             write_text_file(output_file_path, output_text)

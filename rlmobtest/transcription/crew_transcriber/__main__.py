@@ -3,6 +3,7 @@
 import argparse
 from datetime import datetime
 
+from rlmobtest.constants.llm import DEFAULT_CREWAI_MODEL, DEFAULT_OLLAMA_BASE_URL
 from rlmobtest.constants.paths import OUTPUT_BASE
 from rlmobtest.transcription.crew_transcriber.core import transcribe_folder
 from rlmobtest.transcription.crew_transcriber.discovery import find_all_days
@@ -28,13 +29,23 @@ def main():
     )
     parser.add_argument(
         "--model",
-        default="ollama/gemma3:4b",
-        help="Model to use (default: ollama/gemma3:4b)",
+        default=DEFAULT_CREWAI_MODEL,
+        help=f"Model to use (default: {DEFAULT_CREWAI_MODEL})",
     )
     parser.add_argument(
         "--base-url",
-        default="http://localhost:11434",
-        help="LLM API base URL (default: http://localhost:11434)",
+        default=DEFAULT_OLLAMA_BASE_URL,
+        help=f"LLM API base URL (default: {DEFAULT_OLLAMA_BASE_URL})",
+    )
+    parser.add_argument(
+        "--source-code",
+        default=None,
+        help="Source code archive filename in inputs/source_codes/ (for app context)",
+    )
+    parser.add_argument(
+        "--package",
+        default=None,
+        help="Package name (required with --source-code for context extraction)",
     )
 
     args = parser.parse_args()
@@ -72,12 +83,22 @@ def main():
         print(f"Input folder: {test_cases_path}")
         print(f"Output folder: {apk_transcriptions_path}")
 
+        # Build app context if source code provided
+        app_context = None
+        if args.source_code and args.package:
+            from rlmobtest.utils.app_context import build_app_context
+
+            app_context = build_app_context(args.source_code, args.package)
+            if app_context:
+                print(f"App context extracted ({len(app_context)} chars)")
+
         transcribe_folder(
             input_folder=test_cases_path,
             output_folder=apk_transcriptions_path,
             model_name=args.model,
             base_url=args.base_url,
             screenshots_folder=screenshots_path,
+            app_context=app_context,
         )
 
     print(f"\n{'=' * 50}")

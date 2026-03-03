@@ -5,6 +5,45 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.1.7] - 2026-03-02
+
+### Added
+- Modulo `rlmobtest/utils/app_context.py` para extrair contexto do app (AndroidManifest, layouts, strings.xml) de arquivos source code
+- Contexto do app injetado nos prompts do CrewAI e LangChain para transcricoes mais precisas
+- Arquivo centralizado de configuracao LLM (`rlmobtest/constants/llm.py`)
+- Documentacao: `docs/contexto_llm_transcricao.md` (contexto LLM na transcricao)
+- Documentacao: `docs/cli_commands.md` (referencia completa de comandos CLI)
+- Argumentos `--source-code` e `--package` no CLI do crew_transcriber
+- Cabecalhos de coluna no `requirements.csv` (`activity,field,id,action_type,value`)
+
+### Changed
+- Modelo LLM padrao alterado de `gemma3:4b` para `gemma3:12b`
+- Funcao `extract_xml_contents()` movida de `generate_requirements.py` para modulo compartilhado `app_context.py`
+- Todas as constantes de modelo LLM e URL agora centralizadas em `constants/llm.py`
+- `report.py` detecta automaticamente cabecalhos no CSV (compativel com arquivos antigos)
+
+### Fixed
+- Compatibilidade retroativa na leitura de `requirements.csv` sem cabecalho
+
+---
+
+## [0.1.6] - 2026-02-28
+
+### Added
+- Pipeline completo com 4 etapas (exploracao, requirements, treino guiado, transcricao)
+- Comando `rlmobtest pipeline` com opcoes de skip por etapa
+- Comando `rlmobtest report` para geracao de relatorio HTML
+- Comando `rlmobtest clean` para limpeza de output com filtros
+- Comando `rlmobtest info` com status do Ollama
+- Geracao de `requirements.csv` via Ollama + source code
+- Relatorio HTML com cobertura de requirements e metricas de treinamento
+
+### Changed
+- CLI modularizado em subcomandos Typer separados
+- Estrutura do pipeline refatorada para suportar multiplos apps sequencialmente
+
+---
+
 ## [0.1.3] - 2026-02-05
 
 ### Added
@@ -88,8 +127,10 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
-[Unreleased]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.2...HEAD
-[0.1.3]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.1...v0.1.3
+[Unreleased]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.6...v0.1.7
+[0.1.6]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.3...v0.1.6
+[0.1.3]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.0.1...v0.1.0

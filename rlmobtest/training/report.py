@@ -27,6 +27,9 @@ _ACTION_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Separators found in activity names (both "." and "/" are used inconsistently)
+_ACTIVITY_SEP_RE = re.compile(r"[./]")
+
 
 def _find_metrics_files(run_path: Path) -> list[Path]:
     """Find all metrics JSON files in a run_path."""
@@ -48,11 +51,15 @@ def _load_requirements(run_path: Path) -> pd.DataFrame | None:
     if not csv_path.exists():
         return None
     try:
-        return pd.read_csv(
-            csv_path,
-            header=None,
-            names=["activity", "field", "id", "action_type", "value"],
-        )
+        df = pd.read_csv(csv_path)
+        # Support legacy files without header row
+        if list(df.columns) != ["activity", "field", "id", "action_type", "value"]:
+            df = pd.read_csv(
+                csv_path,
+                header=None,
+                names=["activity", "field", "id", "action_type", "value"],
+            )
+        return df
     except Exception:
         return None
 
@@ -100,7 +107,9 @@ def _compute_requirements_coverage(
     if all_requirements is None or all_requirements.empty:
         return 0, 0
 
-    # Build per-activity action sets from test cases: {short_activity: {(action_type, rid)}}
+    # Build per-activity action sets from test cases: {class_name: {(action_type, rid)}}
+    # Normalize activity names by extracting just the class name (last component).
+    # TC filename: TC_.activity.account.AccountsActivity_20260301-... → AccountsActivity
     tc_actions: dict[str, set[tuple[str, str]]] = defaultdict(set)
     for run_path in run_paths:
         tc_dir = run_path / "test_cases"
@@ -109,16 +118,21 @@ def _compute_requirements_coverage(
         for f in tc_dir.glob("*.txt"):
             parts = f.stem.split("_")
             if len(parts) >= 2 and parts[1]:
-                activity_short = parts[1].lstrip(".")
+                raw_activity = parts[1].lstrip(".")
+                # Extract class name: "activity.account.AccountsActivity" → "AccountsActivity"
+                class_name = _ACTIVITY_SEP_RE.split(raw_activity)[-1]
                 for pair in _parse_tc_actions(f):
-                    tc_actions[activity_short].add(pair)
+                    tc_actions[class_name].add(pair)
 
     total = len(all_requirements)
     covered = 0
     for _, row in all_requirements.iterrows():
-        # Extract short activity name: "protect.budgetwatch.ImportExportActivity" → "ImportExportActivity"
+        # Normalize requirement activity the same way.
+        # Handles both "." and "/" separators found in requirements.csv:
+        #   "com.blogspot.e_kanivets.moneytracker.activity.account.AccountsActivity" → "AccountsActivity"
+        #   "com.blogspot.e_kanivets.moneytracker/activity/account/AccountsActivity" → "AccountsActivity"
         activity_full = str(row["activity"]).strip()
-        activity_short = activity_full.rsplit(".", 1)[-1]
+        activity_short = _ACTIVITY_SEP_RE.split(activity_full)[-1]
         action_type = str(row["action_type"]).strip().lower()
         rid = str(row["id"]).strip()
 
@@ -180,17 +194,21 @@ def _collect_data(run_paths: list[Path], package_name: str, agent_type: str) -> 
         req_df = _load_requirements(run_path)
         if req_df is not None:
             requirements_count += len(req_df)
-            required_activities.update(req_df["activity"].unique())
+            required_activities.update(
+                _ACTIVITY_SEP_RE.split(a.strip())[-1]
+                for a in req_df["activity"].unique()
+            )
             all_requirements_dfs.append(req_df)
 
-        # Collect activity names from test_case filenames (TC_.ActivityName_...)
+        # Collect activity class names from test_case filenames (TC_.ActivityName_...)
         tc_dir = run_path / "test_cases"
         if tc_dir.exists():
             for f in tc_dir.glob("*.txt"):
                 test_case_count += 1
                 parts = f.stem.split("_")
                 if len(parts) >= 2 and parts[1]:
-                    discovered_activities.add(parts[1])
+                    raw = parts[1].lstrip(".")
+                    discovered_activities.add(_ACTIVITY_SEP_RE.split(raw)[-1])
 
         transcription_count += _count_files(run_path / "transcriptions")
         old_transcription_count += _count_files(run_path / "old_transcriptions")
@@ -412,12 +430,12 @@ def generate_report(
     """
     data = _collect_data(run_paths, package_name, agent_type)
 
-    # Save HTML report at agent-type level: output/{pkg}/{agent}/report.html
+    # Save HTML report in each day-level run_path
     if run_paths:
-        agent_dir = run_paths[0].parent.parent.parent
-        html_path = agent_dir / "report.html"
-        html_path.parent.mkdir(parents=True, exist_ok=True)
-        html_path.write_text(_render_html(data), encoding="utf-8")
-        console.print(f"[green]Report saved:[/green] {html_path}")
+        for rp in run_paths:
+            html_path = rp / "report.html"
+            html_path.parent.mkdir(parents=True, exist_ok=True)
+            html_path.write_text(_render_html(data), encoding="utf-8")
+            console.print(f"[green]Report saved:[/green] {html_path}")
 
     return data

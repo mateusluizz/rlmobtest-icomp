@@ -6,6 +6,7 @@ import typer
 from rich.panel import Panel
 
 from rlmobtest.cli import DQNMode, app, console, print_device_info
+from rlmobtest.constants.llm import DEFAULT_LLM_MODEL, DEFAULT_OLLAMA_BASE_URL
 from rlmobtest.constants.paths import CONFIG_JSON_PATH, OUTPUT_BASE
 from rlmobtest.utils.config_reader import AppConfig, ConfRead
 
@@ -43,7 +44,7 @@ def pipeline(
     llm_model: Annotated[
         str,
         typer.Option("--llm-model", "-l", help="Ollama model for requirements and transcription"),
-    ] = "gemma3:4b",
+    ] = DEFAULT_LLM_MODEL,
     all_dates: Annotated[
         bool,
         typer.Option("--all-dates", help="Process test_cases from all dates (default: today only)"),
@@ -104,6 +105,15 @@ def pipeline(
         console.print(f"[bold yellow]  App {i}/{len(configs)}: {pkg}[/]")
         console.print(f"[bold yellow]{'=' * 60}[/]")
 
+        # Build app context once per app (used in transcription step)
+        app_context = None
+        if config.source_code:
+            from rlmobtest.utils.app_context import build_app_context
+
+            app_context = build_app_context(config.source_code, pkg)
+            if app_context:
+                console.print(f"  [green]App context extracted ({len(app_context)} chars)[/]")
+
         # --- Step 1: Exploration (is_req=false) ---
         if not skip_exploration and not only_transcribe:
             console.print(Panel("[bold]Step 1/4:[/] Exploration (is_req=false)", style="blue"))
@@ -138,7 +148,7 @@ def pipeline(
                 try:
                     from rlmobtest.training.generate_requirements import processar_app
 
-                    client = ChatOllama(model=llm_model, base_url="http://localhost:11434")
+                    client = ChatOllama(model=llm_model, base_url=DEFAULT_OLLAMA_BASE_URL)
                     processar_app(config, client, all_dates=all_dates)
                 except Exception as e:
                     console.print(f"[red]Requirements error: {e}[/]")
@@ -198,6 +208,8 @@ def pipeline(
                     input_folder=tc_path,
                     output_folder=tr_path,
                     model_name=f"ollama/{llm_model}",
+                    screenshots_folder=day_path / "screenshots",
+                    app_context=app_context,
                 )
             except Exception as e:
                 console.print(f"  [red]Transcription error: {e}[/]")

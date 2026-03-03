@@ -95,18 +95,25 @@ def compare_documents(doc1, doc2):
 
 def preprocess(text):
     """
-    Preprocess text lines by normalizing screen references.
+    Preprocess text lines by normalizing variable references for similarity comparison.
 
     Args:
         text: List of text lines
 
     Returns:
-        list: Processed lines
+        list: Processed lines with variable parts normalized
     """
     screen_pattern = re.compile(r"Screen: states/state_\d{8}-\d{6}\.png")
+    state_pattern = re.compile(r"State \d+: states/state_\d{8}-\d{6}\.png")
+    error_pattern = re.compile(r"Got Error, see errors\.txt line \d+")
+    bounds_pattern = re.compile(r"bounds:\[\d+,\d+\]\[\d+,\d+\]")
+
     processed_lines = []
     for line in text:
         processed_line = re.sub(screen_pattern, "<SCREEN>", line)
+        processed_line = re.sub(state_pattern, "<STATE>", processed_line)
+        processed_line = re.sub(error_pattern, "<ERROR>", processed_line)
+        processed_line = re.sub(bounds_pattern, "<BOUNDS>", processed_line)
         processed_lines.append(processed_line)
 
     return processed_lines
