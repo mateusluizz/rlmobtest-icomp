@@ -17,16 +17,94 @@ Essas metricas aparecem no relatorio HTML gerado por `rlmobtest report`.
 ## Como funciona no RLMobTest
 
 ```
-APK instrumentado → treinamento (is_coverage=true) → coleta .ec → report:
+APK instrumentado → treinamento (is_coverage=true) → broadcast dump → coleta .ec → report:
   1. Busca jacococli.jar em inputs/tools/
   2. Busca classfiles em inputs/classfiles/{package_name}/
   3. Merge dos .ec files coletados
-  4. jacococli report → CSV → parse → percentuais no HTML
+  4. jacococli report → CSV + HTML → percentuais no report.html
+```
+
+### Fluxo de coleta em tempo de execucao
+
+```
+Agente executa acao
+  → adb shell am broadcast -n {pkg}/.CoverageReceiver -a {pkg}.DUMP_COVERAGE
+  → CoverageReceiver chama JaCoCo RT.getAgent().getExecutionData()
+  → Escreve em context.getFilesDir()/coverage.ec
+  → adb exec-out run-as {pkg} cat files/coverage.ec > coverage.ec
+  → Copia com timestamp para output/.../coverage/coverage_{timestamp}.ec
 ```
 
 ---
 
-## Passo a passo
+## Setup automatizado (recomendado)
+
+Desde a v0.1.8, o RLMobTest automatiza todo o setup do JaCoCo.
+
+### Prerequisitos no sistema
+
+```bash
+# JDK
+sudo apt install default-jdk  # Ubuntu/Debian
+java -version
+
+# Android SDK
+export ANDROID_HOME="$HOME/android-sdk"
+mkdir -p "$ANDROID_HOME"
+# Baixar command-line tools: https://developer.android.com/studio#command-tools
+sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+```
+
+### Configurar settings.json
+
+```json
+[
+  {
+    "apk_name": "moneytracker.apk",
+    "package_name": "com.blogspot.e_kanivets.moneytracker",
+    "source_code": "open_money_tracker-dev",
+    "is_coverage": true,
+    "time": 300
+  }
+]
+```
+
+O campo `source_code` deve apontar para um diretorio ou `.zip` em `inputs/source_codes/`.
+
+### Executar setup
+
+```bash
+# Setup isolado (build APK, copiar classfiles, baixar jacococli)
+rlmobtest setup
+
+# Setup de app especifico
+rlmobtest setup --app com.blogspot.e_kanivets.moneytracker
+
+# Forcar rebuild
+rlmobtest setup --force
+```
+
+O setup:
+1. Resolve o source code (extrai ZIP se necessario)
+2. Roda `./gradlew assembleFreeDebug` (fallback: `assembleDebug`)
+3. Copia APK para `inputs/apks/{apk_name}`
+4. Copia classfiles para `inputs/classfiles/{package_name}/`
+5. Baixa `jacococli.jar` para `inputs/tools/`
+
+### Pipeline completo
+
+```bash
+# O pipeline roda o setup automaticamente como Step 0
+rlmobtest pipeline --app com.blogspot.e_kanivets.moneytracker
+```
+
+O Step 0 e executado quando `is_coverage: true` e `source_code` esta configurado.
+
+---
+
+## Setup manual (alternativa)
+
+Se preferir configurar manualmente ou se o setup automatizado falhar:
 
 ### 1. Instalar prerequisitos (JDK + Android SDK via CLI)
 
@@ -71,98 +149,144 @@ sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
 ---
 
-### 2. Compilar o APK com JaCoCo
+### 2. Preparar o source code do app
 
-Ha duas formas de compilar: via Android Studio (mais simples) ou via CLI.
+#### 2.1 Habilitar JaCoCo no build.gradle
 
-#### Opcao A — Via Android Studio
+Editar o `app/build.gradle`:
 
-1. Abrir o projeto no Android Studio (`File > Open`)
-2. Editar `app/build.gradle` para habilitar JaCoCo (ver secao 2.2 abaixo)
-3. Clicar em `Build > Build Bundle(s) / APK(s) > Build APK(s)`
-4. O APK estara em `app/build/outputs/apk/debug/app-debug.apk`
-5. Os classfiles estarao em `app/build/intermediates/javac/debug/classes/`
-
-#### Opcao B — Via CLI (sem Android Studio)
-
-```bash
-# Descompactar o source code
-cd /tmp
-unzip /caminho/para/source-code.zip
-cd nome-do-projeto/
-```
-
-Depois seguir os passos 2.2 e 2.3 abaixo.
-
-#### 2.2 Habilitar JaCoCo no build.gradle
-
-Editar o `app/build.gradle` (ou `app/build.gradle.kts`):
-
-**Groovy (`build.gradle`):**
 ```gradle
+apply plugin: 'jacoco'
+
 android {
     buildTypes {
         debug {
             testCoverageEnabled true
         }
     }
+
+    testOptions {
+        animationsDisabled true
+        unitTests.all {
+            jacoco {
+                includeNoLocationClasses = true
+            }
+        }
+        unitTests.returnDefaultValues = true
+    }
+}
+
+jacoco {
+    toolVersion = "0.8.12"
 }
 ```
 
-**Kotlin DSL (`build.gradle.kts`):**
-```kotlin
-android {
-    buildTypes {
-        getByName("debug") {
-            enableAndroidTestCoverage = true
-            enableUnitTestCoverage = true
+#### 2.2 Adicionar CoverageReceiver
+
+Criar `app/src/main/java/{package}/CoverageReceiver.java`:
+
+```java
+package com.example.myapp;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.util.Log;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+
+public class CoverageReceiver extends BroadcastReceiver {
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        try {
+            Class<?> rtClass = Class.forName("org.jacoco.agent.rt.RT");
+            Object agent = rtClass.getMethod("getAgent").invoke(null);
+            byte[] data = (byte[]) agent.getClass()
+                    .getMethod("getExecutionData", boolean.class)
+                    .invoke(agent, false);
+            File coverageFile = new File(context.getFilesDir(), "coverage.ec");
+            OutputStream out = new FileOutputStream(coverageFile);
+            out.write(data);
+            out.close();
+            Log.i("CoverageReceiver", "Coverage dumped (" + data.length + " bytes)");
+        } catch (Exception e) {
+            Log.e("CoverageReceiver", "Failed to dump coverage", e);
         }
     }
 }
 ```
 
-#### 2.3 Compilar
+Registrar no `AndroidManifest.xml`:
+
+```xml
+<receiver android:name=".CoverageReceiver" android:exported="true">
+    <intent-filter>
+        <action android:name="com.example.myapp.DUMP_COVERAGE" />
+    </intent-filter>
+</receiver>
+```
+
+#### 2.3 Google Services (Firebase)
+
+Se o app usa Firebase, e necessario um `google-services.json` valido (ou dummy) em `app/`.
+Um arquivo dummy esta disponivel em `docs/build_gradle/money_tracker/google-services.json`.
+
+#### 2.4 Compilar
 
 ```bash
-# Garantir que ANDROID_HOME esta definido
 export ANDROID_HOME="$HOME/android-sdk"
 
-# Compilar APK debug com instrumentacao JaCoCo
-./gradlew assembleDebug
+cd inputs/source_codes/nome-do-projeto/
+./gradlew assembleFreeDebug  # ou assembleDebug
 ```
 
 O APK instrumentado estara em:
 ```
-app/build/outputs/apk/debug/app-debug.apk
+app/build/outputs/apk/free/debug/app-free-debug.apk
 ```
 
 Os classfiles compilados estarao em:
 ```
-app/build/intermediates/javac/debug/classes/
+app/build/intermediates/javac/freeDebug/classes/
 ```
 
-#### 2.4 Copiar para o RLMobTest
+#### 2.5 Copiar para o RLMobTest
 
 ```bash
-# Exemplo para o app com.example.myapp
 PACKAGE="com.example.myapp"
 RLMOBTEST="/caminho/para/rlmobtest-icomp"
 
 # Copiar APK
-cp app/build/outputs/apk/debug/app-debug.apk "$RLMOBTEST/inputs/apks/"
+cp app/build/outputs/apk/free/debug/app-free-debug.apk "$RLMOBTEST/inputs/apks/"
 
 # Copiar classfiles
 mkdir -p "$RLMOBTEST/inputs/classfiles/$PACKAGE"
-cp -r app/build/intermediates/javac/debug/classes/* \
+cp -r app/build/intermediates/javac/freeDebug/classes/* \
   "$RLMOBTEST/inputs/classfiles/$PACKAGE/"
 ```
 
-#### 2.5 Atualizar settings.json
+---
+
+### 3. Obter o jacococli.jar
+
+```bash
+mkdir -p inputs/tools
+
+# Download direto (versao 0.8.12)
+wget -O inputs/tools/jacococli.jar \
+  "https://repo1.maven.org/maven2/org/jacoco/org.jacoco.cli/0.8.12/org.jacoco.cli-0.8.12-nodeps.jar"
+```
+
+---
+
+### 4. Atualizar settings.json
 
 ```json
 {
-  "apk_name": "app-debug.apk",
+  "apk_name": "app-free-debug.apk",
   "package_name": "com.example.myapp",
+  "source_code": "nome-do-projeto",
   "is_coverage": true,
   "time": 3600
 }
@@ -170,61 +294,33 @@ cp -r app/build/intermediates/javac/debug/classes/* \
 
 ---
 
-### 3. Obter o jacococli.jar
-
-Baixe o JaCoCo CLI do Maven Central:
-
-```bash
-mkdir -p inputs/tools
-
-# Download direto (versao 0.8.12 recomendada)
-wget -O inputs/tools/jacococli.jar \
-  "https://repo1.maven.org/maven2/org/jacoco/org.jacoco.cli/0.8.12/org.jacoco.cli-0.8.12-nodeps.jar"
-```
-
-Ou acesse manualmente:
-- https://repo1.maven.org/maven2/org/jacoco/org.jacoco.cli/
-- Baixe o arquivo `org.jacoco.cli-X.X.X-nodeps.jar` (versao `-nodeps` inclui todas as dependencias)
-- Renomeie para `jacococli.jar` e coloque em `inputs/tools/`
-
----
-
-### 4. Classfiles — opcoes alternativas
-
-Se voce nao quer compilar do source code, ha alternativas para obter os classfiles:
-
-**Opcao B — Do JAR pre-compilado:**
-
-```bash
-mkdir -p inputs/classfiles/com.example.myapp
-cp app/build/libs/app.jar inputs/classfiles/com.example.myapp/
-```
-
-**Opcao C — Extrair do APK (dex2jar):**
-
-```bash
-# Baixar dex2jar: https://github.com/pxb1988/dex2jar/releases
-./d2j-dex2jar.sh app-debug.apk -o classes.jar
-
-mkdir -p inputs/classfiles/com.example.myapp
-mv classes.jar inputs/classfiles/com.example.myapp/
-```
-
-> **Nota:** Classfiles extraidos via dex2jar podem gerar metricas com pequenas imprecisoes. Prefira classfiles do build original quando possivel.
-
----
-
 ### 5. Executar
 
-Com tudo configurado, o pipeline processa automaticamente:
-
 ```bash
-# Treinar com coverage habilitado
-rlmobtest train --app com.example.myapp
+# Pipeline completo (inclui setup automatico)
+rlmobtest pipeline --app com.example.myapp
 
-# Gerar relatorio (processa .ec automaticamente)
+# Ou separadamente:
+rlmobtest train --app com.example.myapp
 rlmobtest report --app com.example.myapp
 ```
+
+---
+
+## Relatorios gerados
+
+### report.html (metricas agregadas)
+
+Gerado em `output/{pkg}/{mode}/{YYYY}/{MM}/{DD}/report.html`.
+Inclui progress bars com Line, Branch e Method coverage.
+
+### JaCoCo HTML (detalhado)
+
+Gerado em `output/{pkg}/{mode}/{YYYY}/{MM}/{DD}/coverage/jacoco_html/index.html`.
+Navegavel por pacote, classe e metodo. Se o `source_code` estiver configurado,
+inclui anotacao linha-a-linha do codigo-fonte.
+
+Link para o relatorio detalhado aparece automaticamente no `report.html`.
 
 ---
 
@@ -233,34 +329,43 @@ rlmobtest report --app com.example.myapp
 ```
 inputs/
 ├── apks/
-│   └── app-debug.apk                    # APK instrumentado
+│   └── moneytracker.apk                   # APK instrumentado
 ├── classfiles/
-│   └── com.example.myapp/               # Classfiles do app
-│       ├── com/example/myapp/*.class     # (Opcao A: classes soltas)
-│       └── classes.jar                   # (Opcao B/C: JAR)
+│   └── com.blogspot.e_kanivets.moneytracker/
+│       └── com/blogspot/.../*.class        # Classes compiladas
+├── source_codes/
+│   └── open_money_tracker-dev/             # Source code do app
+│       ├── app/build.gradle
+│       ├── app/src/main/java/...
+│       └── gradlew
 └── tools/
-    └── jacococli.jar                     # JaCoCo CLI
+    └── jacococli.jar                       # JaCoCo CLI
 
 output/
-└── com.example.myapp/improved/2026/03/02/
+└── com.blogspot.e_kanivets.moneytracker/original/2026/03/03/
+    ├── report.html                         # Relatorio principal
     └── coverage/
-        ├── coverage_20260302-143052.ec   # Coletado durante treino
-        ├── coverage_20260302-143105.ec   # Coletado durante treino
-        ├── merged.ec                     # Gerado automaticamente
-        └── coverage_report.csv           # Gerado automaticamente
+        ├── coverage_20260303-143052.ec     # Coletado durante treino
+        ├── coverage_20260303-143105.ec     # Coletado durante treino
+        ├── merged.ec                       # Gerado automaticamente
+        ├── coverage_report.csv             # Gerado automaticamente
+        └── jacoco_html/                    # Relatorio detalhado
+            └── index.html
 ```
 
 ---
 
 ## Prerequisitos resumidos
 
-| Item | Obrigatorio | Onde |
-|------|------------|------|
-| APK instrumentado | Sim | `inputs/apks/` |
-| `is_coverage: true` | Sim | `settings.json` |
-| Java Runtime | Sim | PATH do sistema |
-| `jacococli.jar` | Sim | `inputs/tools/` |
-| Classfiles | Sim | `inputs/classfiles/{package_name}/` |
+| Item | Obrigatorio | Onde | Automatizado |
+|------|------------|------|:---:|
+| JDK | Sim | PATH do sistema | Nao |
+| Android SDK | Sim (para build) | `$ANDROID_HOME` | Nao |
+| APK instrumentado | Sim | `inputs/apks/` | Sim (`rlmobtest setup`) |
+| `is_coverage: true` | Sim | `settings.json` | Manual |
+| `jacococli.jar` | Sim | `inputs/tools/` | Sim (`rlmobtest setup`) |
+| Classfiles | Sim | `inputs/classfiles/{pkg}/` | Sim (`rlmobtest setup`) |
+| CoverageReceiver | Sim | No source code do app | Manual (uma vez) |
 
 ---
 
@@ -268,9 +373,13 @@ output/
 
 | Problema | Causa | Solucao |
 |----------|-------|---------|
-| JaCoCo mostra N/A | jacococli.jar nao encontrado | Baixe e coloque em `inputs/tools/` |
-| JaCoCo mostra N/A | Sem classfiles | Copie para `inputs/classfiles/{pkg}/` |
+| JaCoCo mostra N/A | jacococli.jar nao encontrado | `rlmobtest setup` ou baixe manualmente |
+| JaCoCo mostra N/A | Sem classfiles | `rlmobtest setup` ou copie manualmente |
 | JaCoCo mostra N/A | Sem arquivos .ec | Verifique se `is_coverage: true` e o APK e instrumentado |
 | Erro no merge | Java nao instalado | Instale o JDK |
 | Cobertura 0% | APK nao instrumentado | Recompile com `testCoverageEnabled true` |
-| Metricas imprecisas | Classfiles do dex2jar | Use classfiles do build original (Opcao A) |
+| `/sdcard/coverage.ec: No such file` | App sem CoverageReceiver | Adicione o BroadcastReceiver ao app |
+| `Tcl_AsyncDelete` crash | matplotlib backend TkAgg | Ja corrigido na v0.1.8 (usa Agg) |
+| Build falha no setup | `ANDROID_HOME` nao definido | `export ANDROID_HOME=$HOME/android-sdk` |
+| Build falha | Sem `google-services.json` | Copie o dummy de `docs/build_gradle/` |
+| Metricas imprecisas | Classfiles do dex2jar | Use classfiles do build original |
