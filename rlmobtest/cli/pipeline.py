@@ -105,6 +105,16 @@ def pipeline(
         console.print(f"[bold yellow]  App {i}/{len(configs)}: {pkg}[/]")
         console.print(f"[bold yellow]{'=' * 60}[/]")
 
+        # --- Step 0: JaCoCo Setup (if coverage enabled) ---
+        if config.is_coverage and config.source_code:
+            console.print(Panel("[bold]Step 0/4:[/] JaCoCo Setup", style="blue"))
+            from rlmobtest.utils.jacoco_setup import run_setup
+
+            setup_result = run_setup(config)
+            for key, ok in setup_result.items():
+                status = "[green]OK[/]" if ok else "[yellow]skipped[/]"
+                console.print(f"  {key}: {status}")
+
         # Build app context once per app (used in transcription step)
         app_context = None
         if config.source_code:
@@ -222,7 +232,10 @@ def pipeline(
                 OUTPUT_BASE / pkg / mode.value / y / m / d for y, m, d in days
             ]
             try:
-                generate_report(run_paths, package_name=pkg, agent_type=mode.value)
+                generate_report(
+                    run_paths, package_name=pkg, agent_type=mode.value,
+                    source_code=config.source_code or None,
+                )
             except Exception as e:
                 console.print(f"[red]Report error: {e}[/]")
 

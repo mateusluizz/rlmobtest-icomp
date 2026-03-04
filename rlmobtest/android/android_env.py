@@ -19,6 +19,8 @@ import numpy as np
 import torch
 import torchvision.transforms as T
 import uiautomator2 as u2
+import matplotlib
+matplotlib.use("Agg")
 from matplotlib.pyplot import imread
 from PIL import Image
 from uiautomator2.exceptions import UiObjectNotFoundError
@@ -28,6 +30,7 @@ from rlmobtest.constants.paths import (
     COVERAGE_PATH,
     CRASHES_PATH,
     ERRORS_PATH,
+    INPUTS_BASE,
     SCREENSHOTS_PATH,
     TEST_CASES_PATH,
 )
@@ -469,16 +472,15 @@ class AndroidEnv:
         errors_path=None,
         coverage_path=None,
     ):
-        self.app = app
+        self.app = str(INPUTS_BASE / "apks" / app)
         self.app_package = app_package
         self.coverage_enabled = coverage_enabled
         self.device = u2.connect()
         self.tc_action = []
         self.first_activity = ""
         self.nametc = "start.txt"
-        self._exec("ng ng-cp lib/org.jacoco.ant-0.8.5-nodeps.jar")
-        self._exec("ng ng-cp ")
-        self._exec("adb forward tcp:8981 tcp:8981")
+        if self.coverage_enabled:
+            self._exec("adb forward tcp:8981 tcp:8981")
         self.edittexts = []
         self.buttons = []
         self.activities_req = []
@@ -1503,9 +1505,20 @@ class AndroidEnv:
         return resize(torch_img).unsqueeze(0).to(device)
 
     def _get_current_coverage(self):
-        """Get current code coverage."""
+        """Get current code coverage by triggering broadcast dump then pulling .ec file."""
         try:
-            call("adb pull /sdcard/coverage.ec  ", shell=True, stdout=FNULL)
+            # Explicit broadcast (required for Android 8+)
+            call(
+                f"adb shell am broadcast "
+                f"-n {self.app_package}/.CoverageReceiver "
+                f"-a {self.app_package}.DUMP_COVERAGE",
+                shell=True, stdout=FNULL, stderr=FNULL,
+            )
+            # Pull from app-internal storage via run-as (works on all Android versions)
+            call(
+                f"adb exec-out run-as {self.app_package} cat files/coverage.ec > coverage.ec",
+                shell=True, stdout=FNULL, stderr=FNULL,
+            )
         except Exception:
             print("Phone Not connected")
             logging.debug("Phone Not connected")

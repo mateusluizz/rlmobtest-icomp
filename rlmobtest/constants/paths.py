@@ -16,6 +16,20 @@ CONFIG_JSON_PATH = CONFIG_PATH / "settings.json"
 
 FEW_SHOT_EXAMPLES_PATH = DATA_PATH / "few_shot_examples"
 
+# Inputs directories
+INPUTS_BASE = PROJECT_DIR / "inputs"
+TOOLS_DIR = INPUTS_BASE / "tools"
+CLASSFILES_DIR = INPUTS_BASE / "classfiles"
+SOURCE_CODES_DIR = INPUTS_BASE / "source_codes"
+APKS_DIR = INPUTS_BASE / "apks"
+
+# JaCoCo CLI
+JACOCOCLI_VERSION = "0.8.12"
+JACOCOCLI_URL = (
+    f"https://repo1.maven.org/maven2/org/jacoco/org.jacoco.cli/"
+    f"{JACOCOCLI_VERSION}/org.jacoco.cli-{JACOCOCLI_VERSION}-nodeps.jar"
+)
+
 
 class OutputPaths:
     """

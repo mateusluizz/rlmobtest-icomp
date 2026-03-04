@@ -1,11 +1,11 @@
 [
   {
-    "apk_name": "protect.budgetwatch_29.apk",
-    "package_name": "protect.budgetwatch",
-    "source_code": "budget-watch-master.zip",
-    "is_coverage": false,
+    "apk_name": "moneytracker.apk",
+    "package_name": "com.blogspot.e_kanivets.moneytracker",
+    "source_code": "open_money_tracker-dev.zip",
+    "is_coverage": true,
     "is_req": false,
-    "time": 60,
+    "time": 300,
     "episodes": 20
   }
 ]

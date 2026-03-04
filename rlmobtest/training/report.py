@@ -164,7 +164,44 @@ def _pct(part: float, total: float) -> str:
     return f"{part / total * 100:.1f}%"
 
 
-def _collect_data(run_paths: list[Path], package_name: str, agent_type: str) -> dict:
+def _collect_jacoco_coverage(
+    run_paths: list[Path],
+    package_name: str,
+    source_code: str | None = None,
+) -> dict:
+    """Try to process JaCoCo .ec files and return coverage metrics."""
+    from rlmobtest.utils.jacoco import process_coverage
+
+    for rp in run_paths:
+        cov_dir = rp / "coverage"
+        if cov_dir.exists() and any(cov_dir.glob("*.ec")):
+            metrics = process_coverage(
+                cov_dir, package_name,
+                html_report=True,
+                source_code=source_code,
+            )
+            if metrics:
+                jacoco_html = cov_dir / "jacoco_html" / "index.html"
+                return {
+                    "jacoco_line_coverage_pct": metrics["line_pct"],
+                    "jacoco_branch_coverage_pct": metrics["branch_pct"],
+                    "jacoco_method_coverage_pct": metrics["method_pct"],
+                    "jacoco_html_path": str(jacoco_html) if jacoco_html.exists() else None,
+                }
+    return {
+        "jacoco_line_coverage_pct": None,
+        "jacoco_branch_coverage_pct": None,
+        "jacoco_method_coverage_pct": None,
+        "jacoco_html_path": None,
+    }
+
+
+def _collect_data(
+    run_paths: list[Path],
+    package_name: str,
+    agent_type: str,
+    source_code: str | None = None,
+) -> dict:
     """Aggregate metrics from all run_paths into a report dict."""
     total_episodes = 0
     total_steps = 0
@@ -274,9 +311,7 @@ def _collect_data(run_paths: list[Path], package_name: str, agent_type: str) -> 
         "old_transcriptions": old_transcription_count,
         "transcriptions": transcription_count,
         "transcription_coverage_pct": round(transcription_coverage_pct, 1),
-        "jacoco_line_coverage_pct": None,
-        "jacoco_branch_coverage_pct": None,
-        "jacoco_method_coverage_pct": None,
+        **_collect_jacoco_coverage(run_paths, package_name, source_code=source_code),
     }
 
 
@@ -388,6 +423,7 @@ def _render_html(data: dict) -> str:
     {_progress_bar(data['jacoco_line_coverage_pct'], "JaCoCo Line Coverage")}
     {_progress_bar(data['jacoco_branch_coverage_pct'], "JaCoCo Branch Coverage")}
     {_progress_bar(data['jacoco_method_coverage_pct'], "JaCoCo Method Coverage")}
+    {'<div style="margin-top: 0.5rem;"><a href="coverage/jacoco_html/index.html" style="color: #58a6ff; text-decoration: none;">View detailed JaCoCo report (per-class/method) &rarr;</a></div>' if data.get('jacoco_html_path') else ''}
   </div>
 
   <!-- Artifacts -->
@@ -416,6 +452,7 @@ def generate_report(
     run_paths: list[Path],
     package_name: str,
     agent_type: str = "improved",
+    source_code: str | None = None,
 ) -> dict:
     """
     Generate a consolidated HTML pipeline report for an app.
@@ -424,11 +461,12 @@ def generate_report(
         run_paths: List of day-level run paths for this app
         package_name: App package name
         agent_type: Agent type (original/improved)
+        source_code: Source code config value (for JaCoCo HTML report)
 
     Returns:
         Report data dictionary
     """
-    data = _collect_data(run_paths, package_name, agent_type)
+    data = _collect_data(run_paths, package_name, agent_type, source_code=source_code)
 
     # Save HTML report in each day-level run_path
     if run_paths:

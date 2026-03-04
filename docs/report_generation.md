@@ -43,7 +43,7 @@ output/<package_name>/<agent_type>/<year>/<month>/<day>/
 ├── requirements.csv          # [LIDO] Requisitos gerados a partir do codigo fonte
 ├── screenshots/              # [NAO LIDO] Screenshots (ignorado pelo report)
 ├── checkpoints/              # [NAO LIDO] Checkpoints do modelo DQN (ignorado)
-├── coverage/                 # [NAO LIDO] Cobertura JaCoCo (uso futuro)
+├── coverage/                 # [LIDO] Arquivos .ec processados via jacococli.jar
 ├── crashes/                  # [NAO LIDO] Logs de crash (ignorado)
 ├── errors/                   # [NAO LIDO] Logs de erro (ignorado)
 ├── logs/                     # [NAO LIDO] Logs de treino (ignorado)
@@ -145,7 +145,7 @@ Nota: apenas a pasta `transcriptions/` (CrewAI) e usada no calculo de cobertura.
 | **Activity Coverage** | nomes dos arquivos em `test_cases/` vs activities do `requirements.csv` | % de activities requeridas que foram descobertas |
 | **Requirements Coverage** | conteudo de `test_cases/` vs linhas do `requirements.csv` | % de requisitos cobertos pelas acoes dos testes |
 | **Transcription Coverage** | contagem de arquivos em `transcriptions/` vs `test_cases/` | % de test cases transcritos (CrewAI) |
-| **JaCoCo Coverage** | `coverage/` (nao implementado ainda) | Sempre mostra N/A |
+| **JaCoCo Coverage** | `coverage/*.ec` + `inputs/tools/jacococli.jar` + `inputs/classfiles/{pkg}/` | Line, Branch e Method coverage (N/A se nao configurado — ver `docs/jacoco_setup.md`) |
 | **Tabela de Artefatos** | Todas as pastas acima | Contagens de cada tipo de artefato |
 
 ---

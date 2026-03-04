@@ -6,6 +6,7 @@ from pathlib import Path
 
 from crewai import Agent, Crew, Process, Task
 from crewai.llm import LLM
+from rich.console import Console
 
 from rlmobtest.constants.llm import DEFAULT_CREWAI_MODEL, DEFAULT_OLLAMA_BASE_URL
 from rlmobtest.constants.paths import FEW_SHOT_EXAMPLES_PATH
@@ -270,7 +271,8 @@ def transcribe_folder(
     input_folder = Path(input_folder)
     output_folder = Path(output_folder)
 
-    logging.info("Using model: %s", model_name)
+    console = Console()
+    console.print(f"[bold cyan][CrewAI][/] Model: [bold]{model_name}[/] | Base URL: {base_url}")
     llm = create_llm(model_name, base_url)
 
     logging.info("Total files in input folder: %d", len(os.listdir(input_folder)))

@@ -30,8 +30,18 @@ def report(
         rlmobtest report --all-dates -m original
         rlmobtest report --app com.blogspot.e_kanivets.moneytracker --all-dates
     """
+    from rlmobtest.constants.paths import CONFIG_JSON_PATH
     from rlmobtest.training.report import generate_report
     from rlmobtest.transcription.crew_transcriber import find_all_days
+    from rlmobtest.utils.config_reader import ConfRead
+
+    # Build package→source_code lookup from settings
+    source_code_map: dict[str, str] = {}
+    try:
+        all_configs = ConfRead(CONFIG_JSON_PATH.as_posix()).read_all_settings()
+        source_code_map = {c.package_name: c.source_code for c in all_configs if c.source_code}
+    except Exception:
+        pass
 
     if not OUTPUT_BASE.exists():
         console.print("[red]Output directory does not exist.[/]")
@@ -74,7 +84,10 @@ def report(
         ]
 
         try:
-            data = generate_report(run_paths, package_name=pkg, agent_type=mode.value)
+            data = generate_report(
+                run_paths, package_name=pkg, agent_type=mode.value,
+                source_code=source_code_map.get(pkg),
+            )
             generated += 1
             console.print(
                 f"  [dim]{len(days)} run path(s), "

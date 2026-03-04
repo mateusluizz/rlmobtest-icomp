@@ -7,6 +7,7 @@ from pathlib import Path
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
+from rich.console import Console
 
 from rlmobtest.constants.llm import DEFAULT_LLM_MODEL
 from rlmobtest.constants.paths import FEW_SHOT_EXAMPLES_PATH
@@ -115,7 +116,8 @@ def the_world_is_our(
     input_folder = Path(input_folder)
     output_folder = Path(output_folder)
 
-    print(f"Using model: {model_name}")
+    console = Console()
+    console.print(f"[bold green][LangChain][/] Model: [bold]{model_name}[/]")
     llm = create_llm(model_name)
 
     print(len(list(input_folder.iterdir())))
