@@ -9,21 +9,28 @@ from pathlib import Path
 import pandas as pd
 from rich.console import Console
 
+from rlmobtest.constants.actions import ACTION_TYPE_ALIASES, INVALID_ID_RE
+
 console = Console()
 
 # Maps test-case line prefixes → requirements CSV action_type
 _ACTION_MAP = {
     "clicked": "click",
-    "long click": "click",
+    "long click": "long_click",
     "checked": "click",
     "scroll": "scroll",
     "rotate": "rotate",
     "home": "home",
     "go to": "go_to",
+    "type": "type",
+    "entered": "type",
+    "input": "type",
 }
 
 _ACTION_RE = re.compile(
-    r"^(Clicked|Long click\b|Checked|Scroll\s+\w+|Rotate\s+\w+|Home activity|Go to next activity)",
+    r"^(Clicked|Long click\b|Checked|Scroll\s+\w+"
+    r"|Rotate\s+\w+|Home activity|Go to next activity"
+    r"|Type\b|Entered\b|Input\b)",
     re.IGNORECASE,
 )
 
@@ -127,21 +134,23 @@ def _compute_requirements_coverage(
     total = len(all_requirements)
     covered = 0
     for _, row in all_requirements.iterrows():
-        # Normalize requirement activity the same way.
-        # Handles both "." and "/" separators found in requirements.csv:
-        #   "com.blogspot.e_kanivets.moneytracker.activity.account.AccountsActivity" → "AccountsActivity"
-        #   "com.blogspot.e_kanivets.moneytracker/activity/account/AccountsActivity" → "AccountsActivity"
         activity_full = str(row["activity"]).strip()
         activity_short = _ACTIVITY_SEP_RE.split(activity_full)[-1]
-        action_type = str(row["action_type"]).strip().lower()
+        raw_action = str(row["action_type"]).strip().lower()
+        action_type = ACTION_TYPE_ALIASES.get(raw_action, raw_action)
         rid = str(row["id"]).strip()
 
         actions_set = tc_actions.get(activity_short, set())
         if not actions_set:
             continue
 
-        if rid == "N/A" or rid == "nan" or not rid:
-            # Match by action_type only
+        # Treat invalid IDs as N/A (match by action_type only)
+        rid_is_invalid = (
+            not rid or rid == "N/A" or rid == "nan"
+            or INVALID_ID_RE.search(rid)
+        )
+
+        if rid_is_invalid:
             if any(a == action_type for a, _ in actions_set):
                 covered += 1
         else:

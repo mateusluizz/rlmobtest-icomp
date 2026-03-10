@@ -27,5 +27,13 @@
             "cwd": "${workspaceFolder}",
             "args": ["--app", "protect.budgetwatch", "--agent", "original"]
         },
+        {
+            "name": "Jacoco Setup",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "rlmobtest",
+            "cwd": "${workspaceFolder}",
+            "args": ["setup", "--app", "io.github.silinote", "--force"]
+        }
     ]
 }

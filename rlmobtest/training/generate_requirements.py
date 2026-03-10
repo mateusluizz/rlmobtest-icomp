@@ -23,6 +23,7 @@ from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 from rich.table import Table
 
+from rlmobtest.constants.actions import normalize_action_type, normalize_id
 from rlmobtest.constants.llm import DEFAULT_LLM_MODEL, DEFAULT_OLLAMA_BASE_URL
 from rlmobtest.constants.paths import CONFIG_JSON_PATH, OUTPUT_BASE
 from rlmobtest.utils.app_context import extract_xml_contents as _extract_xml_contents
@@ -34,44 +35,44 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 SOURCE_CODES_DIR = BASE_DIR / "inputs" / "source_codes"
 
 
-def extrair_base_conhecimento_apk(caminho_zip: Path, package_name: str) -> list[dict]:
+def extract_apk_knowledge(archive_path: Path, package_name: str) -> list[dict]:
     """Extract Android component IDs from source code XML files (zip or tar.gz)."""
-    console.print(f"\n[cyan]Extraindo base de conhecimento:[/] [dim]{caminho_zip.name}[/]")
-    componentes = []
+    console.print(f"\n[cyan]Extracting knowledge base:[/] [dim]{archive_path.name}[/]")
+    components = []
     try:
-        for _xml_name, conteudo in _extract_xml_contents(caminho_zip):
-            matches = re.finditer(r'<([\w.]+)[^>]+android:id="@\+id/([^"]+)"', conteudo)
+        for _xml_name, content in _extract_xml_contents(archive_path):
+            matches = re.finditer(r'<([\w.]+)[^>]+android:id="@\+id/([^"]+)"', content)
             for m in matches:
-                tipo_view = m.group(1).split(".")[-1]
-                id_nome = m.group(2)
-                componentes.append(
+                view_type = m.group(1).split(".")[-1]
+                id_name = m.group(2)
+                components.append(
                     {
-                        "field": tipo_view,
-                        "id_completo": f"{package_name}:id/{id_nome}",
-                        "id_curto": id_nome,
+                        "field": view_type,
+                        "full_id": f"{package_name}:id/{id_name}",
+                        "short_id": id_name,
                     }
                 )
     except Exception as e:
-        console.print(f"  [red]Falha ao ler arquivo:[/] {e}")
-    console.print(f"  [green]{len(componentes)}[/] componente(s) extraido(s)")
-    return componentes
+        console.print(f"  [red]Failed to read archive:[/] {e}")
+    console.print(f"  [green]{len(components)}[/] component(s) extracted")
+    return components
 
 
-def processar_texto_qa(caminho_arquivo: Path, client: ChatOllama) -> dict | None:
+def process_test_case(file_path: Path, client: ChatOllama) -> dict | None:
     """Send test case text to Ollama and parse the JSON response."""
     prompt = (
-        "Analise o log de teste Android e extraia as acoes para um JSON puro. "
-        "Use obrigatoriamente estes campos: "
-        "activity (caminho completo), "
-        "field (tipo do componente em lowercase, ex: edittext, button, textview), "
-        "id_ref (id mencionado), action_type, value. "
-        "Exemplo de action_type: click, type, select. "
-        'Retorne apenas o objeto JSON: {"acoes": []}'
+        "Analyze the Android test log and extract the actions into pure JSON. "
+        "You must use these fields: "
+        "activity (full path), "
+        "field (component type in lowercase, e.g.: edittext, button, textview), "
+        "id_ref (mentioned resource id), action_type, value. "
+        "Example action_type values: click, type, select. "
+        'Return only the JSON object: {"actions": []}'
     )
     try:
-        with open(caminho_arquivo, encoding="utf-8", errors="ignore") as f:
-            texto = f.read()
-        msg = [{"role": "user", "content": prompt + f"\n\nTexto: {texto}"}]
+        with open(file_path, encoding="utf-8", errors="ignore") as f:
+            text = f.read()
+        msg = [{"role": "user", "content": prompt + f"\n\nTexto: {text}"}]
 
         res = client.invoke(msg)
         raw = res.content
@@ -84,27 +85,27 @@ def processar_texto_qa(caminho_arquivo: Path, client: ChatOllama) -> dict | None
             content = str(raw)
         return json.loads(content.replace("```json", "").replace("```", "").strip())
     except json.JSONDecodeError as e:
-        console.print(f"    [red]JSON invalido:[/] {e}")
+        console.print(f"    [red]Invalid JSON:[/] {e}")
         return None
     except Exception as e:
-        console.print(f"    [red]Erro LLM:[/] {e}")
+        console.print(f"    [red]LLM error:[/] {e}")
         return None
 
 
-def encontrar_melhor_id(
-    id_mencionado: str | None, base_apk: list[dict], package_name: str
+def resolve_best_id(
+    mentioned_id: str | None, apk_base: list[dict], package_name: str
 ) -> tuple[str, str]:
     """Resolve a mentioned ID to the full resource ID from the APK base."""
-    if not id_mencionado:
+    if not mentioned_id:
         return "N/A", "view"
-    limpo = id_mencionado.replace("@+id/", "").replace("id/", "").lower()
-    for item in base_apk:
-        if limpo == item["id_curto"].lower():
-            return item["id_completo"], item["field"].lower()
-    return f"{package_name}:id/{limpo}", "view"
+    cleaned = mentioned_id.replace("@+id/", "").replace("id/", "").lower()
+    for item in apk_base:
+        if cleaned == item["short_id"].lower():
+            return item["full_id"], item["field"].lower()
+    return f"{package_name}:id/{cleaned}", "view"
 
 
-def encontrar_run_paths(package_name: str, all_dates: bool = False) -> list[Path]:
+def find_run_paths(package_name: str, all_dates: bool = False) -> list[Path]:
     """Find run_path dirs that contain test_cases.
 
     Args:
@@ -136,7 +137,7 @@ def encontrar_run_paths(package_name: str, all_dates: bool = False) -> list[Path
     return sorted(run_paths)
 
 
-def processar_app(config, client: ChatOllama, *, all_dates: bool = False) -> None:
+def process_app(config, client: ChatOllama, *, all_dates: bool = False) -> None:
     """Process a single app: extract knowledge + generate requirements."""
     package_name = config.package_name
     source_code = config.source_code
@@ -150,38 +151,34 @@ def processar_app(config, client: ChatOllama, *, all_dates: bool = False) -> Non
         )
     )
 
-    # Check source code
     if not source_code:
-        console.print("[yellow]Sem source_code configurado, pulando.[/]")
+        console.print("[yellow]No source_code configured, skipping.[/]")
         return
 
     source_path = SOURCE_CODES_DIR / source_code
     if not source_path.exists():
-        console.print(f"[red]Source code nao encontrado:[/] {source_path}")
+        console.print(f"[red]Source code not found:[/] {source_path}")
         return
 
-    # Find run_paths from exploration
-    run_paths = encontrar_run_paths(package_name, all_dates=all_dates)
+    run_paths = find_run_paths(package_name, all_dates=all_dates)
     if not run_paths:
-        console.print("[yellow]Nenhum test_case no output. Execute a exploracao primeiro.[/]")
+        console.print("[yellow]No test_cases in output. Run exploration first.[/]")
         return
 
-    console.print(f"[green]{len(run_paths)}[/] run path(s) encontrado(s)")
+    console.print(f"[green]{len(run_paths)}[/] run path(s) found")
 
-    # Extract component base from source code
-    base_apk = extrair_base_conhecimento_apk(source_path, package_name)
+    apk_base = extract_apk_knowledge(source_path, package_name)
 
-    # Process each run_path
     for run_path in run_paths:
         rel = run_path.relative_to(OUTPUT_BASE / package_name)
         console.print(f"\n[bold cyan]Run path:[/] {rel}")
 
         test_cases = sorted((run_path / "test_cases").glob("*.txt"))
         if not test_cases:
-            console.print("  [yellow]Sem test_cases neste run path.[/]")
+            console.print("  [yellow]No test_cases in this run path.[/]")
             continue
 
-        dataset_final = []
+        dataset = []
 
         with Progress(
             SpinnerColumn(),
@@ -190,74 +187,88 @@ def processar_app(config, client: ChatOllama, *, all_dates: bool = False) -> Non
             TaskProgressColumn(),
             console=console,
         ) as progress:
-            task = progress.add_task("Processando...", total=len(test_cases))
+            task = progress.add_task("Processing...", total=len(test_cases))
 
             for tc_path in test_cases:
                 progress.update(task, description=f"[cyan]{tc_path.name}[/]")
 
-                resultado = processar_texto_qa(tc_path, client)
+                result = process_test_case(tc_path, client)
 
-                if resultado and "acoes" in resultado:
-                    acoes = resultado["acoes"]
+                if result and ("actions" in result or "acoes" in result):
+                    actions = result.get("actions") or result["acoes"]
                     progress.console.print(
-                        f"  [green]{tc_path.name}[/] -> [bold]{len(acoes)}[/] acao(es)"
+                        f"  [green]{tc_path.name}[/] -> [bold]{len(actions)}[/] action(s)"
                     )
-                    for acao in acoes:
-                        id_real, tipo_real = encontrar_melhor_id(
-                            acao.get("id_ref"), base_apk, package_name
+                    for action in actions:
+                        raw_action = action.get("action_type") or "click"
+                        action_type = normalize_action_type(raw_action)
+                        if action_type is None:
+                            continue  # skip junk (error, warn, etc.)
+
+                        real_id, real_type = resolve_best_id(
+                            action.get("id_ref"), apk_base, package_name
                         )
-                        dataset_final.append(
+                        real_id = normalize_id(real_id)
+
+                        dataset.append(
                             {
-                                "activity": (acao.get("activity") or "UnknownActivity").replace(
-                                    "/.", "."
-                                ),
+                                "activity": (
+                                    action.get("activity") or "UnknownActivity"
+                                ).replace("/.", "."),
                                 "field": (
-                                    tipo_real
-                                    if tipo_real != "view"
-                                    else (acao.get("field") or "view").lower()
+                                    real_type
+                                    if real_type != "view"
+                                    else (action.get("field") or "view").lower()
                                 ),
-                                "id": id_real,
-                                "action_type": acao.get("action_type") or "click",
-                                "value": acao.get("value") or "",
+                                "id": real_id,
+                                "action_type": action_type,
+                                "value": action.get("value") or "",
                             }
                         )
                 else:
-                    progress.console.print(f"  [yellow]{tc_path.name}[/] -> sem acoes")
+                    progress.console.print(
+                        f"  [yellow]{tc_path.name}[/] -> no actions"
+                    )
 
                 progress.advance(task)
 
-        if not dataset_final:
-            console.print("  [red]Nenhuma acao extraida neste run path.[/]")
+        if not dataset:
+            console.print("  [red]No actions extracted in this run path.[/]")
             continue
 
         # Show summary table
-        tabela = Table(title=f"Requirements ({len(dataset_final)} acoes)", show_lines=True)
-        tabela.add_column("Activity", style="dim")
-        tabela.add_column("Field", style="cyan")
-        tabela.add_column("ID", style="dim")
-        tabela.add_column("Action", style="magenta")
-        tabela.add_column("Value")
-        for row in dataset_final[:20]:
-            tabela.add_row(
+        table = Table(
+            title=f"Requirements ({len(dataset)} actions)", show_lines=True
+        )
+        table.add_column("Activity", style="dim")
+        table.add_column("Field", style="cyan")
+        table.add_column("ID", style="dim")
+        table.add_column("Action", style="magenta")
+        table.add_column("Value")
+        for row in dataset[:20]:
+            table.add_row(
                 row["activity"],
                 row["field"],
                 row["id"],
                 row["action_type"],
                 row.get("value") or "",
             )
-        if len(dataset_final) > 20:
-            tabela.add_row("...", "...", "...", "...", "...")
-        console.print(tabela)
+        if len(dataset) > 20:
+            table.add_row("...", "...", "...", "...", "...")
+        console.print(table)
 
         # Save requirements.csv in the run_path (deduplicated)
         csv_path = run_path / "requirements.csv"
-        df = pd.DataFrame(dataset_final)[["activity", "field", "id", "action_type", "value"]]
+        df = pd.DataFrame(dataset)[["activity", "field", "id", "action_type", "value"]]
         raw_count = len(df)
         df = df.drop_duplicates()
         df.to_csv(csv_path, index=False)
 
-        console.print(f"\n[bold green]requirements.csv salvo:[/] {csv_path}")
-        console.print(f"[dim]{len(df)} acao(es) exportadas ({raw_count - len(df)} duplicatas removidas)[/]")
+        console.print(f"\n[bold green]requirements.csv saved:[/] {csv_path}")
+        console.print(
+            f"[dim]{len(df)} action(s) exported "
+            f"({raw_count - len(df)} duplicates removed)[/]"
+        )
 
 
 def main():
@@ -278,7 +289,7 @@ def main():
     console.print(
         Panel.fit(
             "[bold cyan]Generate Requirements[/bold cyan]\n"
-            "[dim]Extrai requisitos dos test_cases + source code via Ollama[/dim]",
+            "[dim]Extract requirements from test_cases + source code via Ollama[/dim]",
             border_style="cyan",
         )
     )
@@ -287,36 +298,34 @@ def main():
     reader = ConfRead(CONFIG_JSON_PATH.as_posix())
     configs = reader.read_all_settings()
 
-    # Filter apps with source_code configured
     apps_with_source = [c for c in configs if c.source_code]
-    console.print(f"\n[bold]{len(configs)}[/] app(s) no settings.json")
-    console.print(f"[bold]{len(apps_with_source)}[/] app(s) com source_code configurado")
+    console.print(f"\n[bold]{len(configs)}[/] app(s) in settings.json")
+    console.print(f"[bold]{len(apps_with_source)}[/] app(s) with source_code configured")
 
     if not apps_with_source:
-        console.print("[red]Nenhum app com source_code. Configure no settings.json.[/]")
+        console.print("[red]No apps with source_code. Configure in settings.json.[/]")
         return
 
     # Initialize Ollama client
     client = ChatOllama(model=args.llm_model, base_url=DEFAULT_OLLAMA_BASE_URL)
-    console.print(f"[green]Ollama client pronto[/] [dim]({args.llm_model})[/]\n")
+    console.print(f"[green]Ollama client ready[/] [dim]({args.llm_model})[/]\n")
 
-    # Process each app
     for i, config in enumerate(apps_with_source, 1):
         console.print(f"\n[bold yellow]{'=' * 60}[/]")
         console.print(f"[bold yellow]  App {i}/{len(apps_with_source)}[/]")
         console.print(f"[bold yellow]{'=' * 60}[/]")
 
         try:
-            processar_app(config, client, all_dates=args.all_dates)
+            process_app(config, client, all_dates=args.all_dates)
         except KeyboardInterrupt:
-            console.print("\n[yellow]Interrompido pelo usuario.[/]")
+            console.print("\n[yellow]Interrupted by user.[/]")
             raise
         except Exception as e:
-            console.print(f"[red]Erro ao processar {config.package_name}:[/] {e}")
+            console.print(f"[red]Error processing {config.package_name}:[/] {e}")
             continue
 
     console.print(
-        Panel.fit("[bold green]Geracao de requirements concluida[/]", border_style="green")
+        Panel.fit("[bold green]Requirements generation complete[/]", border_style="green")
     )
 
 

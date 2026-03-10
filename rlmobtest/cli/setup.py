@@ -21,19 +21,27 @@ def setup(
         bool,
         typer.Option("--force", "-f", help="Force re-build/re-download even if artifacts exist"),
     ] = False,
+    agent: Annotated[
+        bool,
+        typer.Option("--agent", help="Use autonomous build agent with auto-fix and retry"),
+    ] = True,
 ):
     """
     Setup JaCoCo prerequisites: build APK, copy classfiles, download jacococli.jar.
 
-    Automatically prepares everything needed for code coverage analysis.
-    All steps are idempotent — existing artifacts are skipped unless --force is used.
+    Uses the autonomous build agent by default, which auto-detects AGP/Gradle/Java
+    versions, fixes repositories, installs SDK components, and retries on failure.
 
     Examples:
-        rlmobtest setup                              # Setup all coverage apps
+        rlmobtest setup                              # Setup with build agent
+        rlmobtest setup --no-agent                   # Setup without auto-fix
         rlmobtest setup --app com.example.app         # Setup specific app
         rlmobtest setup --force                       # Force rebuild
     """
-    from rlmobtest.utils.jacoco_setup import run_setup
+    if agent:
+        from rlmobtest.utils.build_agent import agent_setup as run_setup
+    else:
+        from rlmobtest.utils.jacoco_setup import run_setup
 
     try:
         settings_reader = ConfRead(CONFIG_JSON_PATH.as_posix())

@@ -107,10 +107,10 @@ def pipeline(
 
         # --- Step 0: JaCoCo Setup (if coverage enabled) ---
         if config.is_coverage and config.source_code:
-            console.print(Panel("[bold]Step 0/4:[/] JaCoCo Setup", style="blue"))
-            from rlmobtest.utils.jacoco_setup import run_setup
+            console.print(Panel("[bold]Step 0/4:[/] JaCoCo Setup (Build Agent)", style="blue"))
+            from rlmobtest.utils.build_agent import agent_setup
 
-            setup_result = run_setup(config)
+            setup_result = agent_setup(config)
             for key, ok in setup_result.items():
                 status = "[green]OK[/]" if ok else "[yellow]skipped[/]"
                 console.print(f"  {key}: {status}")
@@ -126,19 +126,23 @@ def pipeline(
 
         # --- Step 1: Exploration (is_req=false) ---
         if not skip_exploration and not only_transcribe:
-            console.print(Panel("[bold]Step 1/4:[/] Exploration (is_req=false)", style="blue"))
+            exploration_time = config.time_exploration or config.time
+            console.print(Panel(
+                f"[bold]Step 1/4:[/] Exploration (is_req=false, {exploration_time}s)",
+                style="blue",
+            ))
             exploration_config = AppConfig(
                 apk_name=config.apk_name,
                 package_name=config.package_name,
                 is_req=False,
                 is_coverage=config.is_coverage,
-                time=config.time,
+                time=exploration_time,
                 source_code=config.source_code,
             )
             try:
                 run(
                     mode=mode.value,
-                    max_time=config.time,
+                    max_time=exploration_time,
                     max_steps=max_steps,
                     config=exploration_config,
                 )
@@ -156,28 +160,32 @@ def pipeline(
                 console.print("[yellow]No source_code configured, skipping.[/]")
             else:
                 try:
-                    from rlmobtest.training.generate_requirements import processar_app
+                    from rlmobtest.training.generate_requirements import process_app
 
                     client = ChatOllama(model=llm_model, base_url=DEFAULT_OLLAMA_BASE_URL)
-                    processar_app(config, client, all_dates=all_dates)
+                    process_app(config, client, all_dates=all_dates)
                 except Exception as e:
                     console.print(f"[red]Requirements error: {e}[/]")
 
         # --- Step 3: Guided training (is_req=true) ---
         if not skip_guided and not only_transcribe:
-            console.print(Panel("[bold]Step 3/4:[/] Guided training (is_req=true)", style="blue"))
+            guided_time = config.time_guided or config.time
+            console.print(Panel(
+                f"[bold]Step 3/4:[/] Guided training (is_req=true, {guided_time}s)",
+                style="blue",
+            ))
             guided_config = AppConfig(
                 apk_name=config.apk_name,
                 package_name=config.package_name,
                 is_req=True,
                 is_coverage=config.is_coverage,
-                time=config.time,
+                time=guided_time,
                 source_code=config.source_code,
             )
             try:
                 run(
                     mode=mode.value,
-                    max_time=config.time,
+                    max_time=guided_time,
                     max_steps=max_steps,
                     config=guided_config,
                 )

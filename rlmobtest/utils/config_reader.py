@@ -17,7 +17,13 @@ class AppConfig(BaseModel):
     is_req_analysis: bool = Field(
         default=False, alias="is_req", description="Requirement analysis flag"
     )
-    time: int = Field(..., description="Execution time in seconds")
+    time: int = Field(..., description="Execution time in seconds (used as default)")
+    time_exploration: int | None = Field(
+        default=None, description="Time for exploration without requirements (Step 1). Falls back to 'time'."
+    )
+    time_guided: int | None = Field(
+        default=None, description="Time for guided training with requirements (Step 3). Falls back to 'time'."
+    )
     source_code: str = Field(default="", description="Source code zip in inputs/source_codes/")
 
     def to_tuple(self) -> tuple:

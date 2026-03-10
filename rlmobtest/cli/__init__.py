@@ -49,6 +49,7 @@ def print_device_info():
 
 
 # Import commands to register them with the app
+from rlmobtest.cli.check import check  # noqa: E402, F401
 from rlmobtest.cli.clean import clean  # noqa: E402, F401
 from rlmobtest.cli.info import info  # noqa: E402, F401
 from rlmobtest.cli.pipeline import pipeline  # noqa: E402, F401
