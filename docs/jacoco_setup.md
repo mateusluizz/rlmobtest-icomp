@@ -37,9 +37,37 @@ Agente executa acao
 
 ---
 
+## Suporte a versoes legadas (AGP 1.x-2.x)
+
+Projetos antigos (AGP 1.x-2.x) geram arquivos `.ec` no formato 0x1006 (JaCoCo 0.7.0-0.7.4),
+incompativel com o `jacococli.jar` moderno (formato 0x1007). O RLMobTest resolve isso
+automaticamente:
+
+1. Tenta processar com `jacococli.jar` (0.8.12)
+2. Se falhar com `IncompatibleExecDataVersionException`, faz fallback para `JacocoLegacyReport`
+   usando `jacoco-legacy-0.7.4.jar` (formato 0x1006)
+
+Os arquivos legacy ficam em `inputs/tools/`:
+- `jacoco-legacy-0.7.4.jar` — JaCoCo 0.7.4 ant-nodeps
+- `JacocoLegacyReport.class` — Report tool standalone compilado
+
+Classfiles de projetos antigos ficam em `intermediates/classes/debug/` (ao inves de
+`intermediates/javac/debug/classes/`). O setup detecta ambos os caminhos automaticamente.
+
+**Compatibilidade de versoes:**
+
+| AGP | JaCoCo agent | Formato .ec | jacococli compativel |
+|-----|-------------|-------------|---------------------|
+| 1.x-2.x | 0.7.x (hardcoded) | 0x1006 | `jacoco-legacy-0.7.4.jar` |
+| 3.x+ | Configuravel (`toolVersion`) | 0x1007 | `jacococli.jar` (0.8.12) |
+
+---
+
 ## Setup automatizado (recomendado)
 
 Desde a v0.1.8, o RLMobTest automatiza todo o setup do JaCoCo.
+A v0.1.9 adiciona o **build agent autonomo** que resolve erros de compilacao
+automaticamente (repositorios Maven, versoes Java/Gradle, SDK faltante).
 
 ### Prerequisitos no sistema
 
@@ -74,8 +102,11 @@ O campo `source_code` deve apontar para um diretorio ou `.zip` em `inputs/source
 ### Executar setup
 
 ```bash
-# Setup isolado (build APK, copiar classfiles, baixar jacococli)
+# Setup com build agent autonomo (padrao)
 rlmobtest setup
+
+# Setup sem build agent (Gradle direto)
+rlmobtest setup --no-agent
 
 # Setup de app especifico
 rlmobtest setup --app com.blogspot.e_kanivets.moneytracker
@@ -85,11 +116,17 @@ rlmobtest setup --force
 ```
 
 O setup:
-1. Resolve o source code (extrai ZIP se necessario)
-2. Roda `./gradlew assembleFreeDebug` (fallback: `assembleDebug`)
-3. Copia APK para `inputs/apks/{apk_name}`
-4. Copia classfiles para `inputs/classfiles/{package_name}/`
-5. Baixa `jacococli.jar` para `inputs/tools/`
+1. Resolve o source code (extrai ZIP/tar.gz se necessario)
+2. Injeta JaCoCo no build.gradle (`testCoverageEnabled true`, `apply plugin: 'jacoco'`)
+3. Adiciona CoverageReceiver ao app (se nao existir)
+4. Configura repositorios Maven (google() ou maven URL para Gradle < 4.0)
+5. Roda `./gradlew assembleDebug`
+6. Copia APK para `inputs/apks/{apk_name}`
+7. Copia classfiles para `inputs/classfiles/{package_name}/` (detecta path moderno e legado)
+8. Baixa `jacococli.jar` para `inputs/tools/`
+
+Com `--agent` (padrao), o build agent autonomo tenta ate 10 ciclos de compilacao,
+diagnosticando e corrigindo erros automaticamente.
 
 ### Pipeline completo
 
@@ -339,7 +376,9 @@ inputs/
 │       ├── app/src/main/java/...
 │       └── gradlew
 └── tools/
-    └── jacococli.jar                       # JaCoCo CLI
+    ├── jacococli.jar                       # JaCoCo CLI (0.8.12)
+    ├── jacoco-legacy-0.7.4.jar             # JaCoCo 0.7.4 (formato 0x1006)
+    └── JacocoLegacyReport.class            # Report tool para projetos antigos
 
 output/
 └── com.blogspot.e_kanivets.moneytracker/original/2026/03/03/
@@ -376,10 +415,14 @@ output/
 | JaCoCo mostra N/A | jacococli.jar nao encontrado | `rlmobtest setup` ou baixe manualmente |
 | JaCoCo mostra N/A | Sem classfiles | `rlmobtest setup` ou copie manualmente |
 | JaCoCo mostra N/A | Sem arquivos .ec | Verifique se `is_coverage: true` e o APK e instrumentado |
+| `IncompatibleExecDataVersionException` 0x1006 | Projeto antigo (AGP 1.x-2.x) gera formato legado | Automatico: fallback para `jacoco-legacy-0.7.4.jar` |
 | Erro no merge | Java nao instalado | Instale o JDK |
 | Cobertura 0% | APK nao instrumentado | Recompile com `testCoverageEnabled true` |
 | `/sdcard/coverage.ec: No such file` | App sem CoverageReceiver | Adicione o BroadcastReceiver ao app |
+| `Could not find method google()` | Gradle < 4.0 nao suporta `google()` | Usar `maven { url 'https://maven.google.com' }` (build agent faz isso) |
+| `INSTALL_FAILED_DEPRECATED_SDK_VERSION` | targetSdkVersion < 24 | Atualizar targetSdkVersion para >= 24 no build.gradle |
 | `Tcl_AsyncDelete` crash | matplotlib backend TkAgg | Ja corrigido na v0.1.8 (usa Agg) |
 | Build falha no setup | `ANDROID_HOME` nao definido | `export ANDROID_HOME=$HOME/android-sdk` |
 | Build falha | Sem `google-services.json` | Copie o dummy de `docs/build_gradle/` |
+| Classfiles nao encontrados | Path legado vs moderno | Automatico: busca `intermediates/classes/debug/` e `intermediates/javac/debug/classes/` |
 | Metricas imprecisas | Classfiles do dex2jar | Use classfiles do build original |

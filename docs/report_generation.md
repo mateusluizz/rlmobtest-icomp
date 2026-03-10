@@ -145,7 +145,7 @@ Nota: apenas a pasta `transcriptions/` (CrewAI) e usada no calculo de cobertura.
 | **Activity Coverage** | nomes dos arquivos em `test_cases/` vs activities do `requirements.csv` | % de activities requeridas que foram descobertas |
 | **Requirements Coverage** | conteudo de `test_cases/` vs linhas do `requirements.csv` | % de requisitos cobertos pelas acoes dos testes |
 | **Transcription Coverage** | contagem de arquivos em `transcriptions/` vs `test_cases/` | % de test cases transcritos (CrewAI) |
-| **JaCoCo Coverage** | `coverage/*.ec` + `inputs/tools/jacococli.jar` + `inputs/classfiles/{pkg}/` | Line, Branch e Method coverage (N/A se nao configurado — ver `docs/jacoco_setup.md`) |
+| **JaCoCo Coverage** | `coverage/*.ec` + `inputs/tools/jacococli.jar` (ou `jacoco-legacy-0.7.4.jar` para formato 0x1006) + `inputs/classfiles/{pkg}/` | Line, Branch e Method coverage (N/A se nao configurado — ver `docs/jacoco_setup.md`) |
 | **Tabela de Artefatos** | Todas as pastas acima | Contagens de cada tipo de artefato |
 
 ---

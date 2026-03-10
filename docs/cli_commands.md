@@ -11,6 +11,65 @@ O RLMobTest oferece dois tipos de interface de linha de comando:
 
 ## Comandos Typer
 
+### `rlmobtest check` — Pre-validacao do ambiente
+
+Verifica se os prerequisitos (Java, Gradle, Android SDK, asdf) estao corretamente configurados.
+
+```bash
+rlmobtest check
+```
+
+Sem opcoes. Verifica:
+- Java instalada e versao
+- Gradle instalado e versao
+- Android SDK (`$ANDROID_HOME`) e componentes
+- asdf (para gerenciamento de versoes Java/Gradle)
+- sdkmanager (requer Java 17+)
+- Licencas do SDK aceitas
+
+---
+
+### `rlmobtest setup` — Build e setup do JaCoCo
+
+Compila APKs instrumentados com JaCoCo, copia classfiles e baixa jacococli.jar.
+
+```bash
+rlmobtest setup [OPCOES]
+```
+
+| Opcao | Curto | Tipo | Padrao | Descricao |
+|-------|-------|------|--------|-----------|
+| `--app` | `-a` | str (multiplo) | todos | Package name(s) do(s) app(s) |
+| `--force` | `-f` | flag | `False` | Forcar rebuild mesmo se APK ja existe |
+| `--agent` | — | flag | `True` | Usar build agent autonomo |
+| `--no-agent` | — | flag | — | Desativar build agent (Gradle direto) |
+
+O setup executa:
+1. Resolve o source code (extrai ZIP/tar.gz se necessario)
+2. Injeta JaCoCo (`testCoverageEnabled true`) no build.gradle
+3. Adiciona CoverageReceiver ao app
+4. Compila via `./gradlew assembleDebug`
+5. Copia APK para `inputs/apks/{apk_name}`
+6. Copia classfiles para `inputs/classfiles/{package_name}/`
+7. Baixa `jacococli.jar` para `inputs/tools/`
+
+Com `--agent` (padrao), o build agent autonomo tenta resolver erros de compilacao automaticamente (repositorios Maven, versoes Java/Gradle, SDK faltante).
+
+**Exemplos:**
+
+```bash
+# Setup completo para todos os apps com build agent
+rlmobtest setup
+
+# Setup sem build agent
+rlmobtest setup --no-agent
+
+# App especifico, forcar rebuild
+rlmobtest setup --app com.blogspot.e_kanivets.moneytracker --force
+```
+
+---
+
 ### `rlmobtest pipeline` — Pipeline completo
 
 Executa o fluxo completo: exploracao → requirements → treino guiado → transcricao.
@@ -32,6 +91,7 @@ rlmobtest pipeline [OPCOES]
 | `--only-transcribe` | — | flag | `False` | Executar somente etapa 4 (transcricao) |
 
 **Etapas do pipeline:**
+0. **Setup** — Build APK + JaCoCo (automatico se `is_coverage` e `source_code`)
 1. **Exploracao** (`is_req=false`) — DQN aprende via heuristicas
 2. **Requirements** — Extrai requisitos dos test_cases + source code via Ollama
 3. **Treino guiado** (`is_req=true`) — DQN usa happy path dos requirements
@@ -291,7 +351,9 @@ python -m rlmobtest.training.generate_requirements --llm-model neural-chat
 
 | Comando | Funcao |
 |---------|--------|
-| `rlmobtest pipeline` | Pipeline completo (4 etapas) |
+| `rlmobtest check` | Pre-validacao do ambiente |
+| `rlmobtest setup` | Build APK + JaCoCo setup |
+| `rlmobtest pipeline` | Pipeline completo (5 etapas) |
 | `rlmobtest train` | Treinar agente DQN |
 | `rlmobtest report` | Gerar relatorio HTML |
 | `rlmobtest clean` | Limpar pastas de output |
@@ -311,12 +373,15 @@ Arquivo JSON com array de objetos, cada um representando um app:
 ```json
 [
   {
-    "apk_name": "protect.budgetwatch_29.apk",
+    "apk_name": "moneytracker.apk",
     "package_name": "com.blogspot.e_kanivets.moneytracker",
     "source_code": "open_money_tracker-dev.zip",
-    "is_coverage": false,
+    "is_coverage": true,
     "is_req": false,
-    "time": 3600
+    "time": 3600,
+    "time_exploration": 3600,
+    "time_guided": 3600,
+    "episodes": 20
   }
 ]
 ```
@@ -328,29 +393,39 @@ Arquivo JSON com array de objetos, cada um representando um app:
 | `source_code` | str | Arquivo do source code em `inputs/source_codes/` (vazio se nao disponivel) |
 | `is_coverage` | bool | Ativar analise de cobertura JaCoCo |
 | `is_req` | bool | Ativar treino guiado por requirements |
-| `time` | int | Tempo limite de treinamento em segundos |
+| `time` | int | Tempo limite de treinamento em segundos (padrao para ambas as fases) |
+| `time_exploration` | int | Tempo da fase de exploracao (sobrescreve `time`) |
+| `time_guided` | int | Tempo da fase guiada (sobrescreve `time`) |
+| `episodes` | int | Numero maximo de episodios |
 
 ### Estrutura de Diretorios
 
 ```
 rlmobtest-icomp/
 ├── inputs/
-│   ├── apks/                          # APKs das aplicacoes
-│   └── source_codes/                  # Arquivos zip/tar.gz do source code
+│   ├── apks/                          # APKs instrumentados
+│   ├── classfiles/                    # Classes compiladas por package
+│   │   └── {package_name}/            # .class files para JaCoCo
+│   ├── source_codes/                  # Arquivos zip/tar.gz do source code
+│   └── tools/                         # Ferramentas externas
+│       ├── jacococli.jar              # JaCoCo CLI (0.8.12)
+│       ├── jacoco-legacy-0.7.4.jar    # JaCoCo legacy (formato 0x1006)
+│       └── JacocoLegacyReport.class   # Report tool para projetos antigos
 ├── output/
 │   └── {package_name}/
 │       └── {original|improved}/
 │           └── {YYYY}/{MM}/{DD}/
 │               ├── test_cases/        # Logs brutos de interacao
 │               ├── transcriptions/    # Casos de teste ISO 29119-3
-│               ├── old_transcriptions/# Transcricoes LangChain
+│               ├── old_transcriptions/# Transcricoes anteriores
 │               ├── screenshots/       # Screenshots PNG
 │               ├── errors/            # Logs de erro
 │               ├── crashes/           # Logs de crash
+│               ├── coverage/          # Dados JaCoCo (.ec + HTML)
 │               ├── metrics/           # Metricas JSON do treinamento
 │               ├── checkpoints/       # Checkpoints do modelo DQN
 │               ├── requirements.csv   # Requisitos extraidos
-│               └── report.html        # Relatorio HTML
+│               └── report.html        # Relatorio HTML consolidado
 └── rlmobtest/
     └── config/
         └── settings.json              # Configuracao dos apps

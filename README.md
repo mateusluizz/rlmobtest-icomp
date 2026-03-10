@@ -18,12 +18,14 @@
 
 ### Características Principais
 
-- **🤖 Deep Q-Learning Aprimorado**: Implementação com Double DQN, Dueling Networks e Prioritized Experience Replay (PER)
-- **📱 Automação Android**: Integração com UIAutomator2 para controle de dispositivos e emuladores
-- **📊 Métricas em Tempo Real**: Monitoramento visual de treinamento com Rich UI
-- **💾 Sistema de Checkpoints**: Salvamento automático de progresso e recuperação de treinamento
-- **📝 Transcrição Inteligente**: Geração automática de casos de teste em linguagem natural usando CrewAI + LLMs
-- **🎨 CLI Moderna**: Interface de linha de comando com Typer
+- **Deep Q-Learning Aprimorado**: Double DQN, Dueling Networks e Prioritized Experience Replay (PER)
+- **Automação Android**: Integração com UIAutomator2 para controle de dispositivos e emuladores
+- **JaCoCo Code Coverage**: Instrumentação automática, coleta de cobertura em tempo real e relatórios HTML/CSV (suporte a AGP 1.x até 8.x)
+- **Build Agent Autônomo**: Compila APKs com JaCoCo automaticamente, compatível com projetos Android antigos e modernos
+- **Pipeline Completo**: Exploração → Requisitos → Treino Guiado → Transcrição, em um único comando
+- **Transcrição Inteligente**: Geração automática de casos de teste ISO/IEC/IEEE 29119-3 usando CrewAI + LLMs
+- **Métricas em Tempo Real**: Monitoramento visual de treinamento com Rich UI
+- **CLI Moderna**: Interface de linha de comando com Typer
 
 ---
 
@@ -31,57 +33,78 @@
 
 ```
 rlmobtest-icomp/
+├── rlmobtest/                        # Pacote principal
+│   ├── cli/                          # Comandos CLI (Typer)
+│   │   ├── check.py                  # Pre-validação de Java/Gradle/SDK
+│   │   ├── setup.py                  # Build APK + classfiles + jacococli
+│   │   ├── pipeline.py               # Pipeline completo (4 etapas)
+│   │   ├── train.py                  # Treino do agente DQN
+│   │   ├── report.py                 # Geração de relatório HTML
+│   │   ├── clean.py                  # Limpeza de output
+│   │   └── info.py                   # Info do ambiente
+│   │
+│   ├── models/                       # Redes neurais DQN
+│   │   └── dqn_model.py              # Original e Dueling DQN
+│   │
+│   ├── android/                      # Ambiente Android
+│   │   └── android_env.py            # Interface com dispositivos (UIAutomator2)
+│   │
+│   ├── training/                     # Lógica de treinamento RL
+│   │   ├── loop.py                   # Loop de treino principal
+│   │   ├── agents.py                 # Agentes DQN (Original + Improved)
+│   │   ├── reward.py                 # Função de recompensa
+│   │   ├── memory.py                 # Experience Replay (PER)
+│   │   ├── report.py                 # Geração de report.html
+│   │   └── generate_requirements.py  # Extração de requisitos via LLM
+│   │
+│   ├── transcription/                # Transcrição de casos de teste
+│   │   ├── crew_transcriber/         # Backend CrewAI (padrão)
+│   │   │   ├── core.py               # Agente, Task, Crew
+│   │   │   ├── discovery.py          # Descoberta de datas no output
+│   │   │   └── multimodal.py         # Suporte multimodal (futuro)
+│   │   ├── transcriber.py            # Backend LangChain (alternativo)
+│   │   ├── similarity_filter.py      # Filtragem de duplicados (>90%)
+│   │   └── prompts.py                # System prompt ISO 29119-3
+│   │
+│   ├── utils/                        # Utilitários
+│   │   ├── jacoco_setup.py           # Instrumentação JaCoCo e build
+│   │   ├── jacoco.py                 # Processamento de cobertura (CSV/HTML)
+│   │   ├── build_agent.py            # Build agent autônomo (fallback)
+│   │   ├── config_reader.py          # Parser de configurações (Pydantic)
+│   │   └── app_context.py            # Extração de contexto da app para LLM
+│   │
+│   ├── constants/                    # Constantes e paths
+│   │   ├── paths.py                  # Caminhos do projeto
+│   │   └── actions.py                # Ações do agente
+│   │
+│   └── config/                       # Configurações
+│       └── settings.json             # Configurações das apps
 │
-├── rlmobtest/                     # Pacote principal
-│   ├── __init__.py
-│   ├── __main__.py               # Entry point
-│   ├── cli.py                    # CLI com Typer
-│   │
-│   ├── models/                   # Modelos DQN e lógica de agentes RL
-│   │   ├── dqn_model.py          # Redes neurais (Original, Dueling DQN)
-│   │   └── __init__.py
-│   │
-│   ├── android/                  # Ambiente Android
-│   │   ├── android_env.py        # Interface com dispositivos Android
-│   │   └── __init__.py
-│   │
-│   ├── transcription/            # Sistema de geração de casos de teste
-│   │   ├── transcriber.py        # Transcrição usando LLMs
-│   │   ├── crew_transcriber.py   # Transcrição com CrewAI
-│   │   ├── similarity_filter.py  # Filtragem de casos duplicados
-│   │   └── __init__.py
-│   │
-│   ├── browser/                  # Automação web (opcional)
-│   │   ├── web_automation.py
-│   │   └── __init__.py
-│   │
-│   ├── utils/                    # Utilitários
-│   │   ├── config_reader.py      # Leitor de configurações (Pydantic)
-│   │   └── __init__.py
-│   │
-│   ├── constants/                # Constantes e paths
-│   │   ├── paths.py              # Caminhos do projeto
-│   │   └── __init__.py
-│   │
-│   ├── config/                   # Configurações
-│   │   ├── settings.json         # Configurações principais
-│   │   └── requirements.csv      # Requisitos (happy paths)
-│   │
-│   ├── data/                     # Dados de treinamento
-│   │   └── few_shot_examples/    # Exemplos para few-shot learning
-│   │
-│   └── output/                   # Saídas geradas
-│       ├── test_cases/           # Casos de teste gerados
-│       ├── transcriptions/       # Transcrições em NL
-│       ├── screenshots/          # Capturas de tela
-│       ├── checkpoints/          # Checkpoints do modelo
-│       ├── metrics/              # Métricas de treinamento
-│       └── logs/                 # Logs de execução
+├── inputs/                           # Artefatos de entrada
+│   ├── apks/                         # APKs instrumentados
+│   ├── classfiles/                   # Classes compiladas por pacote
+│   ├── source_codes/                 # Código-fonte das apps
+│   └── tools/                        # jacococli.jar + legacy tools
 │
-├── docs/                         # Documentação
-│   └── DQN_MODEL_EXPLICACAO.md   # Explicação detalhada do DQN
+├── output/                           # Resultados gerados
+│   └── {package}/{mode}/{Y}/{M}/{D}/
+│       ├── test_cases/               # Logs brutos de interação
+│       ├── transcriptions/           # Casos ISO 29119-3 (CrewAI)
+│       ├── coverage/                 # Dados JaCoCo (.ec + HTML)
+│       ├── metrics/                  # Métricas JSON do treinamento
+│       ├── checkpoints/              # Checkpoints do modelo DQN
+│       ├── requirements.csv          # Requisitos extraídos via LLM
+│       └── report.html               # Relatório HTML consolidado
 │
-├── pyproject.toml                # Configuração do projeto e dependências
+├── docs/                             # Documentação
+│   ├── architecture.drawio           # Fluxograma da arquitetura
+│   └── transcription_flow.drawio     # Fluxo de transcrição
+│
+├── .claude/commands/                 # Slash commands do Claude Code
+│   └── setup-build.md               # Build agent autônomo
+│
+├── pyproject.toml                    # Configuração do projeto
+├── CLAUDE.md                         # Instruções para Claude Code
 └── README.md
 ```
 
@@ -93,8 +116,10 @@ rlmobtest-icomp/
 
 - **Python 3.11+**
 - **Android SDK** com `adb` configurado no PATH
-- **Dispositivo Android** ou **Emulador** (Android 5.0+)
+- **Dispositivo Android** ou **Emulador** (Android 7.0+, targetSdk >= 24)
+- **Java** (JDK 8+ para build, JDK 17+ para sdkmanager)
 - **CUDA** (opcional, para aceleração GPU)
+- **Ollama** (para transcrição e geração de requisitos)
 
 ### 1. Clone o Repositório
 
@@ -136,123 +161,148 @@ Edite o arquivo `rlmobtest/config/settings.json`:
     {
         "apk_name": "seu_app.apk",
         "package_name": "com.seu.pacote",
-        "resolution": "1080x1920",
-        "is_coverage": false,
+        "source_code": "seu_app_src.tar.gz",
+        "is_coverage": true,
         "is_req": false,
-        "time": 3600
+        "time": 3600,
+        "time_exploration": 3600,
+        "time_guided": 3600,
+        "episodes": 20
     }
 ]
+```
+
+### 5. Valide o Ambiente (opcional)
+
+```bash
+rlmobtest check
 ```
 
 ---
 
 ## Uso
 
-### CLI com Typer
-
-O RLMobTest utiliza uma CLI moderna com Typer. Após a instalação, o comando `rlmobtest` fica disponível.
-
 ### Comandos Disponíveis
 
+| Comando | Descrição |
+|---------|-----------|
+| `rlmobtest check` | Pré-validar Java, Gradle, SDK e dependências |
+| `rlmobtest setup` | Compilar APKs + copiar classfiles + baixar jacococli |
+| `rlmobtest pipeline` | Pipeline completo (exploração → requisitos → guiado → transcrição) |
+| `rlmobtest train` | Treinar agente DQN em uma ou mais apps |
+| `rlmobtest report` | Gerar relatório HTML a partir de dados existentes |
+| `rlmobtest clean` | Limpar pastas de output |
+| `rlmobtest info` | Informações do ambiente |
+
+### Pipeline Completo
+
 ```bash
-# Ver ajuda geral
-rlmobtest --help
+# Executa todas as etapas para todos os apps configurados
+rlmobtest pipeline
 
-# Ver informações do ambiente
-rlmobtest info
+# App específico com modelo LLM customizado
+rlmobtest pipeline --app com.seu.pacote -l gemma3:12b
 
-# Treinar o agente
-rlmobtest train --help
+# Pular exploração, executar apenas requisitos + guiado + transcrição
+rlmobtest pipeline --skip-exploration
+
+# Somente transcrição (todas as datas)
+rlmobtest pipeline --only-transcribe --all-dates
+```
+
+**Etapas do pipeline:**
+
+| Etapa | Descrição |
+|-------|-----------|
+| **Step 0** | Build & Setup (APK + JaCoCo) — automático se `is_coverage` e `source_code` |
+| **Step 1** | Exploração — DQN aprende via heurísticas |
+| **Step 2** | Requirements — Extrai requisitos dos test_cases via LLM |
+| **Step 3** | Treino Guiado — DQN usa happy path dos requisitos |
+| **Step 4** | Transcrição — CrewAI gera casos ISO 29119-3 |
+
+### Setup & Build
+
+```bash
+# Setup com build agent autônomo (padrão)
+rlmobtest setup
+
+# Setup sem build agent (Gradle direto)
+rlmobtest setup --no-agent
+
+# App específico, forçar rebuild
+rlmobtest setup --app com.seu.pacote --force
 ```
 
 ### Treinamento
 
 ```bash
-# Usa configurações do settings.json
+# Treinar todos os apps do config
 rlmobtest train
 
 # Treinar por tempo específico (10 minutos)
 rlmobtest train --time 600
-rlmobtest train -t 600
 
-# Treinar por número de episódios
-rlmobtest train --episodes 50
-rlmobtest train -e 50
-
-# Usar modo DQN original
-rlmobtest train --mode original
-rlmobtest train -m original
+# Treinar por número de episódios, modo original
+rlmobtest train -m original --episodes 50
 
 # Continuar de um checkpoint
-rlmobtest train --checkpoint path/to/checkpoint.pt
-rlmobtest train -c path/to/checkpoint.pt
+rlmobtest train --app com.seu.pacote -c output/.../checkpoint.pt
 ```
 
-### Opções do Comando `train`
+---
 
-| Argumento | Alias | Descrição | Padrão |
-|-----------|-------|-----------|--------|
-| `--mode` | `-m` | Modo do agente: `improved` ou `original` | `improved` |
-| `--time` | `-t` | Tempo de treinamento em segundos | Valor de `settings.json` |
-| `--episodes` | `-e` | Número de episódios | Ilimitado (baseado em tempo) |
-| `--checkpoint` | `-c` | Caminho para checkpoint a continuar | Nenhum |
+## JaCoCo Code Coverage
 
-> **Nota:** `--time` e `--episodes` são mutuamente exclusivos.
+O RLMobTest integra JaCoCo para medir cobertura de código durante os testes:
 
-### Executando como Módulo
+- **Instrumentação automática** via `rlmobtest setup`
+- **Coleta em tempo real** durante o treinamento (broadcast → CoverageReceiver → .ec files)
+- **Relatórios CSV e HTML** com cobertura por linha, branch e método
+- **Suporte a projetos legados** (AGP 1.x-2.x) via fallback JaCoCo 0.7.4
 
 ```bash
-# Alternativa ao comando rlmobtest
-python -m rlmobtest train
+# Setup completo (build + instrumentação + jacococli)
+rlmobtest setup --app com.seu.pacote
+
+# Gerar relatório com métricas JaCoCo
+rlmobtest report --app com.seu.pacote --all-dates
 ```
+
+Para detalhes, veja [docs/jacoco_setup.md](docs/jacoco_setup.md).
 
 ---
 
 ## Saída e Resultados
 
-### Durante o Treinamento
+### Relatório HTML (`report.html`)
 
-O sistema exibe em tempo real:
+Gerado em `output/{pkg}/{mode}/{Y}/{M}/{D}/report.html`, inclui:
 
--🎮 **Número do Episódio** e epsilon
--📈 **Recompensas** acumuladas
--🎯 **Q-values** estimados
--📉 **Loss** da rede neural
--⏱️ **Duração** de cada episódio
--📊 **Progresso** visual com barra
+- **Training Overview**: episódios, passos, tempo, duração média
+- **Rewards**: recompensa média, máxima e mínima
+- **Activity Coverage**: % de activities requeridas descobertas
+- **Requirements Coverage**: % de requisitos cobertos pelas ações
+- **Transcription Coverage**: % de test cases transcritos (CrewAI)
+- **JaCoCo Coverage**: Line, Branch e Method coverage com link para relatório detalhado
 
-### Após o Treinamento
+### Métricas JSON (`metrics/`)
 
-#### 1. **Checkpoints** (`rlmobtest/output/checkpoints/`)
-Modelos salvos automaticamente contendo:
-- Estado da rede neural
-- Otimizador
-- Métricas de treinamento
-- Número de episódios/steps
-
-#### 2. **Métricas** (`rlmobtest/output/metrics/`)
-JSON com dados detalhados:
 ```json
 {
   "summary": {
-    "total_episodes": 50,
-    "total_steps": 1523,
-    "avg_reward_last_10": 45.2,
-    "training_time": "01:23:45"
+    "total_episodes": 14,
+    "total_steps": 1358,
+    "avg_reward_last_10": 413.9,
+    "training_time": "01:00:01"
   },
-  "episode_rewards": [10, 15, 23, ...],
-  "episode_losses": [0.45, 0.32, ...]
+  "episode_rewards": [413, 407, 413, ...],
+  "episode_losses": [3.65, 1.88, ...]
 }
 ```
 
-#### 3. **Casos de Teste** (`rlmobtest/output/test_cases/`)
-Scripts de teste gerados automaticamente
+### Casos de Teste Transcritos (`transcriptions/`)
 
-#### 4. **Transcrições** (`rlmobtest/output/transcriptions/`)
-Casos de teste em linguagem natural usando LLM
-
-#### 5. **Screenshots** (`rlmobtest/output/screenshots/`)
-Capturas de tela de cada ação executada
+Formato ISO/IEC/IEEE 29119-3 com: Test Case ID, Title, Description, Priority, Preconditions, Test Steps (tabela), Postconditions.
 
 ---
 
@@ -305,6 +355,20 @@ Para uma explicação detalhada do modelo DQN, veja [docs/DQN_MODEL_EXPLICACAO.m
 
 ---
 
+## Documentação
+
+| Documento | Descrição |
+|-----------|-----------|
+| [docs/cli_commands.md](docs/cli_commands.md) | Referência completa de comandos CLI |
+| [docs/jacoco_setup.md](docs/jacoco_setup.md) | Configuração do JaCoCo (automática e manual) |
+| [docs/report_generation.md](docs/report_generation.md) | Como o report.html é gerado |
+| [docs/DQN_MODEL_EXPLICACAO.md](docs/DQN_MODEL_EXPLICACAO.md) | Explicação detalhada do DQN |
+| [docs/coverage_metrics.md](docs/coverage_metrics.md) | Métricas de cobertura de código |
+| [docs/architecture.drawio](docs/architecture.drawio) | Fluxograma da arquitetura |
+| [docs/transcription_flow.drawio](docs/transcription_flow.drawio) | Fluxo de transcrição de casos de teste |
+
+---
+
 ## Contribuindo
 
 Contribuições são bem-vindas! Por favor:
@@ -345,11 +409,3 @@ Este projeto é distribuído sob a licença MIT. Veja o arquivo `LICENSE` para m
 - [Double DQN](https://arxiv.org/abs/1509.06461)
 - [Dueling Network Architectures](https://arxiv.org/abs/1511.06581)
 - [Prioritized Experience Replay](https://arxiv.org/abs/1511.05952)
-
----
-
-<div align="center">
-
-**Se este projeto foi útil, considere dar uma estrela!**
-
-</div>
