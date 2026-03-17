@@ -120,7 +120,7 @@ def train(
     if time is not None or episodes is not None:
         for config in configs:
             if time is not None:
-                config.time = time
+                config.time_exploration = time
 
     # Print header
     console.print()
@@ -147,7 +147,7 @@ def train(
 
         run(
             mode=mode.value,
-            max_time=config.time if episodes is None else None,
+            max_time=config.time_exploration if episodes is None else None,
             max_episodes=episodes,
             max_steps=max_steps,
             checkpoint_path=checkpoint,

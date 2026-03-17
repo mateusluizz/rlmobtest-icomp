@@ -1,0 +1,107 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="tf1" name="Fluxo de Transcrição">
+    <mxGraphModel dx="900" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="700" pageHeight="1100">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- 1. Logs Brutos -->
+        <mxCell id="n1" value="Logs Brutos de&#10;Interação&#10;(test_cases/)" style="shape=note;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;fontStyle=1;backgroundOutline=1;" parent="1" vertex="1">
+          <mxGeometry x="220" y="30" width="140" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow 1→2 -->
+        <mxCell id="e1" style="endArrow=blockThin;endFill=1;strokeWidth=1.5;strokeColor=#333333;" parent="1" source="n1" target="n2" edge="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 2. Filtro de Similaridade -->
+        <mxCell id="n2" value="Filtro de&#10;Similaridade&#10;(&gt; 90%)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=center;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="230" y="140" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="n2t" value="Remove documentos&#10;duplicados, mantém&#10;o mais completo" style="text;html=1;align=center;fontSize=9;fontColor=#999999;" parent="1" vertex="1">
+          <mxGeometry x="370" y="150" width="140" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow 2→3 -->
+        <mxCell id="e2" style="endArrow=blockThin;endFill=1;strokeWidth=1.5;strokeColor=#333333;" parent="1" source="n2" target="n3" edge="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 3. Extração de Contexto -->
+        <mxCell id="n3" value="Extração de&#10;Contexto da App&#10;(XMLs do código-fonte)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="220" y="250" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="n3t" value="Activities, labels,&#10;menus, strings" style="text;html=1;align=center;fontSize=9;fontColor=#999999;" parent="1" vertex="1">
+          <mxGeometry x="370" y="262" width="120" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow 3→5 -->
+        <mxCell id="e3" style="endArrow=blockThin;endFill=1;strokeWidth=1.5;strokeColor=#333333;" parent="1" source="n3" target="n5" edge="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 4. Few-Shot Examples (lateral, feeding into Agent) -->
+        <mxCell id="n4" value="Few-Shot&#10;Examples" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=center;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="50" y="370" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="n4t" value="Pares entrada/saída&#10;para in-context learning" style="text;html=1;align=center;fontSize=9;fontColor=#999999;" parent="1" vertex="1">
+          <mxGeometry x="30" y="425" width="150" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow 4→5 -->
+        <mxCell id="e4" style="endArrow=blockThin;endFill=1;strokeWidth=1.5;strokeColor=#333333;" parent="1" source="n4" target="n5" edge="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 5. Agente CrewAI -->
+        <mxCell id="n5" value="Agente CrewAI&#10;Mobile Test Case&#10;Specialist" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=center;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="220" y="365" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="n5t" value="Prompt: ISO/IEC/IEEE 29119-3&#10;Sem IDs técnicos,&#10;ações reais do usuário" style="text;html=1;align=center;fontSize=9;fontColor=#999999;" parent="1" vertex="1">
+          <mxGeometry x="370" y="370" width="165" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow 5→6 -->
+        <mxCell id="e5" style="endArrow=blockThin;endFill=1;strokeWidth=1.5;strokeColor=#333333;" parent="1" source="n5" target="n6" edge="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 6. LLM (Ollama) -->
+        <mxCell id="n6" value="LLM&#10;(Ollama)&#10;Gemma3:4b" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;size=12;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;align=center;" parent="1" vertex="1">
+          <mxGeometry x="240" y="475" width="100" height="65" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow 6→7 -->
+        <mxCell id="e6" style="endArrow=blockThin;endFill=1;strokeWidth=1.5;strokeColor=#333333;" parent="1" source="n6" target="n7" edge="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 7. Caso de Teste Transcrito -->
+        <mxCell id="n7" value="Caso de Teste&#10;Transcrito&#10;(ISO 29119-3)" style="shape=note;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#2e7d32;fontSize=11;align=center;fontStyle=1;backgroundOutline=1;" parent="1" vertex="1">
+          <mxGeometry x="220" y="590" width="140" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="n7t" value="ID, Título, Descrição,&#10;Prioridade, Pré-condições,&#10;Passos de Teste (tabela),&#10;Pós-condições" style="text;html=1;align=center;fontSize=9;fontColor=#999999;" parent="1" vertex="1">
+          <mxGeometry x="370" y="595" width="160" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow 7→8 -->
+        <mxCell id="e7" style="endArrow=blockThin;endFill=1;strokeWidth=1.5;strokeColor=#333333;" parent="1" source="n7" target="n8" edge="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- 8. Relatório HTML -->
+        <mxCell id="n8" value="report.html" style="shape=note;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;fontStyle=1;backgroundOutline=1;" parent="1" vertex="1">
+          <mxGeometry x="225" y="710" width="130" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="n8t" value="Relatório HTML consolidado" style="text;html=1;align=center;fontSize=10;fontStyle=1;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="210" y="775" width="160" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="n8desc" value="Métricas de treino, cobertura&#10;de requisitos, JaCoCo,&#10;transcrições" style="text;html=1;align=center;fontSize=9;fontColor=#999999;" parent="1" vertex="1">
+          <mxGeometry x="370" y="715" width="180" height="50" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -22,7 +22,7 @@ Activity Coverage = (Activities Descobertas / Activities Requeridas) * 100
 
 **Exemplo:** `10/12 activities = 83.3%` significa que 10 das 12 Activities do app foram alcancadas pelos testes.
 
-**Arquivo fonte:** `rlmobtest/training/report.py` (funcao `_collect_data`, linhas 216-271)
+**Arquivo fonte:** `rlmobtest/training/report.py` (funcao `_collect_data`, linhas 225-280)
 
 ---
 
@@ -46,14 +46,15 @@ Activity Coverage = (Activities Descobertas / Activities Requeridas) * 100
 2. Para cada caso de teste (arquivos `.txt` em `test_cases/`), extrai as acoes executadas usando reconhecimento de padroes (regex). Os padroes reconhecidos incluem:
    - `Clicked` → acao `click`
    - `Long click` → acao `long_click`
-   - `Checked` → acao `check`
+   - `Checked` → acao `click`
    - `Scroll (up/down/left/right)` → acao `scroll`
    - `Rotate` → acao `rotate`
    - `Home activity` → acao `home`
    - `Go to next activity` → acao `go_to`
+   - `Type` / `Entered` / `Input` → acao `type`
 3. Para cada acao extraida, identifica o resource ID associado (padrao `package:id/nome`)
 4. Um requisito e considerado **coberto** se:
-   - Caso o `id` do requisito seja `N/A`: basta que o `action_type` tenha sido executado naquela Activity
+   - Caso o `id` do requisito seja `N/A` (ou invalido): basta que o `action_type` tenha sido executado naquela Activity
    - Caso contrario: o par `(action_type, resource_id)` deve ter sido executado naquela Activity
 
 - **Formula:**
@@ -64,7 +65,7 @@ Requirements Coverage = (Requisitos Cobertos / Total de Requisitos) * 100
 
 **Exemplo:** `72/382 requirements = 18.8%` significa que 72 dos 382 requisitos de interacao foram exercitados.
 
-**Arquivo fonte:** `rlmobtest/training/report.py` (funcao `_collect_data`, linhas 98-151)
+**Arquivo fonte:** `rlmobtest/training/report.py` (funcoes `_parse_tc_actions` e `_compute_requirements_coverage`, linhas 74-160)
 
 ---
 
@@ -88,7 +89,7 @@ Transcription Coverage = (Arquivos Transcritos / Total de Casos de Teste) * 100
 
 **Exemplo:** `292/292 test cases = 100.0%` significa que todos os casos de teste foram transcritos com sucesso.
 
-**Arquivo fonte:** `rlmobtest/training/report.py` (linhas 272-274)
+**Arquivo fonte:** `rlmobtest/training/report.py` (linhas 281-283)
 
 ---
 
@@ -107,6 +108,7 @@ Transcription Coverage = (Arquivos Transcritos / Total de Casos de Teste) * 100
    ```
    java -jar jacococli.jar report merged.ec --classfiles <dir> --csv coverage_report.csv
    ```
+   Caso o jacococli moderno falhe (ex: `IncompatibleExecDataVersionException` para formato 0x1006), o sistema tenta automaticamente o fallback com JaCoCo legacy 0.7.4.
 4. Do CSV, somam-se os valores de todas as classes:
 
 - **Formula:**
@@ -120,7 +122,7 @@ Line Coverage = (LINE_COVERED / (LINE_COVERED + LINE_MISSED)) * 100
 
 **Exemplo:** `38.2%` significa que 38.2% das linhas de codigo do app foram executadas.
 
-**Arquivo fonte:** `rlmobtest/utils/jacoco.py` (funcao de parsing do CSV, linhas 126-158)
+**Arquivo fonte:** `rlmobtest/utils/jacoco.py` (funcao `parse_coverage_csv`, linhas 143-175)
 
 ---
 
@@ -132,7 +134,7 @@ Line Coverage = (LINE_COVERED / (LINE_COVERED + LINE_MISSED)) * 100
 
 **Como e computada:**
 
-Utiliza o mesmo pipeline JaCoCo descrito acima (merge de `.ec` → CSV).
+Utiliza o mesmo pipeline JaCoCo descrito acima (merge de `.ec` → CSV, com fallback legacy 0.7.4 se necessario).
 
 - **Formula:**
 
@@ -145,7 +147,7 @@ Branch Coverage = (BRANCH_COVERED / (BRANCH_COVERED + BRANCH_MISSED)) * 100
 
 **Exemplo:** `22.1%` significa que apenas 22.1% dos caminhos de decisao foram percorridos, indicando que muitos cenarios condicionais nao foram testados.
 
-**Arquivo fonte:** `rlmobtest/utils/jacoco.py` (linha 155)
+**Arquivo fonte:** `rlmobtest/utils/jacoco.py` (funcao `parse_coverage_csv`, linha 172)
 
 ---
 
@@ -155,7 +157,7 @@ Branch Coverage = (BRANCH_COVERED / (BRANCH_COVERED + BRANCH_MISSED)) * 100
 
 **Como e computada:**
 
-Utiliza o mesmo pipeline JaCoCo descrito acima (merge de `.ec` → CSV).
+Utiliza o mesmo pipeline JaCoCo descrito acima (merge de `.ec` → CSV, com fallback legacy 0.7.4 se necessario).
 
 - **Formula:**
 
@@ -168,7 +170,7 @@ Method Coverage = (METHOD_COVERED / (METHOD_COVERED + METHOD_MISSED)) * 100
 
 **Exemplo:** `45.1%` significa que 45.1% dos metodos do app foram chamados durante os testes.
 
-**Arquivo fonte:** `rlmobtest/utils/jacoco.py` (linha 157)
+**Arquivo fonte:** `rlmobtest/utils/jacoco.py` (funcao `parse_coverage_csv`, linha 174)
 
 ---
 
@@ -201,5 +203,6 @@ Pos-processamento
         |
         +--> Transcricao via CrewAI    --> transcriptions/*.txt
         +--> Merge + report JaCoCo     --> coverage_report.csv + jacoco_report/
+        |    (fallback legacy 0.7.4 para formato 0x1006)
         +--> Calculo de metricas       --> report.html
 ```

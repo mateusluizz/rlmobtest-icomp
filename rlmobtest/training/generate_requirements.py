@@ -137,6 +137,46 @@ def find_run_paths(package_name: str, all_dates: bool = False) -> list[Path]:
     return sorted(run_paths)
 
 
+def _infer_activity_from_filename(tc_path: Path, package_name: str) -> str | None:
+    """Infer the Activity class name from a test case filename.
+
+    TC filenames follow the pattern: TC_.activity.path.ClassName_timestamp.txt
+    Returns the full activity path (e.g. 'com.example.activity.MainActivity')
+    or None if it cannot be inferred.
+    """
+    parts = tc_path.stem.split("_")
+    if len(parts) < 2 or not parts[1]:
+        return None
+    raw = parts[1].lstrip(".")
+    if not raw:
+        return None
+    # raw is like "activity.account.AccountsActivity"
+    # Reconstruct full path: package_name + "." + raw
+    return f"{package_name}.{raw}"
+
+
+def _resolve_activity(
+    llm_activity: str, filename_hint: str | None, package_name: str
+) -> str:
+    """Choose the best activity name between LLM output and filename hint.
+
+    If the LLM returned just the package name (no specific Activity class),
+    prefer the filename hint which always contains the real Activity.
+    """
+    # Normalize: extract the last component (class name)
+    llm_class = re.split(r"[./]", llm_activity.strip())[-1]
+
+    # If LLM returned the package name itself or something too generic, use hint
+    if (
+        llm_activity.strip() == package_name
+        or llm_class.lower() == package_name.split(".")[-1].lower()
+        or llm_class == "UnknownActivity"
+    ):
+        return filename_hint or llm_activity
+
+    return llm_activity
+
+
 def process_app(config, client: ChatOllama, *, all_dates: bool = False) -> None:
     """Process a single app: extract knowledge + generate requirements."""
     package_name = config.package_name
@@ -192,6 +232,11 @@ def process_app(config, client: ChatOllama, *, all_dates: bool = False) -> None:
             for tc_path in test_cases:
                 progress.update(task, description=f"[cyan]{tc_path.name}[/]")
 
+                # Infer activity from TC filename (TC_.activity.path.Name_timestamp)
+                tc_activity_hint = _infer_activity_from_filename(
+                    tc_path, package_name
+                )
+
                 result = process_test_case(tc_path, client)
 
                 if result and ("actions" in result or "acoes" in result):
@@ -210,11 +255,18 @@ def process_app(config, client: ChatOllama, *, all_dates: bool = False) -> None:
                         )
                         real_id = normalize_id(real_id)
 
+                        # Use LLM activity, but fall back to filename hint
+                        # when LLM returns just the package name or nothing useful
+                        raw_activity = (
+                            action.get("activity") or "UnknownActivity"
+                        ).replace("/.", ".")
+                        activity = _resolve_activity(
+                            raw_activity, tc_activity_hint, package_name
+                        )
+
                         dataset.append(
                             {
-                                "activity": (
-                                    action.get("activity") or "UnknownActivity"
-                                ).replace("/.", "."),
+                                "activity": activity,
                                 "field": (
                                     real_type
                                     if real_type != "view"

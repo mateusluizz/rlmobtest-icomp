@@ -26,7 +26,7 @@ def info():
     # Device info
     console.print("\n[bold]Device:[/bold]")
     if torch.cuda.is_available():
-        console.print(f"  GPU: {torch.cuda.get_device_name(0)}")
+        console.print(f"  GPU: NVIDIA GeForce RTX 5070 Ti")
         console.print(f"  CUDA: {torch.version.cuda}")
     else:
         console.print("  CPU only")
@@ -40,7 +40,8 @@ def info():
         settings = settings_reader.read_setting()
         console.print(f"  APK: {settings.apk_name}")
         console.print(f"  Package: {settings.package_name}")
-        console.print(f"  Time limit: {settings.time}s")
+        console.print(f"  Time exploration: {settings.time_exploration}s")
+        console.print(f"  Time guided: {settings.time_guided}s")
     except Exception as e:
         console.print(f"  [red]Error loading config: {e}[/red]")
 

@@ -61,7 +61,7 @@ rlmobtest-icomp/
 │   │   ├── crew_transcriber/         # Backend CrewAI (padrão)
 │   │   │   ├── core.py               # Agente, Task, Crew
 │   │   │   ├── discovery.py          # Descoberta de datas no output
-│   │   │   └── multimodal.py         # Suporte multimodal (futuro)
+│   │   │   └── multimodal.py         # Suporte multimodal
 │   │   ├── transcriber.py            # Backend LangChain (alternativo)
 │   │   ├── similarity_filter.py      # Filtragem de duplicados (>90%)
 │   │   └── prompts.py                # System prompt ISO 29119-3
@@ -84,7 +84,7 @@ rlmobtest-icomp/
 │   ├── apks/                         # APKs instrumentados
 │   ├── classfiles/                   # Classes compiladas por pacote
 │   ├── source_codes/                 # Código-fonte das apps
-│   └── tools/                        # jacococli.jar + legacy tools
+│   └── tools/                        # jacococli.jar + legacy Jacoco tools
 │
 ├── output/                           # Resultados gerados
 │   └── {package}/{mode}/{Y}/{M}/{D}/

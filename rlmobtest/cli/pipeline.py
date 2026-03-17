@@ -126,7 +126,7 @@ def pipeline(
 
         # --- Step 1: Exploration (is_req=false) ---
         if not skip_exploration and not only_transcribe:
-            exploration_time = config.time_exploration or config.time
+            exploration_time = config.time_exploration
             console.print(Panel(
                 f"[bold]Step 1/4:[/] Exploration (is_req=false, {exploration_time}s)",
                 style="blue",
@@ -136,7 +136,8 @@ def pipeline(
                 package_name=config.package_name,
                 is_req=False,
                 is_coverage=config.is_coverage,
-                time=exploration_time,
+                time_exploration=exploration_time,
+                time_guided=config.time_guided,
                 source_code=config.source_code,
             )
             try:
@@ -169,7 +170,7 @@ def pipeline(
 
         # --- Step 3: Guided training (is_req=true) ---
         if not skip_guided and not only_transcribe:
-            guided_time = config.time_guided or config.time
+            guided_time = config.time_guided
             console.print(Panel(
                 f"[bold]Step 3/4:[/] Guided training (is_req=true, {guided_time}s)",
                 style="blue",
@@ -179,7 +180,8 @@ def pipeline(
                 package_name=config.package_name,
                 is_req=True,
                 is_coverage=config.is_coverage,
-                time=guided_time,
+                time_exploration=config.time_exploration,
+                time_guided=guided_time,
                 source_code=config.source_code,
             )
             try:

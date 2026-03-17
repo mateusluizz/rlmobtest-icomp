@@ -76,7 +76,7 @@ def run(
     run_logger, log_path = setup_logging(run_id, paths.logs)
 
     if max_time is None and max_episodes is None:
-        max_time = settings.time
+        max_time = settings.time_exploration
 
     training_mode = "time" if max_time else "episodes"
     training_limit = max_time if max_time else max_episodes
@@ -404,7 +404,7 @@ def run_all(
         try:
             run(
                 mode=mode,
-                max_time=cfg.time,
+                max_time=cfg.time_exploration,
                 max_episodes=None,
                 max_steps=max_steps,
                 checkpoint_path=None,

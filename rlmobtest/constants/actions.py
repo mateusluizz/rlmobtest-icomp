@@ -32,11 +32,16 @@ ACTION_TYPE_ALIASES: dict[str, str] = {
     "go to next activity": "go_to",
     "goto_activity": "go_to",
     "go_to_next": "go_to",
+    "go to next": "go_to",
+    "go to activity": "go_to",
     "navigate": "go_to",
     "input": "type",
     "enter": "type",
     "entered": "type",
     "fill": "type",
+    "pressed": "click",
+    "open navigation drawer": "click",
+    "none": "click",
 }
 
 # action_types that represent log noise, not real user actions

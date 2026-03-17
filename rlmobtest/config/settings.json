@@ -5,7 +5,6 @@
     "source_code": "open_money_tracker-dev.zip",
     "is_coverage": true,
     "is_req": false,
-    "time": 3600,
     "time_exploration": 3600,
     "time_guided": 3600,
     "episodes": 20
