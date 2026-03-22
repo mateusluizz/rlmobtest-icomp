@@ -45,6 +45,41 @@ resize = T.Compose(
 # Device for PyTorch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Inputs inteligentes para exercitar branches de validação nos campos de formulário.
+# Cada categoria contém valores de fronteira, inválidos e edge cases típicos.
+SMART_INPUTS: dict[str, list[str]] = {
+    "email": ["", "invalid", "a@b.c", "test@test.com", "@", "x" * 50, "user@", "@domain.com"],
+    "password": ["", "1", "12345678", "a" * 50, "P@ssw0rd!", " ", "123456"],
+    "number": ["0", "-1", "999999999", "abc", "", "3.14", "00001", "-0"],
+    "text": ["", " ", "a" * 100, "<script>alert(1)</script>", "null", "   spaces   ", "0"],
+    "date": ["00/00/0000", "31/02/2025", "01/01/2000", "99/99/9999", "", "29/02/2023"],
+    "phone": ["", "123", "+5511999999999", "abc", "0000000000", "+", "99999999999"],
+    "currency": ["0", "-100", "0.001", "999999.99", "abc", "", "-0.01"],
+}
+
+# Palavras-chave para detectar o tipo semântico de um campo a partir de seu resource-id/desc.
+_FIELD_TYPE_KEYWORDS: dict[str, list[str]] = {
+    "email": ["email", "e-mail", "mail"],
+    "password": ["password", "pass", "senha", "pwd"],
+    "phone": ["phone", "tel", "mobile", "celular", "fone"],
+    "currency": ["currency", "price", "amount", "money", "valor", "preco", "price"],
+    "date": ["date", "data", "birth", "nascimento", "aniversario"],
+    "number": ["number", "num", "qty", "quantity", "age", "idade", "quantidade", "numero"],
+}
+
+
+def _detect_field_type(elem_str: str) -> str:
+    """Detecta o tipo semântico de um campo EditText a partir da descrição do elemento.
+
+    Verifica resource-id e content-desc por palavras-chave para retornar a categoria
+    de SMART_INPUTS mais adequada. Retorna "text" como fallback.
+    """
+    lower = elem_str.lower()
+    for field_type, keywords in _FIELD_TYPE_KEYWORDS.items():
+        if any(kw in lower for kw in keywords):
+            return field_type
+    return "text"
+
 
 def safe_get_child_count(gui_obj, device_ref):
     """
@@ -407,6 +442,29 @@ class Action:
             elif self.action_subtype == "mixed":
                 letters_and_digits = string.ascii_letters + string.digits
                 result_str = "".join(random.choice(letters_and_digits) for _ in range(15))
+                self._type_and_log(file, result_str, self.elem)
+
+            # --- Smart boundary inputs ---
+            elif self.action_subtype == "smart_empty":
+                # Campo vazio — testa validação de obrigatoriedade
+                self._type_and_log(file, "", self.elem)
+
+            elif self.action_subtype == "smart_space":
+                # Espaço único — testa trimming e validação de campos em branco
+                self._type_and_log(file, " ", self.elem)
+
+            elif self.action_subtype == "smart_large":
+                # Texto muito longo — testa overflow e truncamento
+                self._type_and_log(file, "a" * 1000, self.elem)
+
+            elif self.action_subtype == "smart_special":
+                # Caracteres especiais — testa sanitização e injeção
+                self._type_and_log(file, "<script>alert(1)</script>", self.elem)
+
+            elif self.action_subtype == "smart_boundary":
+                # Seleciona um valor de fronteira baseado no tipo semântico do campo
+                field_type = _detect_field_type(self.elem)
+                result_str = random.choice(SMART_INPUTS[field_type])
                 self._type_and_log(file, result_str, self.elem)
 
         except Exception as e:
@@ -1077,8 +1135,9 @@ class AndroidEnv:
             )
 
     def _add_default_text_actions(self, gui_obj, activity, resourceid, elem, actions):
-        """Add default text input actions."""
+        """Add default text input actions, mixing random and smart boundary inputs (~40% smart)."""
         subtypes = [
+            # Inputs aleatórios existentes (~60%)
             "textSmall",
             "textLarge",
             "textMedium",
@@ -1086,6 +1145,12 @@ class AndroidEnv:
             "numberMedium",
             "numberLarge",
             "symbols",
+            # Smart boundary inputs (~40%) — exercitam caminhos de validação e branches
+            "smart_empty",
+            "smart_space",
+            "smart_large",
+            "smart_special",
+            "smart_boundary",
         ]
         for subtype in subtypes:
             actions.append(

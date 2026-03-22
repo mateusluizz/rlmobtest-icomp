@@ -5,6 +5,20 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.1.13] - 2026-03-22
+
+### Added
+- `SMART_INPUTS` dict em `rlmobtest/android/android_env.py`: valores de fronteira e edge cases por categoria (email, password, number, text, date, phone, currency)
+- `_FIELD_TYPE_KEYWORDS` dict: mapeamento de palavras-chave para detecção de tipo de campo
+- `_detect_field_type(elem_str)`: detecta o tipo semântico do campo a partir do resource-id/content-desc
+- 5 novos action subtypes em `Action._execute_type()`: `smart_empty`, `smart_space`, `smart_large`, `smart_special`, `smart_boundary`
+- `smart_boundary`: seleciona valor de fronteira baseado no tipo detectado do campo (email, password, etc.)
+
+### Changed
+- `_add_default_text_actions()`: inclui os 5 novos smart subtypes (~40% dos inputs agora são inteligentes, 60% aleatórios). Sem remoção dos subtypes existentes
+
+---
+
 ## [0.1.12] - 2026-03-22
 
 ### Added
@@ -151,7 +165,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
-[Unreleased]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.12...HEAD
+[Unreleased]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.13...HEAD
+[0.1.13]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.7...v0.1.11
 [0.1.7]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.6...v0.1.7
