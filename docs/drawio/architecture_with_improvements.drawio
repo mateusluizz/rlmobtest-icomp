@@ -1,0 +1,364 @@
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- ===== TITLE ===== -->
+    <mxCell id="t1" value="RLMobTest — Arquitetura Atual e Melhorias Planejadas" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="30" y="5" width="1594" height="25" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LAYER BACKGROUNDS ===== -->
+    <mxCell id="bg1" value="CLI (typer)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eff7ff;strokeColor=#b0c4de;fontSize=9;fontStyle=1;verticalAlign=top;align=left;" vertex="1" parent="1">
+      <mxGeometry x="30" y="33" width="1594" height="62" as="geometry" />
+    </mxCell>
+    <mxCell id="bg2" value="Pipeline Orchestration (pipeline.py)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eff7ff;strokeColor=#b0c4de;fontSize=9;fontStyle=1;verticalAlign=top;align=left;" vertex="1" parent="1">
+      <mxGeometry x="30" y="103" width="1594" height="90" as="geometry" />
+    </mxCell>
+    <mxCell id="bg3" value="Training Core (loop.py)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eff7ff;strokeColor=#b0c4de;fontSize=9;fontStyle=1;verticalAlign=top;align=left;" vertex="1" parent="1">
+      <mxGeometry x="30" y="201" width="1594" height="160" as="geometry" />
+    </mxCell>
+    <mxCell id="bg4" value="Android Environment (android_env.py)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eff7ff;strokeColor=#b0c4de;fontSize=9;fontStyle=1;verticalAlign=top;align=left;" vertex="1" parent="1">
+      <mxGeometry x="30" y="369" width="1594" height="175" as="geometry" />
+    </mxCell>
+    <mxCell id="bg5" value="JaCoCo / Coverage Layer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eff7ff;strokeColor=#b0c4de;fontSize=9;fontStyle=1;verticalAlign=top;align=left;" vertex="1" parent="1">
+      <mxGeometry x="30" y="552" width="1594" height="110" as="geometry" />
+    </mxCell>
+    <mxCell id="bg6" value="LLM &amp; Requirements Layer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eff7ff;strokeColor=#b0c4de;fontSize=9;fontStyle=1;verticalAlign=top;align=left;" vertex="1" parent="1">
+      <mxGeometry x="30" y="670" width="1594" height="110" as="geometry" />
+    </mxCell>
+    <mxCell id="bg7" value="Config &amp; Output" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eff7ff;strokeColor=#b0c4de;fontSize=9;fontStyle=1;verticalAlign=top;align=left;" vertex="1" parent="1">
+      <mxGeometry x="30" y="788" width="1594" height="90" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LAYER 1: CLI ===== -->
+    <mxCell id="c101" value="setup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="40" y="50" width="130" height="35" as="geometry" />
+    </mxCell>
+    <mxCell id="c102" value="check" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="180" y="50" width="130" height="35" as="geometry" />
+    </mxCell>
+    <mxCell id="c103" value="pipeline" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="320" y="50" width="130" height="35" as="geometry" />
+    </mxCell>
+    <mxCell id="c104" value="train" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="460" y="50" width="130" height="35" as="geometry" />
+    </mxCell>
+    <mxCell id="c105" value="report" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="600" y="50" width="130" height="35" as="geometry" />
+    </mxCell>
+    <mxCell id="c106" value="clean" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="740" y="50" width="130" height="35" as="geometry" />
+    </mxCell>
+    <mxCell id="c107" value="info" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="880" y="50" width="130" height="35" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LAYER 2: PIPELINE ===== -->
+    <mxCell id="c201" value="Step 0&#xa;JaCoCo Setup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="40" y="120" width="180" height="62" as="geometry" />
+    </mxCell>
+    <mxCell id="c202" value="Step 1&#xa;Exploração (DQN)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="240" y="120" width="180" height="62" as="geometry" />
+    </mxCell>
+    <mxCell id="c203" value="Step 2&#xa;Gera requirements.csv" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="440" y="120" width="180" height="62" as="geometry" />
+    </mxCell>
+    <mxCell id="c204" value="Step 3&#xa;Treino Guiado (DQN)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="640" y="120" width="180" height="62" as="geometry" />
+    </mxCell>
+    <mxCell id="c205" value="Step 4&#xa;Transcrição (CrewAI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="840" y="120" width="180" height="62" as="geometry" />
+    </mxCell>
+
+    <!-- Pipeline step arrows -->
+    <mxCell id="pa1" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="c201" target="c202">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="pa2" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="c202" target="c203">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="pa3" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="c203" target="c204">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="pa4" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="c204" target="c205">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LAYER 3: TRAINING CORE ===== -->
+    <mxCell id="c301" value="Agents&#xa;OriginalAgent&#xa;ImprovedAgent (DDQN+PER)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="40" y="220" width="185" height="128" as="geometry" />
+    </mxCell>
+    <mxCell id="c302" value="Reward&#xa;calculate_reward()&#xa;coverage_reward() [v0.1.11]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="235" y="220" width="185" height="128" as="geometry" />
+    </mxCell>
+    <mxCell id="c303" value="Memory&#xa;ReplayMemory&#xa;PrioritizedReplayMemory" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="430" y="220" width="185" height="128" as="geometry" />
+    </mxCell>
+    <mxCell id="c304" value="Checkpoint&#xa;save / load&#xa;extra_state [v0.1.15]&#xa;visited_activities" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="625" y="220" width="185" height="128" as="geometry" />
+    </mxCell>
+    <mxCell id="c305" value="Metrics / Progress&#xa;episode_rewards&#xa;episode_losses&#xa;q_values, epsilon" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="820" y="220" width="185" height="128" as="geometry" />
+    </mxCell>
+    <!-- PLANNED Training -->
+    <mxCell id="c306" value="[PLANEJADO]&#xa;Curiosity Bonus&#xa;por elemento UI&#xa;(+15 por novo elem)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=9;dashed=1;" vertex="1" parent="1">
+      <mxGeometry x="1015" y="220" width="185" height="58" as="geometry" />
+    </mxCell>
+    <mxCell id="c307" value="[PLANEJADO]&#xa;Epsilon dinâmico&#xa;reinício por run&#xa;se coverage &lt; X%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=9;dashed=1;" vertex="1" parent="1">
+      <mxGeometry x="1015" y="290" width="185" height="58" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LAYER 4: ANDROID ENV ===== -->
+    <mxCell id="c401" value="Actions&#xa;SMART_INPUTS [v0.1.13]&#xa;detect_field_type()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="40" y="385" width="185" height="143" as="geometry" />
+    </mxCell>
+    <mxCell id="c402" value="Screen Capture&#xa;screenshot → /tmp&#xa;[fix: sem std.txt&#xa;na raiz]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="235" y="385" width="185" height="143" as="geometry" />
+    </mxCell>
+    <mxCell id="c403" value="Stuck Detection&#xa;time-based + step-based&#xa;escape attempts&#xa;multi-run [v0.1.15]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="430" y="385" width="185" height="143" as="geometry" />
+    </mxCell>
+    <mxCell id="c404" value="Dialog Handling&#xa;DatePicker, TimePicker&#xa;detect + escape&#xa;CalendarView" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="625" y="385" width="185" height="143" as="geometry" />
+    </mxCell>
+    <mxCell id="c405" value="Happy Path&#xa;get_happypath()&#xa;self.buttons&#xa;self.edittexts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="820" y="385" width="185" height="143" as="geometry" />
+    </mxCell>
+    <!-- PLANNED Android -->
+    <mxCell id="c406" value="[PLANEJADO]&#xa;Loop Detection&#xa;sequência ações repetida" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=9;dashed=1;" vertex="1" parent="1">
+      <mxGeometry x="1015" y="385" width="185" height="62" as="geometry" />
+    </mxCell>
+    <mxCell id="c407" value="[PLANEJADO]&#xa;Deep Links / Estados&#xa;adb intent start" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=9;dashed=1;" vertex="1" parent="1">
+      <mxGeometry x="1015" y="455" width="185" height="62" as="geometry" />
+    </mxCell>
+    <mxCell id="c408" value="[PLANEJADO]&#xa;Broadcasts&#xa;Services / Receivers&#xa;adb am broadcast" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=9;dashed=1;" vertex="1" parent="1">
+      <mxGeometry x="1210" y="385" width="185" height="143" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LAYER 5: JACOCO ===== -->
+    <mxCell id="c501" value="jacoco_setup.py&#xa;Build + Instrumentação&#xa;CoverageReceiver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="40" y="570" width="185" height="78" as="geometry" />
+    </mxCell>
+    <mxCell id="c502" value="jacoco.py&#xa;merge .ec / CSV / HTML&#xa;parse_coverage_csv()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="235" y="570" width="185" height="78" as="geometry" />
+    </mxCell>
+    <mxCell id="c503" value="cumulative_coverage/&#xa;_accumulate_coverage()&#xa;[v0.1.15]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="430" y="570" width="185" height="78" as="geometry" />
+    </mxCell>
+    <mxCell id="c504" value="Legacy JaCoCo 0.7.4&#xa;fallback AGP 1.x-2.x&#xa;IncompatibleExecData [v0.1.9]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="625" y="570" width="185" height="78" as="geometry" />
+    </mxCell>
+    <!-- PLANNED JaCoCo -->
+    <mxCell id="c505" value="[PLANEJADO]&#xa;Exploração guiada&#xa;JaCoCo CSV → classes &lt; 20%&#xa;→ priority_activities" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=9;dashed=1;" vertex="1" parent="1">
+      <mxGeometry x="820" y="570" width="185" height="78" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LAYER 6: LLM & REQUIREMENTS ===== -->
+    <mxCell id="c601" value="generate_requirements.py&#xa;extract_apk_knowledge()&#xa;resolve_best_id()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="40" y="688" width="185" height="78" as="geometry" />
+    </mxCell>
+    <mxCell id="c602" value="app_context.py&#xa;AndroidManifest + layouts&#xa;strings.xml → labels" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="235" y="688" width="185" height="78" as="geometry" />
+    </mxCell>
+    <mxCell id="c603" value="ChatOllama&#xa;Ollama local&#xa;process_test_case()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="430" y="688" width="185" height="78" as="geometry" />
+    </mxCell>
+    <mxCell id="c604" value="CrewAI Transcriber&#xa;ISO 29119-3&#xa;similarity_filter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="625" y="688" width="185" height="78" as="geometry" />
+    </mxCell>
+    <!-- PLANNED LLM -->
+    <mxCell id="c605" value="[PLANEJADO]&#xa;agrupar_ids()&#xa;normalize et_, btn_, tv_...&#xa;melhora resolve_best_id()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=9;dashed=1;" vertex="1" parent="1">
+      <mxGeometry x="820" y="688" width="185" height="78" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LAYER 7: CONFIG & OUTPUT ===== -->
+    <mxCell id="c701" value="settings.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="40" y="805" width="150" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="c702" value="config_reader.py&#xa;(Pydantic)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="200" y="805" width="150" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="c703" value="requirements.csv" style="shape=mxgraph.flowchart.stored_data;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="360" y="800" width="160" height="65" as="geometry" />
+    </mxCell>
+    <mxCell id="c704" value="test_cases/" style="shape=mxgraph.flowchart.stored_data;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="530" y="800" width="145" height="65" as="geometry" />
+    </mxCell>
+    <mxCell id="c705" value="coverage/*.ec&#xa;cumulative/" style="shape=mxgraph.flowchart.stored_data;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="685" y="800" width="145" height="65" as="geometry" />
+    </mxCell>
+    <mxCell id="c706" value="checkpoint.pt&#xa;(+extra_state)" style="shape=mxgraph.flowchart.stored_data;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="840" y="800" width="145" height="65" as="geometry" />
+    </mxCell>
+    <mxCell id="c707" value="report.html&#xa;(Plotly.js)" style="shape=mxgraph.flowchart.stored_data;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="995" y="800" width="145" height="65" as="geometry" />
+    </mxCell>
+    <mxCell id="c708" value="metrics.json" style="shape=mxgraph.flowchart.stored_data;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="1150" y="800" width="145" height="65" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LEGEND ===== -->
+    <mxCell id="leg0" value="Legenda" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="30" y="890" width="80" height="20" as="geometry" />
+    </mxCell>
+    <mxCell id="leg1" value="Componente existente" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="30" y="913" width="175" height="35" as="geometry" />
+    </mxCell>
+    <mxCell id="leg2" value="Melhoria planejada" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=9;dashed=1;" vertex="1" parent="1">
+      <mxGeometry x="215" y="913" width="175" height="35" as="geometry" />
+    </mxCell>
+    <mxCell id="leg3" value="Arquivo / dado persistido" style="shape=mxgraph.flowchart.stored_data;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="400" y="908" width="175" height="40" as="geometry" />
+    </mxCell>
+    <mxCell id="leg4" value="Config / utilitário" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="585" y="913" width="175" height="35" as="geometry" />
+    </mxCell>
+    <mxCell id="leg5" value="Fluxo existente" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;" edge="1" parent="1">
+      <mxGeometry x="770" y="930" width="140" height="10" as="geometry">
+        <mxPoint x="770" y="930" as="sourcePoint" />
+        <mxPoint x="910" y="930" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="leg6" value="Fluxo planejado" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;dashed=1;" edge="1" parent="1">
+      <mxGeometry x="770" y="950" width="140" height="10" as="geometry">
+        <mxPoint x="770" y="950" as="sourcePoint" />
+        <mxPoint x="910" y="950" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="leg7" value="Feedback de cobertura" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#00897B;" edge="1" parent="1">
+      <mxGeometry x="770" y="970" width="140" height="10" as="geometry">
+        <mxPoint x="770" y="970" as="sourcePoint" />
+        <mxPoint x="910" y="970" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ===== INTER-LAYER ARROWS ===== -->
+
+    <!-- CLI pipeline → Pipeline orchestration -->
+    <mxCell id="a1" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="c103" target="c202">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- CLI train → Training Core (direct train) -->
+    <mxCell id="a2" value="run()" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;" edge="1" parent="1" source="c104" target="c301">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Pipeline Step 1/3 → Training Core -->
+    <mxCell id="a3" value="train()" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;" edge="1" parent="1" source="c202" target="c301">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="a4" value="train()" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;" edge="1" parent="1" source="c204" target="c302">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Pipeline Step 2 → LLM -->
+    <mxCell id="a5" value="processar_app()" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;" edge="1" parent="1" source="c203" target="c601">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Training Core → Android Env -->
+    <mxCell id="a6" value="step(action)" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;" edge="1" parent="1" source="c301" target="c401">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Android Env → JaCoCo (coverage dump) -->
+    <mxCell id="a7" value="DUMP_COVERAGE&#xa;adb broadcast" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;" edge="1" parent="1" source="c402" target="c501">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- JaCoCo → Reward (coverage_reward feedback - EXISTING) -->
+    <mxCell id="a8" value="coverage_reward()&#xa;[v0.1.11]" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;strokeColor=#00897B;fontColor=#00897B;exitX=1;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="c502" target="c302">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="1630" y="609" />
+          <mxPoint x="1630" y="284" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- requirements.csv → Android Env happy path -->
+    <mxCell id="a9" value="get_requirements()&#xa;happy path +50" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;strokeColor=#6D4C41;fontColor=#6D4C41;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="c703" target="c405">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="440" y="780" />
+          <mxPoint x="440" y="700" />
+          <mxPoint x="912" y="700" />
+          <mxPoint x="912" y="540" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- LLM → requirements.csv -->
+    <mxCell id="a10" value="salva CSV" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;" edge="1" parent="1" source="c601" target="c703">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- JaCoCo → cumulative coverage data -->
+    <mxCell id="a11" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="c502" target="c705">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Checkpoint → checkpoint.pt -->
+    <mxCell id="a12" value="save/load" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;" edge="1" parent="1" source="c304" target="c706">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Metrics → report.html -->
+    <mxCell id="a13" value="generate_report()" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;" edge="1" parent="1" source="c305" target="c707">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Metrics → metrics.json -->
+    <mxCell id="a14" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="c305" target="c708">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- test_cases → LLM (generate requirements) -->
+    <mxCell id="a15" value="lê logs" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="c704" target="c603">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Android Env → test_cases (logs) -->
+    <mxCell id="a16" value="TC_*.txt" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;" edge="1" parent="1" source="c401" target="c704">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- PLANNED arrows -->
+
+    <!-- JaCoCo guided → Training Curiosity (PLANNED) -->
+    <mxCell id="ap1" value="[PLANEJADO]&#xa;priority_activities" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;strokeColor=#d6b656;fontColor=#d6b656;dashed=1;" edge="1" parent="1" source="c505" target="c306">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="912" y="545" />
+          <mxPoint x="1107" y="545" />
+          <mxPoint x="1107" y="350" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- agrupar_ids → resolve_best_id (PLANNED) -->
+    <mxCell id="ap2" value="[PLANEJADO]&#xa;melhora IDs" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;strokeColor=#d6b656;fontColor=#d6b656;dashed=1;" edge="1" parent="1" source="c605" target="c601">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Curiosity bonus → Reward (PLANNED) -->
+    <mxCell id="ap3" value="" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;strokeColor=#d6b656;dashed=1;" edge="1" parent="1" source="c306" target="c302">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Loop detection → Reward (PLANNED) -->
+    <mxCell id="ap4" value="penalidade" style="edgeStyle=orthogonalEdgeStyle;fontSize=8;strokeColor=#d6b656;fontColor=#d6b656;dashed=1;" edge="1" parent="1" source="c406" target="c302">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="1107" y="416" />
+          <mxPoint x="1107" y="350" />
+          <mxPoint x="322" y="350" />
+          <mxPoint x="322" y="348" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+  </root>
+</mxGraphModel>
