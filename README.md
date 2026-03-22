@@ -21,6 +21,10 @@
 - **Deep Q-Learning Aprimorado**: Double DQN, Dueling Networks e Prioritized Experience Replay (PER)
 - **Automação Android**: Integração com UIAutomator2 para controle de dispositivos e emuladores
 - **JaCoCo Code Coverage**: Instrumentação automática, coleta de cobertura em tempo real e relatórios HTML/CSV (suporte a AGP 1.x até 8.x)
+- **Recompensa JaCoCo**: Bônus de recompensa proporcional ao ganho de linha/branch coverage a cada step
+- **Smart Inputs**: Seleção inteligente de valores de boundary por tipo de campo (email, senha, telefone, moeda, data…)
+- **Fuzzy Matching de Requisitos**: Matching aproximado de resource-ids tolerante a diferenças de package prefix
+- **Multi-run Acumulativo**: Activities visitadas e arquivos `.ec` acumulados entre runs consecutivas via checkpoint
 - **Build Agent Autônomo**: Compila APKs com JaCoCo automaticamente, compatível com projetos Android antigos e modernos
 - **Pipeline Completo**: Exploração → Requisitos → Treino Guiado → Transcrição, em um único comando
 - **Transcrição Inteligente**: Geração automática de casos de teste ISO/IEC/IEEE 29119-3 usando CrewAI + LLMs
@@ -97,8 +101,23 @@ rlmobtest-icomp/
 │       └── report.html               # Relatório HTML consolidado
 │
 ├── docs/                             # Documentação
-│   ├── architecture.drawio           # Fluxograma da arquitetura
-│   └── transcription_flow.drawio     # Fluxo de transcrição
+│   ├── drawio/                       # Diagramas de arquitetura
+│   │   ├── architecture.drawio       # Fluxograma da arquitetura
+│   │   └── transcription_flow.drawio # Fluxo de transcrição
+│   ├── jacoco_setup.md               # Guia JaCoCo (automático e manual)
+│   ├── cli_commands.md               # Referência completa de comandos
+│   ├── coverage_metrics.md           # Métricas de cobertura
+│   ├── coverage_improvement_suggestions.md  # Diagnóstico e melhorias de cobertura
+│   ├── dqn_tutorial.md               # Tutorial DQN para leigos
+│   ├── plots_guide.md                # Guia dos gráficos do report.html
+│   └── report_generation.md          # Como o report.html é gerado
+│
+├── tests/                            # Testes unitários (pytest)
+│   ├── test_coverage_reward.py       # Recompensa JaCoCo
+│   ├── test_fuzzy_match.py           # Fuzzy matching de requisitos
+│   ├── test_smart_inputs.py          # Smart inputs por tipo de campo
+│   ├── test_accumulate_coverage.py   # Acúmulo de .ec entre runs
+│   └── test_checkpoint_extra_state.py # Checkpoint com visited_activities
 │
 ├── .claude/commands/                 # Slash commands do Claude Code
 │   └── setup-build.md               # Build agent autônomo
@@ -321,7 +340,7 @@ Formato ISO/IEC/IEEE 29119-3 com: Test Case ID, Title, Description, Priority, Pr
 - **Gradient Clipping**: Previne explosão de gradientes
 - **Soft Updates**: Atualização suave da target network
 
-Para uma explicação detalhada do modelo DQN, veja [docs/DQN_MODEL_EXPLICACAO.md](docs/DQN_MODEL_EXPLICACAO.md).
+Para uma explicação detalhada do modelo DQN, veja [docs/dqn_tutorial.md](docs/dqn_tutorial.md).
 
 ---
 
@@ -332,6 +351,8 @@ Para uma explicação detalhada do modelo DQN, veja [docs/DQN_MODEL_EXPLICACAO.m
 | Nova activity descoberta | +10 |
 | Mudança de activity válida | +5 |
 | Happy path executado | Variável (baseado em requisitos) |
+| Ganho de line coverage JaCoCo | +5 × Δ% |
+| Ganho de branch coverage JaCoCo | +10 × Δ% |
 | Ação repetida | -2 |
 | Saída do app / Voltar ao home | -5 |
 | Crash detectado | -5 |
@@ -362,10 +383,12 @@ Para uma explicação detalhada do modelo DQN, veja [docs/DQN_MODEL_EXPLICACAO.m
 | [docs/cli_commands.md](docs/cli_commands.md) | Referência completa de comandos CLI |
 | [docs/jacoco_setup.md](docs/jacoco_setup.md) | Configuração do JaCoCo (automática e manual) |
 | [docs/report_generation.md](docs/report_generation.md) | Como o report.html é gerado |
-| [docs/DQN_MODEL_EXPLICACAO.md](docs/DQN_MODEL_EXPLICACAO.md) | Explicação detalhada do DQN |
+| [docs/dqn_tutorial.md](docs/dqn_tutorial.md) | Tutorial DQN acessível (para leigos) |
 | [docs/coverage_metrics.md](docs/coverage_metrics.md) | Métricas de cobertura de código |
-| [docs/architecture.drawio](docs/architecture.drawio) | Fluxograma da arquitetura |
-| [docs/transcription_flow.drawio](docs/transcription_flow.drawio) | Fluxo de transcrição de casos de teste |
+| [docs/coverage_improvement_suggestions.md](docs/coverage_improvement_suggestions.md) | Diagnóstico e melhorias de cobertura implementadas |
+| [docs/plots_guide.md](docs/plots_guide.md) | Guia de interpretação dos gráficos do report.html |
+| [docs/drawio/architecture.drawio](docs/drawio/architecture.drawio) | Fluxograma da arquitetura |
+| [docs/drawio/transcription_flow.drawio](docs/drawio/transcription_flow.drawio) | Fluxo de transcrição de casos de teste |
 
 ---
 

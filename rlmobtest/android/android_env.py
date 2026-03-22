@@ -9,10 +9,13 @@ import os
 import random
 import shutil
 import string
+import subprocess
+import tempfile
 import time
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
+from pathlib import Path
 from subprocess import call
 
 import numpy as np
@@ -20,6 +23,7 @@ import torch
 import torchvision.transforms as T
 import uiautomator2 as u2
 import matplotlib
+
 matplotlib.use("Agg")
 from matplotlib.pyplot import imread
 from PIL import Image
@@ -36,6 +40,10 @@ from rlmobtest.constants.paths import (
 )
 
 FNULL = open(os.devnull, "w", encoding="utf-8")
+
+# Arquivos temporários em /tmp — evita poluir a raiz do projeto
+_TMP_STATE = Path(tempfile.gettempdir()) / "rlmobtest_state.png"
+_TMP_COVERAGE = Path(tempfile.gettempdir()) / "rlmobtest_coverage.ec"
 
 # Image resize transform
 resize = T.Compose(
@@ -583,7 +591,6 @@ class AndroidEnv:
 
     def reset(self):
         """Reset the environment."""
-        open("std.txt", "w").close()
         self._exec(f"adb shell am force-stop {self.app_package}")
         self._exec(f"adb shell monkey -p {self.app_package} 1")
         activity = self._get_activity()
@@ -631,12 +638,13 @@ class AndroidEnv:
     def _get_activity(self):
         """Get the current activity name."""
         try:
-            # Execute ADB command and write to file
-            self._exec("adb shell dumpsys activity recents | grep 'ActivityRecord' > std.txt")
-
-            # Read the file
-            with open("std.txt", "r", encoding="utf-8") as file:
-                lines = file.readlines()
+            result = subprocess.run(
+                "adb shell dumpsys activity recents | grep 'ActivityRecord'",
+                shell=True,
+                capture_output=True,
+                text=True,
+            )
+            lines = result.stdout.splitlines(keepends=True)
 
             activityname = "outapp"
             for line in lines:
@@ -1548,17 +1556,17 @@ class AndroidEnv:
 
     def _get_screen(self):
         """Capture the current screen."""
-        self.device.screenshot("state.png")
+        self.device.screenshot(str(_TMP_STATE))
         timestr = time.strftime("%Y%m%d-%H%M%S")
         img_name = f"{self.screenshots_path}/state_{timestr}.png"
-        shutil.copy("state.png", img_name)
+        shutil.copy(_TMP_STATE, img_name)
 
         tc_file_path = f"{self.test_case_path}/{self.nametc}"
         if os.path.exists(tc_file_path):
             with open(tc_file_path, mode="a") as file:
                 file.write(f"\n  Screen: {img_name}")
 
-        img = imread("state.png")
+        img = imread(str(_TMP_STATE))
         return self._image_to_torch(img)
 
     @staticmethod
@@ -1577,12 +1585,16 @@ class AndroidEnv:
                 f"adb shell am broadcast "
                 f"-n {self.app_package}/.CoverageReceiver "
                 f"-a {self.app_package}.DUMP_COVERAGE",
-                shell=True, stdout=FNULL, stderr=FNULL,
+                shell=True,
+                stdout=FNULL,
+                stderr=FNULL,
             )
             # Pull from app-internal storage via run-as (works on all Android versions)
             call(
-                f"adb exec-out run-as {self.app_package} cat files/coverage.ec > coverage.ec",
-                shell=True, stdout=FNULL, stderr=FNULL,
+                f"adb exec-out run-as {self.app_package} cat files/coverage.ec > {_TMP_COVERAGE}",
+                shell=True,
+                stdout=FNULL,
+                stderr=FNULL,
             )
         except Exception:
             print("Phone Not connected")
@@ -1594,7 +1606,7 @@ class AndroidEnv:
         if self.coverage_enabled:
             timestr = time.strftime("%Y%m%d-%H%M%S")
             try:
-                shutil.copy("coverage.ec", f"{self.coverage_path}/coverage_{timestr}.ec")
+                shutil.copy(_TMP_COVERAGE, f"{self.coverage_path}/coverage_{timestr}.ec")
             except Exception:
                 print("Failed Coverage")
 
