@@ -73,6 +73,69 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.1.10] - 2026-03-16
+
+### Added
+- Tutorial DQN em linguagem acessível (`docs/dqn_tutorial.md`)
+- `docs/coverage_improvement_suggestions.md`: diagnóstico e sugestões concretas de melhoria de cobertura (requisitos e JaCoCo)
+- Diagramas de fluxo de transcrição (`docs/drawio/transcription_flow.drawio`, `transcription_flow_model2.drawio`)
+- Constantes `ACTION_TYPE_ALIASES` e `INVALID_ID_RE` em `rlmobtest/constants/actions.py` para normalização de IDs de requisitos
+
+### Changed
+- `report.py`: matching de requisitos agora normaliza `action_type` via `ACTION_TYPE_ALIASES` e ignora IDs inválidos via `INVALID_ID_RE`
+- `generate_requirements.py`: melhorias no parsing e extração de requisitos via Ollama
+- `config_reader.py`: campo `source_code` adicionado ao `AppConfig`
+- `cli/pipeline.py` e `cli/train.py`: ajustes de argumentos e exibição
+- `docs/architecture.drawio` movido para `docs/drawio/architecture.drawio`
+- README atualizado com tutorial e referências ao novo doc de cobertura
+
+---
+
+## [0.1.9] - 2026-03-10
+
+### Added
+- Agente de build autônomo (`rlmobtest/utils/build_agent.py`): rule-based fallback para construção de APKs com JaCoCo em projetos AGP 1.x–8.x
+- Slash command `/setup-build` (`/.claude/commands/setup-build.md`) para acionar o agente via Claude Code
+- Comando `rlmobtest check`: valida pré-requisitos de Java, Gradle e Android SDK antes do setup
+- Suporte a JaCoCo legado 0.7.4 (`jacoco.py`): fallback automático para `IncompatibleExecDataVersionException` (exec data 0x1006)
+- Tabela de compatibilidade AGP × Gradle × Java em `build_agent.py`
+- `CLAUDE.md`: instruções do projeto para o agente Claude Code
+- `docs/coverage_metrics.md`: documentação de métricas de cobertura JaCoCo
+- Diagrama de arquitetura (`docs/architecture.drawio`) e fluxo de transcrição (`docs/transcription_flow.drawio`)
+- Constantes de `ACTION_TYPE_ALIASES` em `rlmobtest/constants/actions.py`
+
+### Changed
+- `jacoco_setup.py`: suporte a classfiles de AGP legado (`intermediates/classes/debug/`) além do caminho moderno (`intermediates/javac/debug/classes/`)
+- `jacoco_setup.py`: correção de `google()` shorthand para Gradle < 4.0 (usa `maven { url 'https://maven.google.com' }`)
+- `generate_requirements.py`: refatoração do parsing de requisitos e extração de XML
+- `settings.json`: correção de typo no package name (`org.secusco` → `org.secuso`)
+- `cli/pipeline.py` e `cli/setup.py`: integração do agente de build e do comando check
+
+### Removed
+- Scripts legados `script_iartes*.py` (substituídos pelo CLI Typer)
+- `inputs/tools/.gitignore`: `jacococli.jar` removido da lista de ignorados (baixado automaticamente pelo setup)
+
+---
+
+## [0.1.8] - 2026-03-03
+
+### Added
+- Comando `rlmobtest setup` (`rlmobtest/cli/setup.py`): automatiza build do APK, cópia de classfiles e download do `jacococli.jar`
+- `rlmobtest/utils/jacoco.py`: biblioteca para merge de `.ec`, geração de CSV/HTML e parsing de cobertura
+- `rlmobtest/utils/jacoco_setup.py`: instrumentação do APK com JaCoCo e configuração do `CoverageReceiver`
+- `rlmobtest/android/android_env.py`: broadcast `DUMP_COVERAGE` via `adb` a cada step quando `is_coverage=true`
+- Geração de relatório HTML JaCoCo com link no `report.html` (coluna JaCoCo)
+- `docs/jacoco_setup.md`: guia completo de setup e integração JaCoCo
+- Constantes de paths `TOOLS_DIR`, `CLASSFILES_DIR`, `SOURCE_CODES_DIR`, `APKS_DIR` em `constants/paths.py`
+
+### Changed
+- `pipeline.py`: Step 0 executa `jacoco_setup` automaticamente quando `is_coverage=true` e `source_code` está configurado
+- `report.py`: inclui métricas JaCoCo (line_pct, branch_pct, method_pct) e link para relatório HTML
+- Backend matplotlib alterado para `Agg` em `android_env.py` para evitar crash de threading com Tkinter
+- `constants/llm.py`: ajustes menores nas constantes de LLM
+
+---
+
 ## [0.1.7] - 2026-03-02
 
 ### Added
@@ -200,7 +263,10 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 [0.1.14]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.11...v0.1.12
-[0.1.11]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.7...v0.1.11
+[0.1.11]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.10...v0.1.11
+[0.1.10]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.9...v0.1.10
+[0.1.9]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.8...v0.1.9
+[0.1.8]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.3...v0.1.6
 [0.1.3]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.2...v0.1.3
