@@ -4,6 +4,7 @@ import json
 import re
 from collections import defaultdict
 from datetime import datetime
+from difflib import SequenceMatcher
 from pathlib import Path
 
 import pandas as pd
@@ -37,6 +38,28 @@ _ACTION_RE = re.compile(
 
 # Separators found in activity names (both "." and "/" are used inconsistently)
 _ACTIVITY_SEP_RE = re.compile(r"[./]")
+
+
+def _fuzzy_match_id(req_id: str, test_id: str, threshold: float = 0.8) -> bool:
+    """Compara IDs de recursos com tolerância a variações de prefixo/sufixo/package.
+
+    Normaliza ambos os IDs extraindo apenas a parte após o último '/', então
+    computa a similaridade via SequenceMatcher. Retorna True se ratio >= threshold.
+
+    Examples:
+        "com.example:id/btn_save" vs "com.foo:id/btn_save"  → True  (mesma parte curta)
+        "com.example:id/btn_save" vs "com.foo:id/button_save" → depende do threshold
+        "N/A" vs "N/A"                                        → True
+    """
+    if req_id == "N/A" or test_id == "N/A":
+        return req_id == test_id
+
+    # Normaliza: usa apenas a parte após '/' (ignora prefixo de package)
+    req_short = req_id.split("/")[-1] if "/" in req_id else req_id
+    test_short = test_id.split("/")[-1] if "/" in test_id else test_id
+
+    ratio = SequenceMatcher(None, req_short, test_short).ratio()
+    return ratio >= threshold
 
 
 def _find_metrics_files(run_path: Path) -> list[Path]:
@@ -155,7 +178,14 @@ def _compute_requirements_coverage(
             if any(a == action_type for a, _ in actions_set):
                 covered += 1
         else:
+            # Primeiro tenta match exato; se falhar, usa fuzzy matching (threshold 0.8)
             if (action_type, rid) in actions_set:
+                covered += 1
+            elif any(
+                a == action_type and _fuzzy_match_id(rid, r)
+                for a, r in actions_set
+                if r
+            ):
                 covered += 1
 
     return covered, total

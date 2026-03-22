@@ -5,6 +5,17 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.1.12] - 2026-03-22
+
+### Added
+- `_fuzzy_match_id()` em `rlmobtest/training/report.py`: compara IDs de recursos normalizando o prefixo de package e usando `SequenceMatcher` com threshold 0.8
+- Fuzzy matching integrado ao cálculo de cobertura de requisitos: requisitos com IDs que diferem apenas por variações de prefixo/package agora são reconhecidos como cobertos
+
+### Changed
+- `_compute_requirements_coverage()`: match exato continua sendo tentado primeiro; fuzzy matching é usado como fallback para recuperar requisitos "quase cobertos"
+
+---
+
 ## [0.1.11] - 2026-03-22
 
 ### Added
@@ -140,7 +151,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
-[Unreleased]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.11...HEAD
+[Unreleased]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.12...HEAD
+[0.1.12]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.7...v0.1.11
 [0.1.7]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.3...v0.1.6
