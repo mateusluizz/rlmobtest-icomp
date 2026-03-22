@@ -1,5 +1,20 @@
 # Sugestões de Melhoria de Cobertura — RLMobTest
 
+## Status de Implementação
+
+| # | Melhoria | Status | Versão |
+|---|----------|--------|--------|
+| 1 | JaCoCo na recompensa | ✅ Implementado | v0.1.11 |
+| 2 | Fuzzy matching de IDs | ✅ Implementado | v0.1.12 |
+| 3 | Smart inputs (boundary/edge case) | ✅ Implementado | v0.1.13 |
+| 4 | Resolução 84×84 | ⏭️ Não será implementado | — |
+| 5 | Ajuste de hiperparâmetros (OriginalAgent) | ✅ Implementado | v0.1.14 |
+| 6 | Multi-run acumulativo | ✅ Implementado | v0.1.15 |
+| 7 | Estado híbrido (visual+textual) | ⏭️ Não será implementado | — |
+
+---
+
+
 Este documento descreve o diagnóstico e as sugestões concretas para melhorar as métricas de cobertura de requisitos e cobertura de código (JaCoCo) da ferramenta DRL-MOBTest.
 
 ---
@@ -34,7 +49,7 @@ Este documento descreve o diagnóstico e as sugestões concretas para melhorar a
 
 ## Sugestões de Melhoria
 
-### 1. Retroalimentar JaCoCo na Função de Recompensa (maior impacto)
+### 1. Retroalimentar JaCoCo na Função de Recompensa (maior impacto) ✅ v0.1.11
 
 **Arquivo:** `rlmobtest/training/reward.py`
 
@@ -67,7 +82,7 @@ def coverage_reward(prev_coverage, curr_coverage):
 
 ---
 
-### 2. Flexibilizar Matching de Requisitos (fuzzy matching)
+### 2. Flexibilizar Matching de Requisitos (fuzzy matching) ✅ v0.1.12
 
 **Arquivo:** `rlmobtest/training/report.py`
 
@@ -96,7 +111,7 @@ def fuzzy_match_id(req_id, test_id, threshold=0.8):
 
 ---
 
-### 3. Inputs Semânticos para Exercitar Branches
+### 3. Inputs Semânticos para Exercitar Branches ✅ v0.1.13
 
 **Arquivo:** `rlmobtest/android/android_env.py` (método `_get_actions()`)
 
@@ -123,7 +138,7 @@ SMART_INPUTS = {
 
 ---
 
-### 4. Aumentar Resolução do Estado Visual
+### 4. Aumentar Resolução do Estado Visual ⏭️ Não implementado
 
 **Arquivo:** `rlmobtest/android/android_env.py` (método `_image_to_torch()`)
 
@@ -158,7 +173,7 @@ Linear(512, 30)  # 30 actions
 
 ---
 
-### 5. Ajustar Hiperparâmetros de Exploração
+### 5. Ajustar Hiperparâmetros de Exploração ✅ v0.1.14 (OriginalAgent)
 
 **Arquivo:** `rlmobtest/training/agents/` (OriginalAgent e ImprovedAgent)
 
@@ -183,7 +198,7 @@ Linear(512, 30)  # 30 actions
 
 ---
 
-### 6. Multi-run com Acumulação de Conhecimento (Curriculum Learning)
+### 6. Multi-run com Acumulação de Conhecimento (Curriculum Learning) ✅ v0.1.15
 
 Atualmente cada execução do pipeline começa do zero — o agente não retém conhecimento entre runs. Implementar acumulação:
 
@@ -209,7 +224,7 @@ Relatório final: merge de todos os .ec + todos os test cases
 
 ---
 
-### 7. Encoding de Estado Híbrido (Visual + Textual)
+### 7. Encoding de Estado Híbrido (Visual + Textual) ⏭️ Não implementado
 
 **Estado atual:** apenas screenshot 38×38 (sem informação textual).
 
