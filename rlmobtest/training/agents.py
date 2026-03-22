@@ -20,14 +20,14 @@ class OriginalAgent:
         self.model = OriginalDQN(num_actions).to(device)
         self.model.type(FloatTensor)
 
-        self.memory = ReplayMemory(10000)
+        self.memory = ReplayMemory(50000)
         self.optimizer = optim.RMSprop(self.model.parameters())
 
-        self.batch_size = 256
-        self.gamma = 0.999
+        self.batch_size = 128
+        self.gamma = 0.99
         self.eps_start = 0.9
         self.eps_end = 0.05
-        self.eps_decay = 500
+        self.eps_decay = 2000
 
         self.steps_done = 0
 

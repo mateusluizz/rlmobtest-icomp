@@ -5,6 +5,20 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.1.14] - 2026-03-22
+
+### Changed
+- **OriginalAgent** (`rlmobtest/training/agents.py`) — hiperparâmetros ajustados para maior exploração e melhor aprendizado:
+
+  | Parâmetro    | Antes  | Depois | Justificativa |
+  |-------------|--------|--------|---------------|
+  | `memory`    | 10 000 | 50 000 | Mais diversidade de experiências no replay buffer |
+  | `batch_size`| 256    | 128    | Atualizações mais frequentes com gradientes menos ruidosos |
+  | `gamma`     | 0.999  | 0.99   | Foco mais imediato, reduz ruído de recompensas distantes |
+  | `eps_decay` | 500    | 2000   | Explora por mais tempo antes de exploitar |
+
+---
+
 ## [0.1.13] - 2026-03-22
 
 ### Added
@@ -165,7 +179,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
-[Unreleased]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.13...HEAD
+[Unreleased]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.14...HEAD
+[0.1.14]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.7...v0.1.11

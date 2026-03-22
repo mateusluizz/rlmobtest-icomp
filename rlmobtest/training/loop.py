@@ -133,7 +133,7 @@ def run(
         agent_info.add_column("", style="cyan")
         agent_info.add_column("")
         agent_info.add_row("Agent", "Original DQN")
-        agent_info.add_row("Memory", "ReplayMemory (10,000)")
+        agent_info.add_row("Memory", "ReplayMemory (50,000)")
         agent_info.add_row("Gamma", str(agent.gamma))
         agent_info.add_row("Epsilon Decay", str(agent.eps_decay))
     else:
