@@ -5,6 +5,19 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.1.11] - 2026-03-22
+
+### Added
+- `coverage_reward()` em `rlmobtest/training/reward.py`: bônus incremental por novas linhas (+5/%) e branches (+10/%) cobertas
+- `_get_step_coverage()` em `rlmobtest/training/loop.py`: obtém métricas JaCoCo sem lançar exceção
+- Constante `COVERAGE_CHECK_INTERVAL = 5` (verificação de cobertura a cada 5 steps)
+- JaCoCo integrado ao loop de treinamento: quando `is_coverage=true`, o agente recebe bônus de recompensa proporcional ao aumento de cobertura de linhas e branches a cada 5 steps
+
+### Changed
+- Loop de treinamento (`loop.py`) agora inicializa `prev_coverage` antes dos episódios e calcula `coverage_reward` a cada `COVERAGE_CHECK_INTERVAL` steps
+
+---
+
 ## [0.1.7] - 2026-03-02
 
 ### Added
@@ -127,7 +140,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
-[Unreleased]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.7...HEAD
+[Unreleased]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.11...HEAD
+[0.1.11]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.7...v0.1.11
 [0.1.7]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.3...v0.1.6
 [0.1.3]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.2...v0.1.3

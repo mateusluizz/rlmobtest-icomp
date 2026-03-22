@@ -16,11 +16,30 @@ from rlmobtest.training.checkpoint import ModelCheckpoint
 from rlmobtest.training.device import LongTensor, Tensor
 from rlmobtest.training.metrics import TrainingMetrics
 from rlmobtest.training.progress import TrainingProgress
-from rlmobtest.training.reward import calculate_reward
+from rlmobtest.training.reward import calculate_reward, coverage_reward
 from rlmobtest.transcription import transcriber as tm
 from rlmobtest.utils.config_reader import AppConfig, ConfRead
 
 console = Console()
+
+# Intervalo (em steps) entre verificações de cobertura JaCoCo.
+# Menor = sinal de recompensa mais frequente, maior overhead por verificação.
+COVERAGE_CHECK_INTERVAL = 5
+
+
+def _get_step_coverage(coverage_path: Path, package_name: str) -> dict:
+    """Retorna métricas de cobertura JaCoCo atuais sem lançar exceção.
+
+    Retorna {} se não houver arquivos .ec ou se ocorrer erro (ex: jacococli ausente).
+    """
+    if not coverage_path.exists() or not any(coverage_path.glob("*.ec")):
+        return {}
+    try:
+        from rlmobtest.utils.jacoco import process_coverage
+
+        return process_coverage(coverage_path, package_name, html_report=False) or {}
+    except Exception:
+        return {}
 
 
 def setup_logging(run_id: str, logs_path: Path):
@@ -186,6 +205,8 @@ def run(
     progress.start()
 
     episode = start_episode
+    # Cobertura acumulada: persiste entre episódios pois os .ec acumulam na mesma run.
+    prev_coverage: dict = {}
 
     try:
         for _ in count(1):
@@ -286,6 +307,22 @@ def run(
                         reward = -5
                         next_state = None
                         run_logger.warning("Crash detected at step %d", t)
+
+                    # Recompensa JaCoCo: bônus por cobertura nova a cada N steps
+                    if settings.is_coverage and (t + 1) % COVERAGE_CHECK_INTERVAL == 0:
+                        curr_coverage = _get_step_coverage(paths.coverage, settings.package_name)
+                        if curr_coverage:
+                            cov_r = coverage_reward(prev_coverage, curr_coverage)
+                            if cov_r > 0:
+                                reward += cov_r
+                                episode_reward += cov_r
+                                run_logger.debug(
+                                    "Coverage reward: +%.2f (Δlines=%.1f%%, Δbranches=%.1f%%)",
+                                    cov_r,
+                                    curr_coverage.get("line_pct", 0) - prev_coverage.get("line_pct", 0),
+                                    curr_coverage.get("branch_pct", 0) - prev_coverage.get("branch_pct", 0),
+                                )
+                            prev_coverage = curr_coverage
 
                     reward_tensor = Tensor([reward])
                     agent.memory.push(state, action, next_state, reward_tensor)

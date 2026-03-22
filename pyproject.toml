@@ -1,6 +1,6 @@
 [project]
 name = "rlmobtest-icomp"
-version = "0.1.10"
+version = "0.1.11"
 description = "IARTES Project Testing Tool to automatize mobile test creating with Reinforcement Learning"
 readme = "README.md"
 requires-python = ">=3.11"
