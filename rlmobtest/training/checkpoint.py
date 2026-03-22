@@ -15,7 +15,13 @@ class ModelCheckpoint:
         self.save_dir = Path(save_dir)
         self.save_dir.mkdir(parents=True, exist_ok=True)
 
-    def save(self, model, optimizer, metrics, episode, steps_done, filename=None):
+    def save(self, model, optimizer, metrics, episode, steps_done, filename=None, extra_state=None):
+        """Salva checkpoint do modelo.
+
+        Args:
+            extra_state: Dict opcional com estado adicional (ex: visited_activities).
+                         Persistido no checkpoint e restaurado em load().
+        """
         if filename is None:
             filename = f"checkpoint_ep{episode}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pt"
 
@@ -30,6 +36,7 @@ class ModelCheckpoint:
             },
             "timestamp": datetime.now().isoformat(),
             "feature_size": getattr(model, "_feature_size", None),
+            "extra_state": extra_state or {},
         }
 
         filepath = self.save_dir / filename
@@ -38,6 +45,11 @@ class ModelCheckpoint:
         return filepath
 
     def load(self, filepath, model, optimizer):
+        """Carrega checkpoint do modelo.
+
+        Returns:
+            (episode, steps_done, extra_state) — extra_state é {} se não existir no checkpoint.
+        """
         checkpoint = torch.load(filepath, map_location=device)
 
         # Initialize lazy layers before loading state dict (for DuelingDQN)
@@ -54,4 +66,5 @@ class ModelCheckpoint:
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         print(f"Checkpoint loaded: {filepath}")
-        return checkpoint["episode"], checkpoint["steps_done"]
+        extra_state = checkpoint.get("extra_state", {})
+        return checkpoint["episode"], checkpoint["steps_done"], extra_state

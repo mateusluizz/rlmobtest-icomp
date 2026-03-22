@@ -5,6 +5,22 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.1.15] - 2026-03-22
+
+### Added
+- `OutputPaths.cumulative_coverage`: diretório compartilhado por todos os runs do mesmo app+agente (`output/{apk}/{agent_type}/cumulative_coverage/`)
+- `_accumulate_coverage()` em `loop.py`: copia arquivos `.ec` de cada run para `cumulative_coverage/` ao final do treinamento
+- `extra_state` no sistema de checkpoint (`checkpoint.py`): salva e restaura estado adicional (ex: `visited_activities`) entre runs
+- `all_visited_activities`: set de activities vistas em todas as runs anteriores, persistido via checkpoint
+- Recompensa de descoberta de activity dobrada (+20 em vez de +10) para activities nunca vistas em runs anteriores — incentiva o agente a explorar territórios novos ao retomar de checkpoint
+
+### Changed
+- `ModelCheckpoint.save()`: aceita parâmetro `extra_state=None` — armazenado no checkpoint sem quebrar compatibilidade com checkpoints antigos
+- `ModelCheckpoint.load()`: retorna `(episode, steps_done, extra_state)` — `extra_state` é `{}` para checkpoints antigos
+- `loop.py`: atualizado para a nova assinatura do `load()` e para passar `extra_state` em todos os `save()` calls
+
+---
+
 ## [0.1.14] - 2026-03-22
 
 ### Changed
@@ -179,7 +195,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
-[Unreleased]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.14...HEAD
+[Unreleased]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.15...HEAD
+[0.1.15]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.11...v0.1.12

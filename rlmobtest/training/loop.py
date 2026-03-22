@@ -27,6 +27,31 @@ console = Console()
 COVERAGE_CHECK_INTERVAL = 5
 
 
+def _accumulate_coverage(coverage_path: Path, cumulative_path: Path, logger) -> None:
+    """Copia os arquivos .ec desta run para o diretório cumulativo compartilhado.
+
+    O diretório cumulativo (cumulative_coverage/) acumula .ec de todas as runs do mesmo
+    app+agente. Ao processar cobertura final, usar este diretório produz métricas
+    que combinam conhecimento de exploração de múltiplas runs.
+    """
+    import shutil
+
+    if not coverage_path.exists():
+        return
+    ec_files = list(coverage_path.glob("*.ec"))
+    if not ec_files:
+        return
+    cumulative_path.mkdir(parents=True, exist_ok=True)
+    copied = 0
+    for ec_file in ec_files:
+        dest = cumulative_path / ec_file.name
+        if not dest.exists():
+            shutil.copy2(ec_file, dest)
+            copied += 1
+    if copied:
+        logger.info("Accumulated %d new .ec file(s) → %s", copied, cumulative_path)
+
+
 def _get_step_coverage(coverage_path: Path, package_name: str) -> dict:
     """Retorna métricas de cobertura JaCoCo atuais sem lançar exceção.
 
@@ -184,18 +209,27 @@ def run(
 
     # Load checkpoint if provided
     start_episode = 0
+    all_visited_activities: set[str] = set()  # persiste entre runs via checkpoint
     if checkpoint_path:
         console.print(f"\n[cyan]Loading checkpoint: {checkpoint_path}[/cyan]")
         try:
             model = agent.policy_net if hasattr(agent, "policy_net") else agent.model
-            start_episode, agent.steps_done = checkpoint_mgr.load(
+            start_episode, agent.steps_done, extra_state = checkpoint_mgr.load(
                 checkpoint_path, model, agent.optimizer
             )
+            all_visited_activities = set(extra_state.get("visited_activities", []))
             console.print(
                 f"[green]Resumed from episode {start_episode}, step {agent.steps_done}[/green]"
             )
+            if all_visited_activities:
+                console.print(
+                    f"[dim]  {len(all_visited_activities)} activities from previous runs loaded[/dim]"
+                )
             run_logger.info(
-                "Checkpoint loaded: episode=%d, steps=%d", start_episode, agent.steps_done
+                "Checkpoint loaded: episode=%d, steps=%d, prev_activities=%d",
+                start_episode,
+                agent.steps_done,
+                len(all_visited_activities),
             )
         except Exception as e:
             console.print(f"[red]Failed to load checkpoint: {e}[/red]")
@@ -297,7 +331,13 @@ def run(
                         env.tc_action = []
 
                     if activity not in activities:
-                        reward += 10
+                        # Boost para activities nunca vistas em runs anteriores (multi-run)
+                        if all_visited_activities and activity not in all_visited_activities:
+                            reward += 20
+                            run_logger.debug("Multi-run bonus: new activity %s (+20)", activity)
+                        else:
+                            reward += 10
+                        all_visited_activities.add(activity)
                         activities.append(activity)
                         metrics.log_activity(activity)
                         console.print(f"   [green]New activity discovered: {activity}[/green]")
@@ -375,7 +415,14 @@ def run(
 
             if episode % 10 == 0:
                 model = agent.policy_net if hasattr(agent, "policy_net") else agent.model
-                checkpoint_mgr.save(model, agent.optimizer, metrics, episode, agent.steps_done)
+                checkpoint_mgr.save(
+                    model,
+                    agent.optimizer,
+                    metrics,
+                    episode,
+                    agent.steps_done,
+                    extra_state={"visited_activities": list(all_visited_activities)},
+                )
                 metrics.print_summary()
 
     except KeyboardInterrupt:
@@ -387,7 +434,14 @@ def run(
 
         console.print("\n[cyan]Saving final checkpoint and metrics...[/cyan]")
         model = agent.policy_net if hasattr(agent, "policy_net") else agent.model
-        checkpoint_mgr.save(model, agent.optimizer, metrics, episode, agent.steps_done)
+        checkpoint_mgr.save(
+            model,
+            agent.optimizer,
+            metrics,
+            episode,
+            agent.steps_done,
+            extra_state={"visited_activities": list(all_visited_activities)},
+        )
         metrics.save()
         metrics.plot_metrics()
 
@@ -404,6 +458,10 @@ def run(
                     border_style="blue",
                 )
             )
+
+        # Acumulação de cobertura entre runs: copia .ec desta run para cumulative_coverage
+        if settings.is_coverage:
+            _accumulate_coverage(paths.coverage, paths.cumulative_coverage, run_logger)
 
         if settings.is_req_analysis:
             console.print("\n[cyan]Starting transcription...[/cyan]")

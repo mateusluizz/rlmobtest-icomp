@@ -75,6 +75,11 @@ class OutputPaths:
         self.errors = self.run_path / "errors"
         self.coverage = self.run_path / "coverage"
 
+        # Cobertura acumulada compartilhada entre todos os runs do mesmo app+agente.
+        # Estrutura: output/{apk_name}/{agent_type}/cumulative_coverage/
+        self.agent_base = base_path / apk_name / agent_type
+        self.cumulative_coverage = self.agent_base / "cumulative_coverage"
+
     def create_all(self):
         """Create all output directories."""
         for path in [
@@ -89,6 +94,7 @@ class OutputPaths:
             self.crashes,
             self.errors,
             self.coverage,
+            self.cumulative_coverage,
         ]:
             path.mkdir(parents=True, exist_ok=True)
 
