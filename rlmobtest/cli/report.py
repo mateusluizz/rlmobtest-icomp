@@ -51,7 +51,8 @@ def report(
         packages = app_filter
     else:
         packages = [
-            d.name for d in sorted(OUTPUT_BASE.iterdir())
+            d.name
+            for d in sorted(OUTPUT_BASE.iterdir())
             if d.is_dir() and not d.name.startswith(".")
         ]
 
@@ -70,8 +71,7 @@ def report(
             _now = _dt.now()
             _today = (_now.strftime("%Y"), _now.strftime("%m"), _now.strftime("%d"))
             _today_tc = (
-                OUTPUT_BASE / pkg / mode.value
-                / _today[0] / _today[1] / _today[2] / "test_cases"
+                OUTPUT_BASE / pkg / mode.value / _today[0] / _today[1] / _today[2] / "test_cases"
             )
             days = [_today] if _today_tc.is_dir() and any(_today_tc.iterdir()) else []
 
@@ -79,13 +79,13 @@ def report(
             console.print(f"[yellow]{pkg}:[/] no data found for mode={mode.value}")
             continue
 
-        run_paths = [
-            OUTPUT_BASE / pkg / mode.value / y / m / d for y, m, d in days
-        ]
+        run_paths = [OUTPUT_BASE / pkg / mode.value / y / m / d for y, m, d in days]
 
         try:
             data = generate_report(
-                run_paths, package_name=pkg, agent_type=mode.value,
+                run_paths,
+                package_name=pkg,
+                agent_type=mode.value,
                 source_code=source_code_map.get(pkg),
             )
             generated += 1
@@ -100,6 +100,4 @@ def report(
     if generated:
         console.print(f"\n[green]{generated} report(s) generated.[/]")
     else:
-        console.print(
-            "\n[yellow]No reports generated. Check --mode and --all-dates flags.[/]"
-        )
+        console.print("\n[yellow]No reports generated. Check --mode and --all-dates flags.[/]")

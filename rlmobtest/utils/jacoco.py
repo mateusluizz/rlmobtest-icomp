@@ -84,10 +84,13 @@ def merge_ec_files(coverage_dir: Path, jacococli: Path) -> Path | None:
 
     merged = coverage_dir / "merged.ec"
     cmd = [
-        "java", "-jar", str(jacococli),
+        "java",
+        "-jar",
+        str(jacococli),
         "merge",
         *[str(f) for f in ec_files],
-        "--destfile", str(merged),
+        "--destfile",
+        str(merged),
     ]
     try:
         subprocess.run(cmd, check=True, capture_output=True, text=True)
@@ -120,10 +123,15 @@ def generate_csv_report(
         Path to generated CSV or None on failure.
     """
     cmd = [
-        "java", "-jar", str(jacococli),
-        "report", str(ec_file),
-        "--classfiles", str(classfiles_dir),
-        "--csv", str(output_csv),
+        "java",
+        "-jar",
+        str(jacococli),
+        "report",
+        str(ec_file),
+        "--classfiles",
+        str(classfiles_dir),
+        "--csv",
+        str(output_csv),
     ]
     if html_dir:
         html_dir.mkdir(parents=True, exist_ok=True)
@@ -210,11 +218,16 @@ def _generate_legacy_report(
     classpath = f"{legacy_jar}{sep}{tools_dir}"
 
     cmd = [
-        "java", "-cp", classpath,
+        "java",
+        "-cp",
+        classpath,
         LEGACY_REPORT_CLASS,
-        "--ecdir", str(coverage_dir),
-        "--classfiles", str(classfiles_dir),
-        "--csv", str(output_csv),
+        "--ecdir",
+        str(coverage_dir),
+        "--classfiles",
+        str(classfiles_dir),
+        "--csv",
+        str(output_csv),
     ]
     if html_dir:
         html_dir.mkdir(parents=True, exist_ok=True)
@@ -292,7 +305,7 @@ def process_coverage(
 
     # Try each jacococli version (handles exec data version mismatches)
     result_csv = None
-    for jacococli in (all_jars or []):
+    for jacococli in all_jars or []:
         # Merge .ec files
         ec_file = merge_ec_files(coverage_dir, jacococli)
         if not ec_file:
@@ -301,7 +314,10 @@ def process_coverage(
         # Generate CSV + optional HTML report
         csv_path = coverage_dir / "coverage_report.csv"
         result_csv = generate_csv_report(
-            ec_file, classfiles, csv_path, jacococli,
+            ec_file,
+            classfiles,
+            csv_path,
+            jacococli,
             html_dir=html_dir,
             sourcefiles_dir=sourcefiles_dir,
         )
@@ -319,7 +335,9 @@ def process_coverage(
         console.print("  [yellow]Modern jacococli failed — trying legacy JaCoCo 0.7.4...[/]")
         csv_path = coverage_dir / "coverage_report.csv"
         result_csv = _generate_legacy_report(
-            coverage_dir, classfiles, csv_path,
+            coverage_dir,
+            classfiles,
+            csv_path,
             html_dir=html_dir,
             sourcefiles_dir=sourcefiles_dir,
         )

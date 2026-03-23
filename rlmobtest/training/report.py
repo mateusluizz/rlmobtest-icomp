@@ -169,10 +169,7 @@ def _compute_requirements_coverage(
             continue
 
         # Treat invalid IDs as N/A (match by action_type only)
-        rid_is_invalid = (
-            not rid or rid == "N/A" or rid == "nan"
-            or INVALID_ID_RE.search(rid)
-        )
+        rid_is_invalid = not rid or rid == "N/A" or rid == "nan" or INVALID_ID_RE.search(rid)
 
         if rid_is_invalid:
             if any(a == action_type for a, _ in actions_set):
@@ -181,11 +178,7 @@ def _compute_requirements_coverage(
             # Primeiro tenta match exato; se falhar, usa fuzzy matching (threshold 0.8)
             if (action_type, rid) in actions_set:
                 covered += 1
-            elif any(
-                a == action_type and _fuzzy_match_id(rid, r)
-                for a, r in actions_set
-                if r
-            ):
+            elif any(a == action_type and _fuzzy_match_id(rid, r) for a, r in actions_set if r):
                 covered += 1
 
     return covered, total
@@ -216,7 +209,8 @@ def _collect_jacoco_coverage(
         cov_dir = rp / "coverage"
         if cov_dir.exists() and any(cov_dir.glob("*.ec")):
             metrics = process_coverage(
-                cov_dir, package_name,
+                cov_dir,
+                package_name,
                 html_report=True,
                 source_code=source_code,
             )
@@ -278,8 +272,7 @@ def _collect_data(
         if req_df is not None:
             requirements_count += len(req_df)
             required_activities.update(
-                _ACTIVITY_SEP_RE.split(a.strip())[-1]
-                for a in req_df["activity"].unique()
+                _ACTIVITY_SEP_RE.split(a.strip())[-1] for a in req_df["activity"].unique()
             )
             all_requirements_dfs.append(req_df)
 
@@ -301,9 +294,7 @@ def _collect_data(
     min_reward = min(all_rewards) if all_rewards else 0
     total_activity_discoveries = sum(all_activity_counts)
     avg_episode_duration = (
-        sum(all_episode_durations) / len(all_episode_durations)
-        if all_episode_durations
-        else 0
+        sum(all_episode_durations) / len(all_episode_durations) if all_episode_durations else 0
     )
 
     hours, remainder = divmod(int(total_training_seconds), 3600)
@@ -326,11 +317,10 @@ def _collect_data(
         else None
     )
     req_covered, req_total = _compute_requirements_coverage(
-        run_paths, merged_reqs,
+        run_paths,
+        merged_reqs,
     )
-    requirements_coverage_pct = (
-        req_covered / req_total * 100 if req_total else 0
-    )
+    requirements_coverage_pct = req_covered / req_total * 100 if req_total else 0
 
     return {
         "package_name": package_name,
@@ -394,7 +384,7 @@ def _moving_avg(values: list, window: int = 10) -> list:
     kernel = [1.0 / window] * window
     result = []
     for i in range(len(values) - window + 1):
-        result.append(round(sum(values[i:i + window]) / window, 2))
+        result.append(round(sum(values[i : i + window]) / window, 2))
     return result
 
 
@@ -440,7 +430,7 @@ def _render_html(data: dict) -> str:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RLMobTest Report — {data['package_name']}</title>
+<title>RLMobTest Report — {data["package_name"]}</title>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 <style>
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
@@ -480,26 +470,28 @@ def _render_html(data: dict) -> str:
 <body>
 <div class="container">
   <h1>RLMobTest Pipeline Report</h1>
-  <p class="subtitle">{data['package_name']} &mdash; {data['agent_type']} &mdash; {data['generated_at']}</p>
+  <p class="subtitle">{data["package_name"]} &mdash; {data["agent_type"]} &mdash; {
+        data["generated_at"]
+    }</p>
 
   <!-- Training Overview -->
   <div class="card">
     <h2>Training Overview</h2>
     <div class="grid">
       <div class="stat">
-        <div class="value">{data['total_episodes']}</div>
+        <div class="value">{data["total_episodes"]}</div>
         <div class="label">Episodes</div>
       </div>
       <div class="stat">
-        <div class="value">{data['total_steps']}</div>
+        <div class="value">{data["total_steps"]}</div>
         <div class="label">Total Steps</div>
       </div>
       <div class="stat">
-        <div class="value">{data['training_time']}</div>
+        <div class="value">{data["training_time"]}</div>
         <div class="label">Training Time</div>
       </div>
       <div class="stat">
-        <div class="value">{data['avg_episode_duration']}s</div>
+        <div class="value">{data["avg_episode_duration"]}s</div>
         <div class="label">Avg Episode Duration</div>
       </div>
     </div>
@@ -510,15 +502,15 @@ def _render_html(data: dict) -> str:
     <h2>Rewards</h2>
     <div class="grid">
       <div class="stat">
-        <div class="value">{data['avg_reward']}</div>
+        <div class="value">{data["avg_reward"]}</div>
         <div class="label">Avg Reward</div>
       </div>
       <div class="stat">
-        <div class="value">{data['max_reward']}</div>
+        <div class="value">{data["max_reward"]}</div>
         <div class="label">Max Reward</div>
       </div>
       <div class="stat">
-        <div class="value">{data['min_reward']}</div>
+        <div class="value">{data["min_reward"]}</div>
         <div class="label">Min Reward</div>
       </div>
     </div>
@@ -527,68 +519,137 @@ def _render_html(data: dict) -> str:
   <!-- Coverage -->
   <div class="card">
     <h2>Coverage</h2>
-    {_progress_bar(data['activity_coverage_pct'], f"Activity Coverage ({data['discovered_activities']}/{data['required_activities']} activities)")}
-    {_progress_bar(data['requirements_coverage_pct'], f"Requirements Coverage ({data['requirements_covered']}/{data['requirements_total']} requirements)")}
-    {_progress_bar(data['transcription_coverage_pct'], f"Transcription Coverage ({data['transcriptions']}/{data['test_cases_generated']} test cases)")}
-    {_progress_bar(data['jacoco_line_coverage_pct'], "JaCoCo Line Coverage")}
-    {_progress_bar(data['jacoco_branch_coverage_pct'], "JaCoCo Branch Coverage")}
-    {_progress_bar(data['jacoco_method_coverage_pct'], "JaCoCo Method Coverage")}
-    {'<div style="margin-top: 0.5rem;"><a href="coverage/jacoco_html/index.html" style="color: #58a6ff; text-decoration: none;">View detailed JaCoCo report (per-class/method) &rarr;</a></div>' if data.get('jacoco_html_path') else ''}
+    {
+        _progress_bar(
+            data["activity_coverage_pct"],
+            f"Activity Coverage ({data['discovered_activities']}/{data['required_activities']} activities)",
+        )
+    }
+    {
+        _progress_bar(
+            data["requirements_coverage_pct"],
+            f"Requirements Coverage ({data['requirements_covered']}/{data['requirements_total']} requirements)",
+        )
+    }
+    {
+        _progress_bar(
+            data["transcription_coverage_pct"],
+            f"Transcription Coverage ({data['transcriptions']}/{data['test_cases_generated']} test cases)",
+        )
+    }
+    {_progress_bar(data["jacoco_line_coverage_pct"], "JaCoCo Line Coverage")}
+    {_progress_bar(data["jacoco_branch_coverage_pct"], "JaCoCo Branch Coverage")}
+    {_progress_bar(data["jacoco_method_coverage_pct"], "JaCoCo Method Coverage")}
+    {
+        '<div style="margin-top: 0.5rem;"><a href="coverage/jacoco_html/index.html" style="color: #58a6ff; text-decoration: none;">View detailed JaCoCo report (per-class/method) &rarr;</a></div>'
+        if data.get("jacoco_html_path")
+        else ""
+    }
   </div>
 
   <!-- Interactive Training Charts -->
-  {'<div class="card"><h2>Training Metrics</h2><div class="charts-grid">' if has_charts else ''}
+  {'<div class="card"><h2>Training Metrics</h2><div class="charts-grid">' if has_charts else ""}
 
-  {'<div class="chart-wrapper"><span class="chart-help">?</span><div class="chart-tooltip"><strong>Episode Rewards</strong><br>Total reward the agent accumulated per episode.<ul><li><strong>Rising trend</strong> — agent is learning better navigation</li><li><strong>Stable values</strong> — policy has converged</li><li><strong>Sharp drops</strong> — agent hit crashes, loops, or exited the app</li></ul></div><div id="chart-rewards"></div></div>' if has_charts else ''}
+  {
+        '<div class="chart-wrapper"><span class="chart-help">?</span><div class="chart-tooltip"><strong>Episode Rewards</strong><br>Total reward the agent accumulated per episode.<ul><li><strong>Rising trend</strong> — agent is learning better navigation</li><li><strong>Stable values</strong> — policy has converged</li><li><strong>Sharp drops</strong> — agent hit crashes, loops, or exited the app</li></ul></div><div id="chart-rewards"></div></div>'
+        if has_charts
+        else ""
+    }
 
-  {'<div class="chart-wrapper"><span class="chart-help">?</span><div class="chart-tooltip"><strong>Training Loss</strong><br>DQN neural network prediction error.<ul><li><strong>Gradual decrease</strong> — Q-value estimates are improving and the network is converging</li><li><strong>High/unstable values</strong> — possible hyperparameter issues (learning rate, batch size)</li></ul></div><div id="chart-loss"></div></div>' if has_charts else ''}
+  {
+        '<div class="chart-wrapper"><span class="chart-help">?</span><div class="chart-tooltip"><strong>Training Loss</strong><br>DQN neural network prediction error.<ul><li><strong>Gradual decrease</strong> — Q-value estimates are improving and the network is converging</li><li><strong>High/unstable values</strong> — possible hyperparameter issues (learning rate, batch size)</li></ul></div><div id="chart-loss"></div></div>'
+        if has_charts
+        else ""
+    }
 
-  {'<div class="chart-wrapper"><span class="chart-help">?</span><div class="chart-tooltip"><strong>Q-Values</strong><br>Average estimated value of available actions. Represents agent confidence in action quality.<ul><li><strong>Gradual growth</strong> — agent is learning to estimate action values better</li><li><strong>Very high values</strong> — possible overestimation bias (common in vanilla DQN)</li></ul></div><div id="chart-qvalues"></div></div>' if has_charts else ''}
+  {
+        '<div class="chart-wrapper"><span class="chart-help">?</span><div class="chart-tooltip"><strong>Q-Values</strong><br>Average estimated value of available actions. Represents agent confidence in action quality.<ul><li><strong>Gradual growth</strong> — agent is learning to estimate action values better</li><li><strong>Very high values</strong> — possible overestimation bias (common in vanilla DQN)</li></ul></div><div id="chart-qvalues"></div></div>'
+        if has_charts
+        else ""
+    }
 
-  {'<div class="chart-wrapper"><span class="chart-help">?</span><div class="chart-tooltip"><strong>Episode Duration</strong><br>How long each episode lasted in seconds.<ul><li><strong>Bars near the limit (300s)</strong> — agent used the full time budget, exploring broadly</li><li><strong>Short bars</strong> — episode ended early due to app crash or navigation to home screen</li></ul></div><div id="chart-duration"></div></div>' if has_charts else ''}
+  {
+        '<div class="chart-wrapper"><span class="chart-help">?</span><div class="chart-tooltip"><strong>Episode Duration</strong><br>How long each episode lasted in seconds.<ul><li><strong>Bars near the limit (300s)</strong> — agent used the full time budget, exploring broadly</li><li><strong>Short bars</strong> — episode ended early due to app crash or navigation to home screen</li></ul></div><div id="chart-duration"></div></div>'
+        if has_charts
+        else ""
+    }
 
-  {'<div class="chart-wrapper"><span class="chart-help">?</span><div class="chart-tooltip"><strong>Cumulative Reward</strong><br>Running sum of all rewards across episodes.<ul><li><strong>Linear growth</strong> — consistent reward per episode</li><li><strong>Accelerating curve</strong> — agent is progressively improving</li><li><strong>Plateau</strong> — agent stopped gaining significant rewards (saturation)</li></ul></div><div id="chart-cumulative"></div></div>' if has_charts else ''}
+  {
+        '<div class="chart-wrapper"><span class="chart-help">?</span><div class="chart-tooltip"><strong>Cumulative Reward</strong><br>Running sum of all rewards across episodes.<ul><li><strong>Linear growth</strong> — consistent reward per episode</li><li><strong>Accelerating curve</strong> — agent is progressively improving</li><li><strong>Plateau</strong> — agent stopped gaining significant rewards (saturation)</li></ul></div><div id="chart-cumulative"></div></div>'
+        if has_charts
+        else ""
+    }
 
-  {'<div class="chart-wrapper"><span class="chart-help">?</span><div class="chart-tooltip"><strong>Epsilon Decay</strong><br>Controls exploration vs exploitation balance.<ul><li><strong>High epsilon (~0.9)</strong> — mostly random actions (exploration)</li><li><strong>Low epsilon (~0.05)</strong> — mostly learned policy (exploitation)</li><li>Exponential decay transitions the agent from exploring to exploiting</li></ul></div><div id="chart-epsilon"></div></div>' if has_charts else ''}
+  {
+        '<div class="chart-wrapper"><span class="chart-help">?</span><div class="chart-tooltip"><strong>Epsilon Decay</strong><br>Controls exploration vs exploitation balance.<ul><li><strong>High epsilon (~0.9)</strong> — mostly random actions (exploration)</li><li><strong>Low epsilon (~0.05)</strong> — mostly learned policy (exploitation)</li><li>Exponential decay transitions the agent from exploring to exploiting</li></ul></div><div id="chart-epsilon"></div></div>'
+        if has_charts
+        else ""
+    }
 
-  {'<div class="chart-wrapper chart-wide"><span class="chart-help">?</span><div class="chart-tooltip"><strong>Activity Coverage</strong><br>Android activities (screens) discovered during training.<ul><li><strong>Green bars</strong> — unique activities found per episode</li><li><strong>Red line</strong> — cumulative total of distinct activities</li><li><strong>Rising line</strong> — new screens still being discovered</li><li><strong>Flat line</strong> — agent has explored most reachable screens</li></ul></div><div id="chart-activities"></div></div>' if has_charts else ''}
+  {
+        '<div class="chart-wrapper chart-wide"><span class="chart-help">?</span><div class="chart-tooltip"><strong>Activity Coverage</strong><br>Android activities (screens) discovered during training.<ul><li><strong>Green bars</strong> — unique activities found per episode</li><li><strong>Red line</strong> — cumulative total of distinct activities</li><li><strong>Rising line</strong> — new screens still being discovered</li><li><strong>Flat line</strong> — agent has explored most reachable screens</li></ul></div><div id="chart-activities"></div></div>'
+        if has_charts
+        else ""
+    }
 
-  {'</div></div>' if has_charts else ''}
+  {"</div></div>" if has_charts else ""}
 
   <!-- Artifacts -->
   <div class="card">
     <h2>Artifacts</h2>
     <table>
       <tr><th>Artifact</th><th>Count</th></tr>
-      <tr><td>Test Cases Generated</td><td>{data['test_cases_generated']}</td></tr>
-      <tr><td>Requirements (CSV rows)</td><td>{data['requirements_count']}</td></tr>
-      <tr><td>Required Activities</td><td>{data['required_activities']}</td></tr>
-      <tr><td>Transcriptions (LangChain)</td><td>{data['old_transcriptions']}</td></tr>
-      <tr><td>Transcriptions (CrewAI)</td><td>{data['transcriptions']}</td></tr>
-      <tr><td>Run Paths</td><td>{data['run_paths_count']}</td></tr>
+      <tr><td>Test Cases Generated</td><td>{data["test_cases_generated"]}</td></tr>
+      <tr><td>Requirements (CSV rows)</td><td>{data["requirements_count"]}</td></tr>
+      <tr><td>Required Activities</td><td>{data["required_activities"]}</td></tr>
+      <tr><td>Transcriptions (LangChain)</td><td>{data["old_transcriptions"]}</td></tr>
+      <tr><td>Transcriptions (CrewAI)</td><td>{data["transcriptions"]}</td></tr>
+      <tr><td>Run Paths</td><td>{data["run_paths_count"]}</td></tr>
     </table>
   </div>
 
   <div class="footer">
-    Generated by RLMobTest &mdash; {data['generated_at']}
+    Generated by RLMobTest &mdash; {data["generated_at"]}
   </div>
 </div>
 
-{'<script>' + _render_charts_js(
-    rewards, rewards_ma, losses, q_values, q_values_ma,
-    durations, avg_duration, cumulative_rewards,
-    eps_steps, eps_downsampled,
-    activity_counts, cumulative_activities,
-) + '</script>' if has_charts else ''}
+{
+        "<script>"
+        + _render_charts_js(
+            rewards,
+            rewards_ma,
+            losses,
+            q_values,
+            q_values_ma,
+            durations,
+            avg_duration,
+            cumulative_rewards,
+            eps_steps,
+            eps_downsampled,
+            activity_counts,
+            cumulative_activities,
+        )
+        + "</script>"
+        if has_charts
+        else ""
+    }
 </body>
 </html>"""
 
 
 def _render_charts_js(
-    rewards, rewards_ma, losses, q_values, q_values_ma,
-    durations, avg_duration, cumulative_rewards,
-    eps_steps, eps_downsampled,
-    activity_counts, cumulative_activities,
+    rewards,
+    rewards_ma,
+    losses,
+    q_values,
+    q_values_ma,
+    durations,
+    avg_duration,
+    cumulative_rewards,
+    eps_steps,
+    eps_downsampled,
+    activity_counts,
+    cumulative_activities,
 ) -> str:
     """Generate Plotly.js chart initialization code."""
     dark_layout = """{

@@ -1,5 +1,7 @@
 """Setup command for the RLMobTest CLI."""
 
+import urllib.error
+import urllib.request
 from typing import Annotated
 
 import typer
@@ -9,6 +11,15 @@ from rich.table import Table
 from rlmobtest.cli import app, console
 from rlmobtest.constants.paths import CONFIG_JSON_PATH
 from rlmobtest.utils.config_reader import ConfRead
+
+
+def _check_ollama() -> bool:
+    """Return True if Ollama server is reachable."""
+    try:
+        with urllib.request.urlopen("http://localhost:11434", timeout=3):
+            return True
+    except Exception:
+        return False
 
 
 @app.command()
@@ -38,6 +49,13 @@ def setup(
         rlmobtest setup --app com.example.app         # Setup specific app
         rlmobtest setup --force                       # Force rebuild
     """
+    while not _check_ollama():
+        console.print(
+            "\n[bold red]⚠ Servidor Ollama está offline.[/bold red]\n"
+            "[dim]Inicie o servidor com: [bold]ollama serve[/bold][/dim]\n"
+        )
+        typer.confirm("Pressione Enter após subir o servidor para continuar...", default=True)
+
     if agent:
         from rlmobtest.utils.build_agent import agent_setup as run_setup
     else:
@@ -57,7 +75,9 @@ def setup(
         configs = [c for c in configs if c.package_name in app_filter]
         not_found = set(app_filter) - {c.package_name for c in configs}
         if not_found:
-            console.print(f"[red]App(s) not found or coverage disabled: {', '.join(not_found)}[/red]")
+            console.print(
+                f"[red]App(s) not found or coverage disabled: {', '.join(not_found)}[/red]"
+            )
             raise typer.Exit(code=1)
 
     if not configs:

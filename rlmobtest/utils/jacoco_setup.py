@@ -27,11 +27,11 @@ logger = logging.getLogger(__name__)
 # Gradle major version → maximum compatible Java major version.
 # Source: https://docs.gradle.org/current/userguide/compatibility.html
 _GRADLE_MAX_JAVA: list[tuple[int, int]] = [
-    (8, 21),   # Gradle 8.x → Java 21
-    (7, 19),   # Gradle 7.x → Java 19
-    (6, 15),   # Gradle 6.x → Java 15
-    (5, 12),   # Gradle 5.x → Java 12
-    (4, 9),    # Gradle 4.x → Java 9
+    (8, 21),  # Gradle 8.x → Java 21
+    (7, 19),  # Gradle 7.x → Java 19
+    (6, 15),  # Gradle 6.x → Java 15
+    (5, 12),  # Gradle 5.x → Java 12
+    (4, 9),  # Gradle 4.x → Java 9
 ]
 
 # More conservative: what actually works without Groovy/reflection issues.
@@ -49,35 +49,35 @@ _GRADLE_RECOMMENDED_JAVA: list[tuple[int, int]] = [
 # AGP version → recommended Gradle version + recommended Java version.
 # Source: https://developer.android.com/build/releases/gradle-plugin
 _AGP_COMPAT: list[tuple[str, str, int]] = [
-    ("8.4", "8.6",   17),
-    ("8.3", "8.4",   17),
-    ("8.2", "8.2",   17),
-    ("8.1", "8.0",   17),
-    ("8.0", "8.0",   17),
-    ("7.4", "7.5",   11),
-    ("7.3", "7.4",   11),
+    ("8.4", "8.6", 17),
+    ("8.3", "8.4", 17),
+    ("8.2", "8.2", 17),
+    ("8.1", "8.0", 17),
+    ("8.0", "8.0", 17),
+    ("7.4", "7.5", 11),
+    ("7.3", "7.4", 11),
     ("7.2", "7.3.3", 11),
-    ("7.1", "7.2",   11),
-    ("7.0", "7.0",   11),
+    ("7.1", "7.2", 11),
+    ("7.0", "7.0", 11),
     ("4.2", "6.7.1", 11),
-    ("4.1", "6.5",   11),
+    ("4.1", "6.5", 11),
     ("4.0", "6.1.1", 11),
-    ("3.6", "5.6.4",  8),
-    ("3.5", "5.4.1",  8),
-    ("3.4", "5.1.1",  8),
+    ("3.6", "5.6.4", 8),
+    ("3.5", "5.4.1", 8),
+    ("3.4", "5.1.1", 8),
     ("3.3", "4.10.1", 8),
-    ("3.2", "4.6",    8),
-    ("3.1", "4.4",    8),
-    ("3.0", "4.1",    8),
-    ("2.3", "3.3",    8),
+    ("3.2", "4.6", 8),
+    ("3.1", "4.4", 8),
+    ("3.0", "4.1", 8),
+    ("2.3", "3.3", 8),
     ("2.2", "2.14.1", 8),
-    ("2.1", "2.12",   8),
-    ("2.0", "2.10",   8),
-    ("1.5", "2.10",   8),
-    ("1.3", "2.4",    8),
-    ("1.2", "2.4",    8),
-    ("1.1", "2.3",    8),
-    ("1.0", "2.3",    8),
+    ("2.1", "2.12", 8),
+    ("2.0", "2.10", 8),
+    ("1.5", "2.10", 8),
+    ("1.3", "2.4", 8),
+    ("1.2", "2.4", 8),
+    ("1.1", "2.3", 8),
+    ("1.0", "2.3", 8),
 ]
 
 
@@ -98,7 +98,10 @@ def _parse_java_version() -> int | None:
         return None
     try:
         result = subprocess.run(
-            [java, "-version"], capture_output=True, text=True, timeout=10,
+            [java, "-version"],
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         output = result.stderr or result.stdout
         m = re.search(r'"(\d+)[\._]', output)
@@ -164,7 +167,8 @@ zipStorePath=wrapper/dists
 
 
 def _generate_gradle_wrapper(
-    project_dir: Path, gradle_version: str,
+    project_dir: Path,
+    gradle_version: str,
 ) -> Path | None:
     """Generate Gradle wrapper files for a project that lacks them.
 
@@ -181,12 +185,12 @@ def _generate_gradle_wrapper(
     if system_gradle:
         # Use system gradle to generate a proper wrapper
         console.print(
-            f"  [dim]Generating wrapper via "
-            f"`gradle wrapper --gradle-version={gradle_version}`[/]"
+            f"  [dim]Generating wrapper via `gradle wrapper --gradle-version={gradle_version}`[/]"
         )
         result = subprocess.run(
             [
-                system_gradle, "wrapper",
+                system_gradle,
+                "wrapper",
                 f"--gradle-version={gradle_version}",
             ],
             cwd=project_dir,
@@ -196,10 +200,7 @@ def _generate_gradle_wrapper(
         )
         if result.returncode == 0 and gradlew.exists():
             gradlew.chmod(gradlew.stat().st_mode | 0o111)
-            console.print(
-                f"  [green]Generated Gradle wrapper "
-                f"(Gradle {gradle_version})[/]"
-            )
+            console.print(f"  [green]Generated Gradle wrapper (Gradle {gradle_version})[/]")
             return gradlew
         logger.warning(
             "gradle wrapper failed: %s",
@@ -227,10 +228,7 @@ def _generate_gradle_wrapper(
         )
         return None
 
-    console.print(
-        f"  [green]Generated wrapper properties "
-        f"(Gradle {gradle_version})[/]"
-    )
+    console.print(f"  [green]Generated wrapper properties (Gradle {gradle_version})[/]")
     return gradlew
 
 
@@ -401,9 +399,7 @@ def find_gradle_project(source_dir: Path) -> Path | None:
             )
             return None
 
-    console.print(
-        f"  [yellow]No Gradle project found in {source_dir}[/]"
-    )
+    console.print(f"  [yellow]No Gradle project found in {source_dir}[/]")
     return None
 
 
@@ -419,8 +415,8 @@ def _iter_project_candidates(source_dir: Path):
 
 
 _ANDROID_SDK_CANDIDATES = [
-    Path.home() / "Android" / "Sdk",           # Linux (Android Studio default)
-    Path.home() / "android-sdk",                # Manual install
+    Path.home() / "Android" / "Sdk",  # Linux (Android Studio default)
+    Path.home() / "android-sdk",  # Manual install
     Path.home() / "Library" / "Android" / "sdk",  # macOS
     Path("/opt/android-sdk"),
     Path("/usr/local/android-sdk"),
@@ -536,14 +532,11 @@ def _ensure_maven_central(project_dir: Path) -> None:
         if props_file.exists():
             props = props_file.read_text(encoding="utf-8")
             import re as _re
+
             m = _re.search(r"gradle-(\d+)\.", props)
             if m and int(m.group(1)) < 4:
                 use_url = True
-        google_line = (
-            f"maven {{ url '{_GOOGLE_MAVEN_URL}' }}"
-            if use_url
-            else "google()"
-        )
+        google_line = f"maven {{ url '{_GOOGLE_MAVEN_URL}' }}" if use_url else "google()"
         if "jcenter()" in text:
             text = text.replace("jcenter()", f"{google_line}\n        jcenter()")
             changed = True
@@ -551,14 +544,18 @@ def _ensure_maven_central(project_dir: Path) -> None:
             text = text.replace("mavenCentral()", f"{google_line}\n        mavenCentral()")
             changed = True
         if changed:
-            console.print("  [green]Added Google Maven repo to root build.gradle (Android support libs)[/]")
+            console.print(
+                "  [green]Added Google Maven repo to root build.gradle (Android support libs)[/]"
+            )
 
     # Add mavenCentral() if missing (jcenter replacement)
     if "mavenCentral()" not in text:
         if "jcenter()" in text:
             text = text.replace("jcenter()", "mavenCentral()\n        jcenter()")
             changed = True
-            console.print("  [green]Added mavenCentral() to root build.gradle (jcenter is deprecated)[/]")
+            console.print(
+                "  [green]Added mavenCentral() to root build.gradle (jcenter is deprecated)[/]"
+            )
 
     if changed:
         root_gradle.write_text(text, encoding="utf-8")
@@ -603,7 +600,9 @@ def instrument_source_code(project_dir: Path, package_name: str) -> bool:
             changed = True
             console.print("  [green]Added testCoverageEnabled to build.gradle[/]")
         else:
-            console.print("  [yellow]No buildTypes block found, add testCoverageEnabled manually[/]")
+            console.print(
+                "  [yellow]No buildTypes block found, add testCoverageEnabled manually[/]"
+            )
 
     if changed:
         build_gradle.write_text(gradle_text, encoding="utf-8")
@@ -676,10 +675,10 @@ def _diagnose_build_failure(output: str) -> None:
         installs = []
         if sdk_match:
             target = sdk_match.group(1)
-            installs.append(f"\"platforms;{target}\"")
+            installs.append(f'"platforms;{target}"')
         if bt_match:
             bt_ver = bt_match.group(1)
-            installs.append(f"\"build-tools;{bt_ver}\"")
+            installs.append(f'"build-tools;{bt_ver}"')
         console.print(
             f"\n  [bold red]Missing Android SDK components[/]\n"
             f"  [cyan]Fix: sdkmanager {' '.join(installs)}[/]\n"
@@ -761,9 +760,7 @@ def build_apk(
     else:
         system_gradle = shutil.which("gradle")
         if not system_gradle:
-            console.print(
-                "[yellow]No gradlew and no system gradle found.[/]"
-            )
+            console.print("[yellow]No gradlew and no system gradle found.[/]")
             return None
         build_cmd = [system_gradle, "assembleDebug"]
 

@@ -21,7 +21,7 @@ def coverage_reward(prev_coverage: dict, curr_coverage: dict) -> float:
 
     reward = 0.0
     if delta_lines > 0:
-        reward += delta_lines * 5      # +5 por cada 1% de linha nova coberta
+        reward += delta_lines * 5  # +5 por cada 1% de linha nova coberta
     if delta_branches > 0:
         reward += delta_branches * 10  # +10 por cada 1% de branch novo (mais raro, mais valioso)
     return reward

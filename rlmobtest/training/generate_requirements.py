@@ -155,9 +155,7 @@ def _infer_activity_from_filename(tc_path: Path, package_name: str) -> str | Non
     return f"{package_name}.{raw}"
 
 
-def _resolve_activity(
-    llm_activity: str, filename_hint: str | None, package_name: str
-) -> str:
+def _resolve_activity(llm_activity: str, filename_hint: str | None, package_name: str) -> str:
     """Choose the best activity name between LLM output and filename hint.
 
     If the LLM returned just the package name (no specific Activity class),
@@ -233,9 +231,7 @@ def process_app(config, client: ChatOllama, *, all_dates: bool = False) -> None:
                 progress.update(task, description=f"[cyan]{tc_path.name}[/]")
 
                 # Infer activity from TC filename (TC_.activity.path.Name_timestamp)
-                tc_activity_hint = _infer_activity_from_filename(
-                    tc_path, package_name
-                )
+                tc_activity_hint = _infer_activity_from_filename(tc_path, package_name)
 
                 result = process_test_case(tc_path, client)
 
@@ -257,12 +253,10 @@ def process_app(config, client: ChatOllama, *, all_dates: bool = False) -> None:
 
                         # Use LLM activity, but fall back to filename hint
                         # when LLM returns just the package name or nothing useful
-                        raw_activity = (
-                            action.get("activity") or "UnknownActivity"
-                        ).replace("/.", ".")
-                        activity = _resolve_activity(
-                            raw_activity, tc_activity_hint, package_name
+                        raw_activity = (action.get("activity") or "UnknownActivity").replace(
+                            "/.", "."
                         )
+                        activity = _resolve_activity(raw_activity, tc_activity_hint, package_name)
 
                         dataset.append(
                             {
@@ -278,9 +272,7 @@ def process_app(config, client: ChatOllama, *, all_dates: bool = False) -> None:
                             }
                         )
                 else:
-                    progress.console.print(
-                        f"  [yellow]{tc_path.name}[/] -> no actions"
-                    )
+                    progress.console.print(f"  [yellow]{tc_path.name}[/] -> no actions")
 
                 progress.advance(task)
 
@@ -289,9 +281,7 @@ def process_app(config, client: ChatOllama, *, all_dates: bool = False) -> None:
             continue
 
         # Show summary table
-        table = Table(
-            title=f"Requirements ({len(dataset)} actions)", show_lines=True
-        )
+        table = Table(title=f"Requirements ({len(dataset)} actions)", show_lines=True)
         table.add_column("Activity", style="dim")
         table.add_column("Field", style="cyan")
         table.add_column("ID", style="dim")
@@ -318,8 +308,7 @@ def process_app(config, client: ChatOllama, *, all_dates: bool = False) -> None:
 
         console.print(f"\n[bold green]requirements.csv saved:[/] {csv_path}")
         console.print(
-            f"[dim]{len(df)} action(s) exported "
-            f"({raw_count - len(df)} duplicates removed)[/]"
+            f"[dim]{len(df)} action(s) exported ({raw_count - len(df)} duplicates removed)[/]"
         )
 
 

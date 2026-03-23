@@ -53,7 +53,9 @@ def check(
         configs = [c for c in configs if c.package_name in app_filter]
         not_found = set(app_filter) - {c.package_name for c in configs}
         if not_found:
-            console.print(f"[red]App(s) not found or coverage disabled: {', '.join(not_found)}[/red]")
+            console.print(
+                f"[red]App(s) not found or coverage disabled: {', '.join(not_found)}[/red]"
+            )
             raise typer.Exit(code=1)
 
     if not configs:
@@ -62,8 +64,7 @@ def check(
 
     console.print(
         Panel.fit(
-            f"[bold cyan]Pre-flight Check[/bold cyan]\n"
-            f"[dim]{len(configs)} app(s) to check[/dim]",
+            f"[bold cyan]Pre-flight Check[/bold cyan]\n[dim]{len(configs)} app(s) to check[/dim]",
             border_style="cyan",
         )
     )
@@ -106,13 +107,13 @@ def check(
         if agp_ver:
             agp_detail = f"version {agp_ver}"
             if rec_gradle:
-                agp_detail += (
-                    f" → Gradle {rec_gradle}, Java {rec_java_agp}"
-                )
+                agp_detail += f" → Gradle {rec_gradle}, Java {rec_java_agp}"
             table.add_row("AGP", _icon(True), agp_detail)
         elif project_dir:
             table.add_row(
-                "AGP", _icon(False), "not detected in build.gradle",
+                "AGP",
+                _icon(False),
+                "not detected in build.gradle",
             )
 
         # Gradle
@@ -122,14 +123,9 @@ def check(
             if not (project_dir / "gradlew").exists() if project_dir else False:
                 gradle_detail += " [dim](wrapper will be generated)[/]"
         else:
-            gradle_detail = (
-                "not found" if project_dir else "no source_code"
-            )
+            gradle_detail = "not found" if project_dir else "no source_code"
             if rec_gradle:
-                gradle_detail += (
-                    f" [cyan](setup will generate "
-                    f"Gradle {rec_gradle} wrapper)[/]"
-                )
+                gradle_detail += f" [cyan](setup will generate Gradle {rec_gradle} wrapper)[/]"
         table.add_row(
             "Gradle (wrapper)",
             _icon(gradle_ver is not None or rec_gradle is not None),
@@ -137,9 +133,7 @@ def check(
         )
 
         # Compatibility
-        target_java = rec_java_agp or (
-            info["recommended_java"] if gradle_ver else None
-        )
+        target_java = rec_java_agp or (info["recommended_java"] if gradle_ver else None)
         if gradle_ver and java_ver:
             compat = info["java_compatible"]
             rec = info["recommended_java"]

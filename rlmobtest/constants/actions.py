@@ -46,9 +46,17 @@ ACTION_TYPE_ALIASES: dict[str, str] = {
 
 # action_types that represent log noise, not real user actions
 JUNK_ACTION_TYPES: set[str] = {
-    "error", "warn", "warning", "not_found", "not found",
-    "element_not_found", "element not found", "exception",
-    "failure", "timeout", "crash",
+    "error",
+    "warn",
+    "warning",
+    "not_found",
+    "not found",
+    "element_not_found",
+    "element not found",
+    "exception",
+    "failure",
+    "timeout",
+    "crash",
 }
 
 # Regex matching IDs that should be treated as N/A (not real resource IDs)

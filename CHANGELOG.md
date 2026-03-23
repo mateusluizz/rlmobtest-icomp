@@ -5,6 +5,16 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.1.16] - 2026-03-22
+
+### Added
+- Verificação do servidor Ollama no comando `rlmobtest setup`: se o servidor estiver offline, exibe aviso e aguarda o usuário iniciá-lo antes de prosseguir (`rlmobtest/cli/setup.py`)
+
+### Changed
+- Refatoração de estilo em toda a pasta `rlmobtest/`: ajuste de comprimento de linha, formatação consistente de listas, f-strings e chamadas de função (`cli/`, `training/`, `utils/`, `constants/`)
+
+---
+
 ## [0.1.15] - 2026-03-22
 
 ### Added

@@ -359,8 +359,10 @@ def run(
                                 run_logger.debug(
                                     "Coverage reward: +%.2f (Δlines=%.1f%%, Δbranches=%.1f%%)",
                                     cov_r,
-                                    curr_coverage.get("line_pct", 0) - prev_coverage.get("line_pct", 0),
-                                    curr_coverage.get("branch_pct", 0) - prev_coverage.get("branch_pct", 0),
+                                    curr_coverage.get("line_pct", 0)
+                                    - prev_coverage.get("line_pct", 0),
+                                    curr_coverage.get("branch_pct", 0)
+                                    - prev_coverage.get("branch_pct", 0),
                                 )
                             prev_coverage = curr_coverage
 
@@ -465,7 +467,9 @@ def run(
 
         if settings.is_req_analysis:
             console.print("\n[cyan]Starting transcription...[/cyan]")
-            tm.the_world_is_our(input_folder=paths.test_cases, output_folder=paths.old_transcriptions)
+            tm.the_world_is_our(
+                input_folder=paths.test_cases, output_folder=paths.old_transcriptions
+            )
 
         console.print(f"\n[green]Training complete! Log saved to: {log_path}[/green]")
 

@@ -35,17 +35,13 @@ def extract_xml_contents(archive_path: Path) -> list[tuple[str, str]]:
                 if member.isfile() and member.name.endswith(".xml"):
                     f = tar.extractfile(member)
                     if f is not None:
-                        results.append(
-                            (member.name, f.read().decode("utf-8", errors="ignore"))
-                        )
+                        results.append((member.name, f.read().decode("utf-8", errors="ignore")))
     else:
         with zipfile.ZipFile(archive_path, "r") as z:
             for entry in z.namelist():
                 if entry.endswith(".xml"):
                     with z.open(entry) as f:
-                        results.append(
-                            (entry, f.read().decode("utf-8", errors="ignore"))
-                        )
+                        results.append((entry, f.read().decode("utf-8", errors="ignore")))
 
     return results
 
@@ -70,14 +66,12 @@ def _parse_strings_xml(xml_contents: list[tuple[str, str]]) -> dict[str, str]:
 def _resolve_string_ref(ref: str, strings: dict[str, str]) -> str:
     """Resolve @string/name reference to its value, or return as-is."""
     if ref and ref.startswith("@string/"):
-        key = ref[len("@string/"):]
+        key = ref[len("@string/") :]
         return strings.get(key, ref)
     return ref or ""
 
 
-def _parse_manifest(
-    xml_contents: list[tuple[str, str]], strings: dict[str, str]
-) -> dict[str, str]:
+def _parse_manifest(xml_contents: list[tuple[str, str]], strings: dict[str, str]) -> dict[str, str]:
     """Parse AndroidManifest.xml to build activity_name → label mapping."""
     activity_labels: dict[str, str] = {}
     for filename, content in xml_contents:
@@ -122,12 +116,8 @@ def _parse_layout_xmls(
                     continue
                 short_id = widget_id.replace("@+id/", "").replace("@id/", "")
                 tag = elem.tag.split(".")[-1] if "." in elem.tag else elem.tag
-                hint = _resolve_string_ref(
-                    elem.get(f"{{{ANDROID_NS}}}hint", ""), strings
-                )
-                text = _resolve_string_ref(
-                    elem.get(f"{{{ANDROID_NS}}}text", ""), strings
-                )
+                hint = _resolve_string_ref(elem.get(f"{{{ANDROID_NS}}}hint", ""), strings)
+                text = _resolve_string_ref(elem.get(f"{{{ANDROID_NS}}}text", ""), strings)
 
                 comp: dict[str, str] = {"id": short_id, "type": tag}
                 if hint:
@@ -161,16 +151,12 @@ def _format_app_context(
 
     # Only include activity_* and dialog_* layouts (skip menu, drawable, etc.)
     activity_layouts = {
-        k: v
-        for k, v in layouts.items()
-        if k.startswith("activity_") or k.startswith("dialog_")
+        k: v for k, v in layouts.items() if k.startswith("activity_") or k.startswith("dialog_")
     }
     if activity_layouts:
         lines.append("### Screen Components")
         for layout_name, components in sorted(activity_layouts.items()):
-            screen_label = (
-                layout_name.replace("activity_", "").replace("_", " ").title()
-            )
+            screen_label = layout_name.replace("activity_", "").replace("_", " ").title()
             lines.append(f"**{screen_label}** ({layout_name}.xml):")
             for comp in components:
                 parts = [f'{comp["type"]} id="{comp["id"]}"']

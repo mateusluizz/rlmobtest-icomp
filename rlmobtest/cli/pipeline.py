@@ -127,10 +127,12 @@ def pipeline(
         # --- Step 1: Exploration (is_req=false) ---
         if not skip_exploration and not only_transcribe:
             exploration_time = config.time_exploration
-            console.print(Panel(
-                f"[bold]Step 1/4:[/] Exploration (is_req=false, {exploration_time}s)",
-                style="blue",
-            ))
+            console.print(
+                Panel(
+                    f"[bold]Step 1/4:[/] Exploration (is_req=false, {exploration_time}s)",
+                    style="blue",
+                )
+            )
             exploration_config = AppConfig(
                 apk_name=config.apk_name,
                 package_name=config.package_name,
@@ -171,10 +173,12 @@ def pipeline(
         # --- Step 3: Guided training (is_req=true) ---
         if not skip_guided and not only_transcribe:
             guided_time = config.time_guided
-            console.print(Panel(
-                f"[bold]Step 3/4:[/] Guided training (is_req=true, {guided_time}s)",
-                style="blue",
-            ))
+            console.print(
+                Panel(
+                    f"[bold]Step 3/4:[/] Guided training (is_req=true, {guided_time}s)",
+                    style="blue",
+                )
+            )
             guided_config = AppConfig(
                 apk_name=config.apk_name,
                 package_name=config.package_name,
@@ -207,7 +211,9 @@ def pipeline(
 
             _now = _dt.now()
             _today = (_now.strftime("%Y"), _now.strftime("%m"), _now.strftime("%d"))
-            _today_tc = OUTPUT_BASE / pkg / mode.value / _today[0] / _today[1] / _today[2] / "test_cases"
+            _today_tc = (
+                OUTPUT_BASE / pkg / mode.value / _today[0] / _today[1] / _today[2] / "test_cases"
+            )
             days = [_today] if _today_tc.is_dir() and any(_today_tc.iterdir()) else []
 
         if not days:
@@ -238,12 +244,12 @@ def pipeline(
         if days:
             from rlmobtest.training.report import generate_report
 
-            run_paths = [
-                OUTPUT_BASE / pkg / mode.value / y / m / d for y, m, d in days
-            ]
+            run_paths = [OUTPUT_BASE / pkg / mode.value / y / m / d for y, m, d in days]
             try:
                 generate_report(
-                    run_paths, package_name=pkg, agent_type=mode.value,
+                    run_paths,
+                    package_name=pkg,
+                    agent_type=mode.value,
                     source_code=config.source_code or None,
                 )
             except Exception as e:
