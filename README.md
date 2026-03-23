@@ -35,6 +35,88 @@
 
 ## Arquitetura
 
+### Camadas do Sistema
+
+```mermaid
+graph TB
+    subgraph CLI["CLI Layer — rlmobtest (Typer)"]
+        direction LR
+        setup["setup"]
+        pipeline["pipeline"]
+        train["train"]
+        check["check"]
+        report["report"]
+    end
+
+    subgraph Orchestration["Orchestration Layer"]
+        direction LR
+        loop["loop.py\nTraining Loop"]
+        gen_req["generate_requirements.py\nLLM Extraction"]
+        report_gen["report.py\nHTML Report"]
+    end
+
+    subgraph Core["Core Layer"]
+        direction LR
+        subgraph RL["RL Engine"]
+            agents["agents.py\nDQN / Dueling DQN"]
+            memory["memory.py\nPER Replay Buffer"]
+            reward["reward.py\nReward Function"]
+            dqn["dqn_model.py\nNeural Network"]
+        end
+        subgraph AndroidLayer["Android Interface"]
+            android_env["android_env.py\nUIAutomator2"]
+        end
+    end
+
+    subgraph AI["AI / LLM Layer"]
+        direction LR
+        crew["crew_transcriber\nCrewAI Agents"]
+        transcriber["transcriber.py\nLangChain"]
+        ollama[("Ollama Server\nlocalhost:11434")]
+    end
+
+    subgraph Coverage["Coverage Layer"]
+        direction LR
+        jacoco_setup["jacoco_setup.py\nBuild & Instrumentation"]
+        jacoco["jacoco.py\nCSV + HTML Reports"]
+        build_agent["build_agent.py\nAutonomous Build"]
+    end
+
+    subgraph Infra["Infrastructure Layer"]
+        direction LR
+        config_reader["config_reader.py\nPydantic Settings"]
+        paths["paths.py\nProject Paths"]
+        actions_const["actions.py\nAction Constants"]
+        settings[("settings.json")]
+    end
+
+    subgraph Output["Output Layer"]
+        direction LR
+        test_cases["test_cases/\nInteraction Logs"]
+        transcriptions["transcriptions/\nISO 29119-3"]
+        cov_out["coverage/\n.ec + HTML"]
+        metrics_out["metrics/\nJSON"]
+        ckpt["checkpoints/\n.pt"]
+        req_csv["requirements.csv"]
+        html_out["report.html"]
+    end
+
+    CLI --> Orchestration
+    Orchestration --> Core
+    Orchestration --> AI
+    Orchestration --> Coverage
+    Orchestration --> Output
+    Core --> Output
+    AI --> ollama
+    AI --> Output
+    Coverage --> Output
+    Infra --> CLI
+    Infra --> Orchestration
+    Infra --> Core
+```
+
+### Estrutura de Pastas
+
 ```
 rlmobtest-icomp/
 ├── rlmobtest/                        # Pacote principal
