@@ -39,7 +39,7 @@
 
 ```mermaid
 graph TB
-    subgraph CLI["CLI Layer — rlmobtest (Typer)"]
+    subgraph CLI["🖥️ CLI Layer — rlmobtest (Typer)"]
         direction LR
         setup["setup"]
         pipeline["pipeline"]
@@ -48,14 +48,14 @@ graph TB
         report["report"]
     end
 
-    subgraph Orchestration["Orchestration Layer"]
+    subgraph Orchestration["⚙️ Orchestration Layer"]
         direction LR
         loop["loop.py\nTraining Loop"]
         gen_req["generate_requirements.py\nLLM Extraction"]
         report_gen["report.py\nHTML Report"]
     end
 
-    subgraph Core["Core Layer"]
+    subgraph Core["🧠 Core Layer"]
         direction LR
         subgraph RL["RL Engine"]
             agents["agents.py\nDQN / Dueling DQN"]
@@ -68,21 +68,21 @@ graph TB
         end
     end
 
-    subgraph AI["AI / LLM Layer"]
+    subgraph AI["🤖 AI / LLM Layer"]
         direction LR
         crew["crew_transcriber\nCrewAI Agents"]
         transcriber["transcriber.py\nLangChain"]
         ollama[("Ollama Server\nlocalhost:11434")]
     end
 
-    subgraph Coverage["Coverage Layer"]
+    subgraph Coverage["📊 Coverage Layer"]
         direction LR
         jacoco_setup["jacoco_setup.py\nBuild & Instrumentation"]
         jacoco["jacoco.py\nCSV + HTML Reports"]
         build_agent["build_agent.py\nAutonomous Build"]
     end
 
-    subgraph Infra["Infrastructure Layer"]
+    subgraph Infra["🗂️ Infrastructure Layer"]
         direction LR
         config_reader["config_reader.py\nPydantic Settings"]
         paths["paths.py\nProject Paths"]
@@ -90,7 +90,7 @@ graph TB
         settings[("settings.json")]
     end
 
-    subgraph Output["Output Layer"]
+    subgraph Output["📁 Output Layer"]
         direction LR
         test_cases["test_cases/\nInteraction Logs"]
         transcriptions["transcriptions/\nISO 29119-3"]
@@ -113,6 +113,22 @@ graph TB
     Infra --> CLI
     Infra --> Orchestration
     Infra --> Core
+
+    classDef cliStyle    fill:#1e3a5f,stroke:#4a9eff,color:#e0f0ff
+    classDef orchStyle   fill:#2d1b4e,stroke:#9b59b6,color:#f0e6ff
+    classDef coreStyle   fill:#1a3d2b,stroke:#2ecc71,color:#e0ffe8
+    classDef aiStyle     fill:#3d2b1a,stroke:#e67e22,color:#fff3e0
+    classDef covStyle    fill:#3d1a1a,stroke:#e74c3c,color:#ffe0e0
+    classDef infraStyle  fill:#2b2b1a,stroke:#f1c40f,color:#fffbe0
+    classDef outputStyle fill:#1a2b3d,stroke:#1abc9c,color:#e0fff8
+
+    class setup,pipeline,train,check,report cliStyle
+    class loop,gen_req,report_gen orchStyle
+    class agents,memory,reward,dqn,android_env coreStyle
+    class crew,transcriber,ollama aiStyle
+    class jacoco_setup,jacoco,build_agent covStyle
+    class config_reader,paths,actions_const,settings infraStyle
+    class test_cases,transcriptions,cov_out,metrics_out,ckpt,req_csv,html_out outputStyle
 ```
 
 ### Estrutura de Pastas
