@@ -244,34 +244,6 @@ Sem opcoes. Exibe:
 
 ## Scripts Standalone
 
-### `python run_pipeline.py` — Pipeline via script
-
-Equivalente ao `rlmobtest pipeline`, mas como script Python independente.
-
-```bash
-python run_pipeline.py [OPCOES]
-```
-
-| Opcao | Tipo | Padrao | Descricao |
-|-------|------|--------|-----------|
-| `--mode` | str | `improved` | Modo DQN: `original` ou `improved` |
-| `--max-steps` | int | `100` | Maximo de passos por episodio |
-| `--llm-model` | str | `gemma3:12b` | Modelo Ollama |
-| `--all-dates` | flag | `False` | Processar todas as datas |
-| `--skip-exploration` | flag | `False` | Pular exploracao |
-| `--skip-requirements` | flag | `False` | Pular requirements |
-| `--skip-guided` | flag | `False` | Pular treino guiado |
-| `--only-transcribe` | flag | `False` | Somente transcricao |
-
-**Exemplos:**
-
-```bash
-python run_pipeline.py --only-transcribe --all-dates
-python run_pipeline.py --mode original --max-steps 150
-```
-
----
-
 ### `python -m rlmobtest.transcription.crew_transcriber` — Transcricao avulsa
 
 Executa a transcricao CrewAI de forma independente do pipeline.

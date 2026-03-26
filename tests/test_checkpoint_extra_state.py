@@ -65,27 +65,39 @@ class TestExtraStatePersistence:
         activities = ["MainActivity", "SettingsActivity", "LoginActivity"]
 
         path = mgr.save(
-            model, optimizer, mock_metrics, episode=5, steps_done=100,
+            model,
+            optimizer,
+            mock_metrics,
+            episode=5,
+            steps_done=100,
             extra_state={"visited_activities": activities},
         )
         _, _, extra = mgr.load(path, model, optimizer)
 
         assert extra["visited_activities"] == activities
 
-    def test_visited_activities_as_set_roundtrip(self, checkpoint_dir, model, optimizer, mock_metrics):
+    def test_visited_activities_as_set_roundtrip(
+        self, checkpoint_dir, model, optimizer, mock_metrics
+    ):
         """Set serializado como list deve ser recuperável como set."""
         mgr = ModelCheckpoint(checkpoint_dir)
         activities = {"MainActivity", "ProfileActivity", "HomeActivity"}
 
         path = mgr.save(
-            model, optimizer, mock_metrics, episode=10, steps_done=500,
+            model,
+            optimizer,
+            mock_metrics,
+            episode=10,
+            steps_done=500,
             extra_state={"visited_activities": list(activities)},
         )
         _, _, extra = mgr.load(path, model, optimizer)
 
         assert set(extra["visited_activities"]) == activities
 
-    def test_empty_extra_state_returns_empty_dict(self, checkpoint_dir, model, optimizer, mock_metrics):
+    def test_empty_extra_state_returns_empty_dict(
+        self, checkpoint_dir, model, optimizer, mock_metrics
+    ):
         """Checkpoint salvo sem extra_state retorna {} no load (compatibilidade retroativa)."""
         mgr = ModelCheckpoint(checkpoint_dir)
 
@@ -94,11 +106,17 @@ class TestExtraStatePersistence:
 
         assert extra == {}
 
-    def test_extra_state_none_treated_as_empty(self, checkpoint_dir, model, optimizer, mock_metrics):
+    def test_extra_state_none_treated_as_empty(
+        self, checkpoint_dir, model, optimizer, mock_metrics
+    ):
         mgr = ModelCheckpoint(checkpoint_dir)
 
         path = mgr.save(
-            model, optimizer, mock_metrics, episode=1, steps_done=10,
+            model,
+            optimizer,
+            mock_metrics,
+            episode=1,
+            steps_done=10,
             extra_state=None,
         )
         _, _, extra = mgr.load(path, model, optimizer)
@@ -115,7 +133,11 @@ class TestExtraStatePersistence:
         }
 
         path = mgr.save(
-            model, optimizer, mock_metrics, episode=2, steps_done=200,
+            model,
+            optimizer,
+            mock_metrics,
+            episode=2,
+            steps_done=200,
             extra_state=state,
         )
         _, _, extra = mgr.load(path, model, optimizer)
@@ -137,7 +159,11 @@ class TestLoadSignatureBackwardCompatibility:
     def test_episode_and_steps_preserved(self, checkpoint_dir, model, optimizer, mock_metrics):
         mgr = ModelCheckpoint(checkpoint_dir)
         path = mgr.save(
-            model, optimizer, mock_metrics, episode=42, steps_done=9999,
+            model,
+            optimizer,
+            mock_metrics,
+            episode=42,
+            steps_done=9999,
             extra_state={"visited_activities": ["X"]},
         )
 
@@ -152,7 +178,11 @@ class TestLoadSignatureBackwardCompatibility:
         original_weights = model.fc.weight.data.clone()
 
         path = mgr.save(
-            model, optimizer, mock_metrics, episode=1, steps_done=1,
+            model,
+            optimizer,
+            mock_metrics,
+            episode=1,
+            steps_done=1,
             extra_state={"visited_activities": []},
         )
 
@@ -168,13 +198,19 @@ class TestLoadSignatureBackwardCompatibility:
 class TestMultiRunScenario:
     """Simulação do fluxo multi-run: save no final da Run 1, load no início da Run 2."""
 
-    def test_activities_accumulate_across_runs(self, checkpoint_dir, model, optimizer, mock_metrics):
+    def test_activities_accumulate_across_runs(
+        self, checkpoint_dir, model, optimizer, mock_metrics
+    ):
         mgr = ModelCheckpoint(checkpoint_dir)
 
         # Run 1: explora 3 activities
         run1_activities = {"MainActivity", "LoginActivity"}
         path = mgr.save(
-            model, optimizer, mock_metrics, episode=20, steps_done=1000,
+            model,
+            optimizer,
+            mock_metrics,
+            episode=20,
+            steps_done=1000,
             extra_state={"visited_activities": list(run1_activities)},
         )
 
@@ -187,7 +223,11 @@ class TestMultiRunScenario:
 
         # Salva Run 2
         path2 = mgr.save(
-            model, optimizer, mock_metrics, episode=40, steps_done=2000,
+            model,
+            optimizer,
+            mock_metrics,
+            episode=40,
+            steps_done=2000,
             extra_state={"visited_activities": list(loaded_activities)},
         )
 

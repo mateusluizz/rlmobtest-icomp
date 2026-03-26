@@ -82,7 +82,7 @@ def resolve_best_id(mentioned_id, apk_base, package_name):
 
 ## 3. Estratégias quando a cobertura estagna
 
-### 3.1 Aumentar diversidade de inputs (curto prazo)
+### 3.1 Aumentar diversidade de inputs (curto prazo) 🔜(Analisar)
 
 **Status:** Parcialmente implementado (`SMART_INPUTS` em v0.1.13)
 

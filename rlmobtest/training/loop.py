@@ -1,6 +1,8 @@
 """Main training loop: run() and run_all() entry points."""
 
 import logging
+import random
+from collections import deque
 from datetime import datetime
 from itertools import count
 from pathlib import Path
@@ -25,6 +27,9 @@ console = Console()
 # Intervalo (em steps) entre verificações de cobertura JaCoCo.
 # Menor = sinal de recompensa mais frequente, maior overhead por verificação.
 COVERAGE_CHECK_INTERVAL = 5
+JACOCO_PRIORITY_INTERVAL = 5  # Episodes between JaCoCo-guided priority updates
+JACOCO_LOW_COVERAGE_THRESHOLD = 20.0  # Classes below this line% get exploration bonus
+EPSILON_RESTART_STALE_EPISODES = 5  # Stagnant episodes before epsilon reset
 
 
 def _accumulate_coverage(coverage_path: Path, cumulative_path: Path, logger) -> None:
@@ -65,6 +70,34 @@ def _get_step_coverage(coverage_path: Path, package_name: str) -> dict:
         return process_coverage(coverage_path, package_name, html_report=False) or {}
     except Exception:
         return {}
+
+
+def _get_priority_activities(csv_path: Path, known_activities: set[str]) -> set[str]:
+    """Parse JaCoCo CSV to find activities whose classes have low line coverage.
+
+    Matches class simple-names (e.g. 'LoginActivity') against the tail of each
+    known activity string (e.g. 'com.example.LoginActivity').
+    """
+    if not csv_path.exists():
+        return set()
+    try:
+        import pandas as pd
+
+        df = pd.read_csv(csv_path)
+        if df.empty:
+            return set()
+        line_total = df["LINE_MISSED"] + df["LINE_COVERED"]
+        line_pct = df["LINE_COVERED"].div(line_total.where(line_total > 0, other=1)) * 100
+        low_cov_classes = set(df.loc[line_pct < JACOCO_LOW_COVERAGE_THRESHOLD, "CLASS"].str.lower())
+
+        priority: set[str] = set()
+        for activity in known_activities:
+            short = activity.split(".")[-1].lower()
+            if short in low_cov_classes:
+                priority.add(activity)
+        return priority
+    except Exception:
+        return set()
 
 
 def setup_logging(run_id: str, logs_path: Path):
@@ -210,6 +243,10 @@ def run(
     # Load checkpoint if provided
     start_episode = 0
     all_visited_activities: set[str] = set()  # persiste entre runs via checkpoint
+    all_visited_elements: set[tuple[str, str]] = set()  # (activity, resourceid) across runs
+    priority_activities: set[str] = set()  # Low JaCoCo-coverage activities
+    _jacoco_stale_episodes: int = 0  # Consecutive episodes without coverage improvement
+    _last_jacoco_line_pct: float = 0.0  # Last recorded JaCoCo line coverage %
     if checkpoint_path:
         console.print(f"\n[cyan]Loading checkpoint: {checkpoint_path}[/cyan]")
         try:
@@ -218,6 +255,9 @@ def run(
                 checkpoint_path, model, agent.optimizer
             )
             all_visited_activities = set(extra_state.get("visited_activities", []))
+            all_visited_elements = {
+                tuple(e) for e in extra_state.get("visited_elements", [])
+            }
             console.print(
                 f"[green]Resumed from episode {start_episode}, step {agent.steps_done}[/green]"
             )
@@ -277,12 +317,22 @@ def run(
                 req_path = paths.run_path / "requirements.csv"
                 env.get_requirements(str(req_path))
 
+            action_window: deque[int] = deque(maxlen=10)  # loop detection
+            force_exploration_steps: int = 0  # forced random exploration counter
+
             for t in count():
                 if len(actions) > 0:
                     if state.shape[3] > state.shape[2]:
                         state = state.permute(0, 1, 3, 2)
 
-                    action, epsilon, q_value = agent.select_action(state, actions)
+                    if force_exploration_steps > 0:
+                        n = min(len(actions), agent.num_actions - 1)
+                        action = LongTensor([[random.randrange(n)]])
+                        epsilon = 1.0
+                        q_value = 0.0
+                        force_exploration_steps -= 1
+                    else:
+                        action, epsilon, q_value = agent.select_action(state, actions)
 
                     reward = calculate_reward(
                         action,
@@ -298,7 +348,23 @@ def run(
                     previous_action = action
                     episode_reward += reward
 
-                    next_state, actions, crash, activity = env.step(actions[action[0][0]])
+                    # Capture selected action before env.step (actions list is replaced)
+                    selected_action_obj = actions[action[0][0]]
+                    action_resourceid = getattr(selected_action_obj, "resourceid", "") or ""
+                    activity_before_step = activity_actual
+
+                    # Loop detection: penalize cycling through ≤2 unique actions
+                    action_window.append(action[0][0].item())
+                    if len(action_window) == action_window.maxlen and len(set(action_window)) <= 2:
+                        reward -= 5
+                        force_exploration_steps = 5
+                        run_logger.debug(
+                            "Loop detected: %d unique actions in last %d steps (-5, forcing exploration)",
+                            len(set(action_window)),
+                            action_window.maxlen,
+                        )
+
+                    next_state, actions, crash, activity = env.step(selected_action_obj)
 
                     if next_state is not None and next_state.shape[3] > next_state.shape[2]:
                         next_state = next_state.permute(0, 1, 3, 2)
@@ -337,6 +403,12 @@ def run(
                             run_logger.debug("Multi-run bonus: new activity %s (+20)", activity)
                         else:
                             reward += 10
+                        # Extra bonus for low-coverage activities (JaCoCo-guided exploration)
+                        if activity in priority_activities:
+                            reward += 20
+                            run_logger.debug(
+                                "Priority bonus: low-coverage activity %s (+20)", activity
+                            )
                         all_visited_activities.add(activity)
                         activities.append(activity)
                         metrics.log_activity(activity)
@@ -347,6 +419,18 @@ def run(
                         reward = -5
                         next_state = None
                         run_logger.warning("Crash detected at step %d", t)
+
+                    # Curiosity bonus: reward unexplored (activity, element) pairs across runs
+                    if action_resourceid:
+                        element_key = (activity_before_step, action_resourceid)
+                        if element_key not in all_visited_elements:
+                            reward += 15
+                            all_visited_elements.add(element_key)
+                            run_logger.debug(
+                                "Curiosity bonus: new element %s in %s (+15)",
+                                action_resourceid,
+                                activity_before_step,
+                            )
 
                     # Recompensa JaCoCo: bônus por cobertura nova a cada N steps
                     if settings.is_coverage and (t + 1) % COVERAGE_CHECK_INTERVAL == 0:
@@ -423,9 +507,45 @@ def run(
                     metrics,
                     episode,
                     agent.steps_done,
-                    extra_state={"visited_activities": list(all_visited_activities)},
+                    extra_state={
+                        "visited_activities": list(all_visited_activities),
+                        "visited_elements": [list(e) for e in all_visited_elements],
+                    },
                 )
                 metrics.print_summary()
+
+            # JaCoCo-guided exploration: refresh priority activities every N episodes
+            if settings.is_coverage and episode % JACOCO_PRIORITY_INTERVAL == 0:
+                csv_path = paths.cumulative_coverage / "coverage_report.csv"
+                new_priority = _get_priority_activities(csv_path, all_visited_activities)
+                if new_priority != priority_activities:
+                    priority_activities = new_priority
+                    if priority_activities:
+                        console.print(
+                            f"   [dim]Priority activities (low JaCoCo coverage): "
+                            f"{len(priority_activities)}[/dim]"
+                        )
+                    run_logger.info("Priority activities updated: %s", priority_activities)
+
+            # Epsilon restart: reset when coverage has stagnated
+            if settings.is_coverage:
+                curr_line_pct = prev_coverage.get("line_pct", 0.0)
+                if curr_line_pct > _last_jacoco_line_pct + 0.5:
+                    _last_jacoco_line_pct = curr_line_pct
+                    _jacoco_stale_episodes = 0
+                else:
+                    _jacoco_stale_episodes += 1
+                    if _jacoco_stale_episodes >= EPSILON_RESTART_STALE_EPISODES:
+                        agent.reset_epsilon()
+                        _jacoco_stale_episodes = 0
+                        console.print(
+                            "   [yellow]Coverage stagnated: epsilon reset for more exploration[/yellow]"
+                        )
+                        run_logger.info(
+                            "Epsilon reset after %d stagnant episodes (line_pct=%.1f%%)",
+                            EPSILON_RESTART_STALE_EPISODES,
+                            curr_line_pct,
+                        )
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Training interrupted by user[/yellow]")
@@ -442,7 +562,10 @@ def run(
             metrics,
             episode,
             agent.steps_done,
-            extra_state={"visited_activities": list(all_visited_activities)},
+            extra_state={
+                "visited_activities": list(all_visited_activities),
+                "visited_elements": [list(e) for e in all_visited_elements],
+            },
         )
         metrics.save()
         metrics.plot_metrics()

@@ -7,9 +7,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 metrics/
+experiment_output/
 
 # Output directories (generated during execution)
-output/*
 apks/*
 content/*
 

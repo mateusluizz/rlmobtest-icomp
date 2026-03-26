@@ -56,7 +56,9 @@ class TestFuzzyMatchIdThreshold:
     def test_custom_threshold_strict(self):
         # Com threshold 1.0 só aceita ids locais idênticos
         assert _fuzzy_match_id("com.foo:id/btn_save", "com.bar:id/btn_save", threshold=1.0) is True
-        assert _fuzzy_match_id("com.foo:id/btn_save", "com.bar:id/btn_save2", threshold=1.0) is False
+        assert (
+            _fuzzy_match_id("com.foo:id/btn_save", "com.bar:id/btn_save2", threshold=1.0) is False
+        )
 
     def test_custom_threshold_lenient(self):
         # Com threshold 0.5, ids parecidos também são aceitos
@@ -174,8 +176,20 @@ class TestRequirementsCoverageFuzzyMatch:
 
         reqs = pd.DataFrame(
             [
-                {"activity": "MainActivity", "field": "a", "id": "com.app1:id/btn_save", "action_type": "click", "value": ""},
-                {"activity": "MainActivity", "field": "b", "id": "com.app1:id/btn_cancel", "action_type": "click", "value": ""},
+                {
+                    "activity": "MainActivity",
+                    "field": "a",
+                    "id": "com.app1:id/btn_save",
+                    "action_type": "click",
+                    "value": "",
+                },
+                {
+                    "activity": "MainActivity",
+                    "field": "b",
+                    "id": "com.app1:id/btn_cancel",
+                    "action_type": "click",
+                    "value": "",
+                },
             ]
         )
 

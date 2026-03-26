@@ -1,7 +1,5 @@
 """Setup command for the RLMobTest CLI."""
 
-import urllib.error
-import urllib.request
 from typing import Annotated
 
 import typer
@@ -11,15 +9,7 @@ from rich.table import Table
 from rlmobtest.cli import app, console
 from rlmobtest.constants.paths import CONFIG_JSON_PATH
 from rlmobtest.utils.config_reader import ConfRead
-
-
-def _check_ollama() -> bool:
-    """Return True if Ollama server is reachable."""
-    try:
-        with urllib.request.urlopen("http://localhost:11434", timeout=3):
-            return True
-    except Exception:
-        return False
+from rlmobtest.utils.ollama import check_ollama_server
 
 
 @app.command()
@@ -49,7 +39,7 @@ def setup(
         rlmobtest setup --app com.example.app         # Setup specific app
         rlmobtest setup --force                       # Force rebuild
     """
-    while not _check_ollama():
+    while not check_ollama_server():
         console.print(
             "\n[bold red]⚠ Servidor Ollama está offline.[/bold red]\n"
             "[dim]Inicie o servidor com: [bold]ollama serve[/bold][/dim]\n"

@@ -9,6 +9,7 @@ from rlmobtest.cli import DQNMode, app, console, print_device_info
 from rlmobtest.constants.llm import DEFAULT_LLM_MODEL, DEFAULT_OLLAMA_BASE_URL
 from rlmobtest.constants.paths import CONFIG_JSON_PATH, OUTPUT_BASE
 from rlmobtest.utils.config_reader import AppConfig, ConfRead
+from rlmobtest.utils.ollama import check_ollama_model
 
 
 @app.command()
@@ -65,6 +66,14 @@ def pipeline(
         rlmobtest pipeline --only-transcribe        # Only step 4
         rlmobtest pipeline --app protect.budgetwatch  # Single app
     """
+    if not check_ollama_model(llm_model, DEFAULT_OLLAMA_BASE_URL):
+        console.print(
+            f"\n[bold red]⚠ Ollama indisponível ou modelo '{llm_model}' não instalado.[/bold red]\n"
+            f"[dim]Verifique se o servidor está rodando: [bold]ollama serve[/bold]\n"
+            f"E se o modelo está instalado: [bold]ollama pull {llm_model}[/bold][/dim]\n"
+        )
+        raise typer.Exit(code=1)
+
     from langchain_ollama import ChatOllama
 
     from rlmobtest.training import run

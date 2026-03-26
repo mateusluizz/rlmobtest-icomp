@@ -85,6 +85,10 @@ class OriginalAgent:
 
         return loss.item()
 
+    def reset_epsilon(self) -> None:
+        """Reset epsilon to force more exploration (call when coverage stagnates)."""
+        self.steps_done = 0
+
 
 class ImprovedAgent:
     """Agente DQN melhorado com Double DQN, Target Network, Dueling e PER."""
@@ -200,3 +204,7 @@ class ImprovedAgent:
             self.target_net.load_state_dict(self.policy_net.state_dict())
 
         return loss.item()
+
+    def reset_epsilon(self) -> None:
+        """Reset epsilon to force more exploration (call when coverage stagnates)."""
+        self.steps_done = 0

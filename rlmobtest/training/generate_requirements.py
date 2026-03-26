@@ -92,16 +92,42 @@ def process_test_case(file_path: Path, client: ChatOllama) -> dict | None:
         return None
 
 
+# Widget-type prefixes used in Android resource IDs (e.g., btn_login → login)
+_WIDGET_PREFIXES = re.compile(
+    r"^(et|til|btn|tv|iv|cb|rb|spinner|cv|lv|rv|action|view|tab|tabs|drawer|nav)_",
+    re.IGNORECASE,
+)
+
+
+def _normalize_widget_id(id_str: str) -> str:
+    """Remove widget-type prefix for semantic comparison of Android resource IDs."""
+    return _WIDGET_PREFIXES.sub("", id_str).lower()
+
+
 def resolve_best_id(
     mentioned_id: str | None, apk_base: list[dict], package_name: str
 ) -> tuple[str, str]:
-    """Resolve a mentioned ID to the full resource ID from the APK base."""
+    """Resolve a mentioned ID to the full resource ID from the APK base.
+
+    Two-pass matching:
+    1. Exact match — fast, no regression.
+    2. Normalized prefix match — handles LLM prefix mismatches (btn_login vs login_btn).
+    """
     if not mentioned_id:
         return "N/A", "view"
     cleaned = mentioned_id.replace("@+id/", "").replace("id/", "").lower()
+
+    # Pass 1: exact match
     for item in apk_base:
         if cleaned == item["short_id"].lower():
             return item["full_id"], item["field"].lower()
+
+    # Pass 2: normalized prefix match (strips widget-type prefix before comparing)
+    norm_cleaned = _normalize_widget_id(cleaned)
+    for item in apk_base:
+        if norm_cleaned == _normalize_widget_id(item["short_id"]):
+            return item["full_id"], item["field"].lower()
+
     return f"{package_name}:id/{cleaned}", "view"
 
 
