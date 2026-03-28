@@ -5,6 +5,16 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.1.17] - 2026-03-28
+
+### Added
+- `Dockerfile`: imagem Ubuntu 24.04 com uv, asdf v0.18.0 (plugins Java e Gradle), Android SDK cmdline-tools, Oh My Zsh com zsh-autosuggestions e zsh-completions, e projeto instalado via `uv sync --frozen`
+- `docker-compose.yml`: orquestração com dois serviços (`ollama` e `rlmobtest`) na mesma rede bridge, volumes para `inputs/`, `output/` e `rlmobtest/config/`, e `command: zsh` para abrir terminal interativo
+- Seção "Instalação via Docker" no `README.md` com tutorial completo de uso via containers
+- `OLLAMA_BASE_URL` lida de variável de ambiente em `rlmobtest/constants/llm.py` (fallback: `http://localhost:11434`), permitindo apontar para o container Ollama sem alterar código
+
+---
+
 ## [0.1.16] - 2026-03-22
 
 ### Added

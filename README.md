@@ -297,6 +297,104 @@ rlmobtest check
 
 ---
 
+## Instalação via Docker
+
+Esta é a forma mais simples de rodar o projeto em qualquer máquina sem instalar Java, Gradle, Android SDK ou uv manualmente.
+
+### Pré-requisitos
+
+- [Docker](https://docs.docker.com/get-docker/) (20.10+)
+- [Docker Compose](https://docs.docker.com/compose/install/) (v2+)
+- Dispositivo Android ou emulador **acessível via ADB na máquina host**
+
+> O ADB roda no **host**, não dentro do container. O container se comunica com o dispositivo via `host.docker.internal` ou IP da máquina host.
+
+### 1. Clone o repositório
+
+```bash
+git clone https://github.com/mateusluizz/rlmobtest-icomp.git
+cd rlmobtest-icomp
+```
+
+### 2. Configure o `settings.json`
+
+Edite `rlmobtest/config/settings.json` com os dados do seu app antes de subir os containers (o arquivo é montado como volume).
+
+### 3. Suba os containers
+
+```bash
+docker compose up -d
+```
+
+Isso inicia dois containers na mesma rede:
+
+| Container | Função |
+|---|---|
+| `rlmobtest-ollama` | Servidor Ollama (LLM local) |
+| `rlmobtest-app` | Ferramenta RLMobTest |
+
+### 4. Baixe o modelo LLM no Ollama
+
+Na primeira execução, o modelo precisa ser baixado dentro do container Ollama:
+
+```bash
+docker exec rlmobtest-ollama ollama pull gemma3:4b
+```
+
+> Isso só precisa ser feito uma vez. O modelo fica salvo no volume `ollama_data`.
+
+### 5. Execute os comandos
+
+```bash
+# Verificar ambiente
+docker exec rlmobtest-app rlmobtest check
+
+# Setup: compilar APKs + JaCoCo
+docker exec rlmobtest-app rlmobtest setup
+
+# Pipeline completo
+docker exec rlmobtest-app rlmobtest pipeline
+
+# Ou abrir um shell interativo
+docker exec -it rlmobtest-app bash
+```
+
+### Volumes montados
+
+| Volume no host | Dentro do container | Descrição |
+|---|---|---|
+| `./inputs/` | `/app/inputs/` | APKs, classfiles, source codes |
+| `./output/` | `/app/output/` | Resultados, relatórios, métricas |
+| `./rlmobtest/config/` | `/app/rlmobtest/config/` | `settings.json` |
+| `ollama_data` | `/root/.ollama` | Modelos Ollama (persistente) |
+
+Os resultados gerados ficam diretamente em `./output/` no seu host.
+
+### Parar e remover os containers
+
+```bash
+# Apenas parar
+docker compose stop
+
+# Parar e remover containers (mantém volumes/dados)
+docker compose down
+
+# Remover tudo incluindo os modelos Ollama baixados
+docker compose down -v
+```
+
+### Comunicação com o Ollama
+
+Os dois containers estão na mesma rede Docker (`rlmobtest-net`). O container da ferramenta acessa o Ollama pelo hostname do serviço:
+
+```
+http://ollama:11434
+```
+
+Isso é configurado automaticamente via variável de ambiente `OLLAMA_BASE_URL=http://ollama:11434` no `docker-compose.yml`.
+
+---
+
 ## Uso
 
 ### Comandos Disponíveis

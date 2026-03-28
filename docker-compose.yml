@@ -1,0 +1,35 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: rlmobtest-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    networks:
+      - rlmobtest-net
+
+  rlmobtest:
+    build: .
+    container_name: rlmobtest-app
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    volumes:
+      - ./inputs:/app/inputs
+      - ./output:/app/output
+      - ./rlmobtest/config:/app/rlmobtest/config
+    depends_on:
+      - ollama
+    networks:
+      - rlmobtest-net
+    stdin_open: true
+    tty: true
+    command: zsh
+
+volumes:
+  ollama_data:
+
+networks:
+  rlmobtest-net:
+    driver: bridge
