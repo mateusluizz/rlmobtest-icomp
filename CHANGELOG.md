@@ -5,6 +5,23 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.1.18] - 2026-03-31
+
+### Added
+- `entrypoint.sh`: script de inicialização que corrige permissões dos volumes montados (`inputs/`, `output/`, `config/`) e arquivos `gradlew` como root, depois dropa para o usuário `rlmob` via `gosu`
+- Usuário não-root `rlmob` no container com Oh My Zsh, zsh-autosuggestions e zsh-completions; acesso root via `su -` com senha configurada por `ROOT_PASSWORD` no `.env`
+- `asdf` v0.18.0 instalado em `/opt/asdf` (acessível a todos os usuários); `uv` instalado em `/usr/local/bin`
+- `platform-tools` (adb) instalado via `sdkmanager` durante o build da imagem
+- `docker-compose.yml`: `network_mode: host` no serviço `rlmobtest` para acesso ao ADB do host via `127.0.0.1:5037`; `ROOT_PASSWORD` passado como build arg
+- Flag `--date`/`-d` no comando `rlmobtest report` para gerar relatório de um dia específico no formato `YYYY-MM-DD` (mutuamente exclusiva com `--all-dates`)
+
+### Changed
+- Container `rlmobtest-app` agora inicia como usuário `rlmob` em vez de root
+- `OLLAMA_BASE_URL` alterado para `http://localhost:11434` (acesso via rede do host)
+- `openjdk-17-jdk-headless` instalado via apt durante o build para viabilizar o `sdkmanager`
+
+---
+
 ## [0.1.17] - 2026-03-28
 
 ### Added

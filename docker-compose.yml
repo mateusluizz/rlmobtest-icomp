@@ -5,24 +5,28 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     ports:
-      - "11434:11434"
+      - '11434:11434'
     restart: unless-stopped
     networks:
       - rlmobtest-net
 
   rlmobtest:
-    build: .
+    build:
+      context: .
+      args:
+        ROOT_PASSWORD: ${ROOT_PASSWORD:-rootpassword}
     container_name: rlmobtest-app
+    network_mode: host
     environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://localhost:11434
+      - ANDROID_ADB_SERVER_ADDRESS=127.0.0.1
+      - ANDROID_ADB_SERVER_PORT=5037
     volumes:
       - ./inputs:/app/inputs
       - ./output:/app/output
       - ./rlmobtest/config:/app/rlmobtest/config
     depends_on:
       - ollama
-    networks:
-      - rlmobtest-net
     stdin_open: true
     tty: true
     command: zsh

@@ -22,6 +22,10 @@ def report(
         bool,
         typer.Option("--all-dates", help="Include all dates (default: today only)"),
     ] = False,
+    date: Annotated[
+        str | None,
+        typer.Option("--date", "-d", help="Specific date to generate report for (YYYY-MM-DD)"),
+    ] = None,
 ):
     """
     Generate HTML report from existing output data (no transcription or training).
@@ -29,6 +33,7 @@ def report(
     Examples:
         rlmobtest report --all-dates -m original
         rlmobtest report --app com.blogspot.e_kanivets.moneytracker --all-dates
+        rlmobtest report --date 2026-03-28
     """
     from rlmobtest.constants.paths import CONFIG_JSON_PATH
     from rlmobtest.training.report import generate_report
@@ -60,14 +65,42 @@ def report(
         console.print("[yellow]No apps found in output directory.[/]")
         raise typer.Exit(code=1)
 
+    from datetime import datetime as _dt
+
+    if date and all_dates:
+        console.print("[red]--date and --all-dates are mutually exclusive.[/]")
+        raise typer.Exit(code=1)
+
+    specific_day: tuple[str, str, str] | None = None
+    if date:
+        try:
+            _parsed = _dt.strptime(date, "%Y-%m-%d")
+            specific_day = (
+                _parsed.strftime("%Y"),
+                _parsed.strftime("%m"),
+                _parsed.strftime("%d"),
+            )
+        except ValueError:
+            console.print(f"[red]Invalid date format '{date}'. Use YYYY-MM-DD.[/]")
+            raise typer.Exit(code=1)
+
     generated = 0
 
     for pkg in packages:
         if all_dates:
             days = find_all_days(pkg, mode.value, OUTPUT_BASE)
+        elif specific_day:
+            _tc = (
+                OUTPUT_BASE
+                / pkg
+                / mode.value
+                / specific_day[0]
+                / specific_day[1]
+                / specific_day[2]
+                / "test_cases"
+            )
+            days = [specific_day] if _tc.is_dir() and any(_tc.iterdir()) else []
         else:
-            from datetime import datetime as _dt
-
             _now = _dt.now()
             _today = (_now.strftime("%Y"), _now.strftime("%m"), _now.strftime("%d"))
             _today_tc = (
@@ -100,4 +133,4 @@ def report(
     if generated:
         console.print(f"\n[green]{generated} report(s) generated.[/]")
     else:
-        console.print("\n[yellow]No reports generated. Check --mode and --all-dates flags.[/]")
+        console.print("\n[yellow]No reports generated. Check --mode, --date, or --all-dates flags.[/]")

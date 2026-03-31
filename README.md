@@ -305,9 +305,7 @@ Esta é a forma mais simples de rodar o projeto em qualquer máquina sem instala
 
 - [Docker](https://docs.docker.com/get-docker/) (20.10+)
 - [Docker Compose](https://docs.docker.com/compose/install/) (v2+)
-- Dispositivo Android ou emulador **acessível via ADB na máquina host**
-
-> O ADB roda no **host**, não dentro do container. O container se comunica com o dispositivo via `host.docker.internal` ou IP da máquina host.
+- Dispositivo Android ou emulador conectado via USB no host
 
 ### 1. Clone o repositório
 
@@ -316,26 +314,48 @@ git clone https://github.com/mateusluizz/rlmobtest-icomp.git
 cd rlmobtest-icomp
 ```
 
-### 2. Configure o `settings.json`
+### 2. Configure as variáveis de ambiente
+
+Crie um arquivo `.env` na raiz do projeto (use `.env.example` como base):
+
+```bash
+cp .env.example .env
+```
+
+Defina a senha do root do container (usada para `su -` dentro do container):
+
+```env
+ROOT_PASSWORD=suasenha
+```
+
+### 3. Configure o `settings.json`
 
 Edite `rlmobtest/config/settings.json` com os dados do seu app antes de subir os containers (o arquivo é montado como volume).
 
-### 3. Suba os containers
+### 4. Inicie o servidor ADB no host
+
+O container usa `network_mode: host` e se conecta ao servidor ADB do host via `127.0.0.1:5037`. Antes de subir os containers, inicie o ADB com suporte a conexões de rede:
+
+```bash
+adb -a nodaemon server &
+```
+
+### 5. Suba os containers
 
 ```bash
 docker compose up -d
 ```
 
-Isso inicia dois containers na mesma rede:
+Isso inicia dois containers:
 
 | Container | Função |
 |---|---|
 | `rlmobtest-ollama` | Servidor Ollama (LLM local) |
-| `rlmobtest-app` | Ferramenta RLMobTest |
+| `rlmobtest-app` | Ferramenta RLMobTest (usuário `rlmob`) |
 
-### 4. Baixe o modelo LLM no Ollama
+### 6. Baixe o modelo LLM no Ollama
 
-Na primeira execução, o modelo precisa ser baixado dentro do container Ollama:
+Na primeira execução, o modelo precisa ser baixado:
 
 ```bash
 docker exec rlmobtest-ollama ollama pull gemma3:4b
@@ -343,7 +363,7 @@ docker exec rlmobtest-ollama ollama pull gemma3:4b
 
 > Isso só precisa ser feito uma vez. O modelo fica salvo no volume `ollama_data`.
 
-### 5. Execute os comandos
+### 7. Execute os comandos
 
 ```bash
 # Verificar ambiente
@@ -355,8 +375,11 @@ docker exec rlmobtest-app rlmobtest setup
 # Pipeline completo
 docker exec rlmobtest-app rlmobtest pipeline
 
-# Ou abrir um shell interativo
-docker exec -it rlmobtest-app bash
+# Abrir shell interativo (entra como usuário rlmob)
+docker exec -it rlmobtest-app zsh
+
+# Virar root dentro do container
+su -
 ```
 
 ### Volumes montados
@@ -385,13 +408,13 @@ docker compose down -v
 
 ### Comunicação com o Ollama
 
-Os dois containers estão na mesma rede Docker (`rlmobtest-net`). O container da ferramenta acessa o Ollama pelo hostname do serviço:
+O container `rlmobtest-app` usa `network_mode: host`, acessando o Ollama via:
 
 ```
-http://ollama:11434
+http://localhost:11434
 ```
 
-Isso é configurado automaticamente via variável de ambiente `OLLAMA_BASE_URL=http://ollama:11434` no `docker-compose.yml`.
+Isso é configurado automaticamente via variável de ambiente `OLLAMA_BASE_URL=http://localhost:11434` no `docker-compose.yml`.
 
 ---
 
