@@ -68,6 +68,8 @@ def find_classfiles(package_name: str) -> Path | None:
 def merge_ec_files(coverage_dir: Path, jacococli: Path) -> Path | None:
     """Merge multiple .ec files into a single file.
 
+    Uses a Java @argfile to avoid ARG_MAX limits when there are many .ec files.
+
     Args:
         coverage_dir: Directory containing .ec files.
         jacococli: Path to jacococli.jar.
@@ -75,7 +77,7 @@ def merge_ec_files(coverage_dir: Path, jacococli: Path) -> Path | None:
     Returns:
         Path to the (merged) .ec file, or None if no .ec files found.
     """
-    ec_files = sorted(coverage_dir.glob("*.ec"))
+    ec_files = sorted(f for f in coverage_dir.glob("*.ec") if f.name != "merged.ec")
     if not ec_files:
         return None
 
@@ -83,22 +85,28 @@ def merge_ec_files(coverage_dir: Path, jacococli: Path) -> Path | None:
         return ec_files[0]
 
     merged = coverage_dir / "merged.ec"
-    cmd = [
-        "java",
-        "-jar",
-        str(jacococli),
-        "merge",
-        *[str(f) for f in ec_files],
-        "--destfile",
-        str(merged),
-    ]
+
+    # Write paths to an @argfile to avoid ARG_MAX limits with many .ec files
+    argfile = coverage_dir / ".ec_args"
+    argfile.write_text("\n".join(str(f) for f in ec_files))
     try:
+        cmd = [
+            "java",
+            "-jar",
+            str(jacococli),
+            "merge",
+            f"@{argfile}",
+            "--destfile",
+            str(merged),
+        ]
         subprocess.run(cmd, check=True, capture_output=True, text=True)
         console.print(f"  [dim]Merged {len(ec_files)} .ec files[/]")
         return merged
     except subprocess.CalledProcessError as e:
         logger.warning("Failed to merge .ec files: %s", e.stderr)
         return ec_files[0]
+    finally:
+        argfile.unlink(missing_ok=True)
 
 
 def generate_csv_report(

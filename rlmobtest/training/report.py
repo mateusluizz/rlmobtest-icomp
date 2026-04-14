@@ -203,11 +203,29 @@ def _collect_jacoco_coverage(
     source_code: str | None = None,
 ) -> dict:
     """Try to process JaCoCo .ec files and return coverage metrics."""
-    from rlmobtest.utils.jacoco import process_coverage
+    from rlmobtest.utils.jacoco import parse_coverage_csv, process_coverage
 
     for rp in run_paths:
         cov_dir = rp / "coverage"
-        if cov_dir.exists() and any(cov_dir.glob("*.ec")):
+        if not cov_dir.exists():
+            continue
+
+        jacoco_html = cov_dir / "jacoco_html" / "index.html"
+
+        # Fast path: CSV already generated during training — parse it directly
+        existing_csv = cov_dir / "coverage_report.csv"
+        if existing_csv.exists():
+            metrics = parse_coverage_csv(existing_csv)
+            if metrics:
+                return {
+                    "jacoco_line_coverage_pct": metrics["line_pct"],
+                    "jacoco_branch_coverage_pct": metrics["branch_pct"],
+                    "jacoco_method_coverage_pct": metrics["method_pct"],
+                    "jacoco_html_path": str(jacoco_html) if jacoco_html.exists() else None,
+                }
+
+        # Slow path: regenerate from .ec files if no CSV yet
+        if any(cov_dir.glob("*.ec")):
             metrics = process_coverage(
                 cov_dir,
                 package_name,
@@ -215,13 +233,13 @@ def _collect_jacoco_coverage(
                 source_code=source_code,
             )
             if metrics:
-                jacoco_html = cov_dir / "jacoco_html" / "index.html"
                 return {
                     "jacoco_line_coverage_pct": metrics["line_pct"],
                     "jacoco_branch_coverage_pct": metrics["branch_pct"],
                     "jacoco_method_coverage_pct": metrics["method_pct"],
                     "jacoco_html_path": str(jacoco_html) if jacoco_html.exists() else None,
                 }
+
     return {
         "jacoco_line_coverage_pct": None,
         "jacoco_branch_coverage_pct": None,
