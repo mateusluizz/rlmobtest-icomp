@@ -156,9 +156,15 @@ def find_run_paths(package_name: str, all_dates: bool = False) -> list[Path]:
             if not agent_dir.is_dir():
                 continue
             today_path = agent_dir / year / month / day
-            tc_dir = today_path / "test_cases"
-            if tc_dir.is_dir() and any(tc_dir.glob("*.txt")):
-                run_paths.add(today_path)
+            if not today_path.exists():
+                continue
+            # Iterate over UUID subdirs within the day directory
+            for run_dir in today_path.iterdir():
+                if not run_dir.is_dir():
+                    continue
+                tc_dir = run_dir / "test_cases"
+                if tc_dir.is_dir() and any(tc_dir.glob("*.txt")):
+                    run_paths.add(run_dir)
 
     return sorted(run_paths)
 

@@ -1,12 +1,13 @@
 [
   {
-    "apk_name": "moneytracker.apk",
-    "package_name": "com.blogspot.e_kanivets.moneytracker",
-    "source_code": "open_money_tracker-dev.zip",
+    "apk_name": "fitotrack.apk",
+    "package_name": "de.tadris.fitness.debug",
+    "source_code": "de.tadris.fitness_1550_src.tar.gz",
     "is_coverage": true,
     "is_req": false,
-    "time_exploration": 7200,
-    "time_guided": 7200,
-    "episodes": 20
+    "time_exploration": 3600,
+    "time_guided": 3600,
+    "episodes": 20,
+    "runs": 4
   }
 ]

@@ -65,6 +65,20 @@ def find_classfiles(package_name: str) -> Path | None:
     return classfiles_dir if has_content else None
 
 
+_JACOCO_MAGIC = b"\x01\xc0\xc0"
+
+
+def _is_valid_ec(path: Path) -> bool:
+    """Check if a .ec file has a valid JaCoCo magic header."""
+    try:
+        if path.stat().st_size < 5:
+            return False
+        with path.open("rb") as f:
+            return f.read(3) == _JACOCO_MAGIC
+    except Exception:
+        return False
+
+
 def merge_ec_files(coverage_dir: Path, jacococli: Path) -> Path | None:
     """Merge multiple .ec files into a single file.
 
@@ -75,9 +89,13 @@ def merge_ec_files(coverage_dir: Path, jacococli: Path) -> Path | None:
         jacococli: Path to jacococli.jar.
 
     Returns:
-        Path to the (merged) .ec file, or None if no .ec files found.
+        Path to the (merged) .ec file, or None if no valid .ec files found.
     """
-    ec_files = sorted(f for f in coverage_dir.glob("*.ec") if f.name != "merged.ec")
+    all_candidates = sorted(f for f in coverage_dir.glob("*.ec") if f.name != "merged.ec")
+    ec_files = [f for f in all_candidates if _is_valid_ec(f)]
+    invalid = len(all_candidates) - len(ec_files)
+    if invalid:
+        logger.debug("Skipped %d invalid/empty .ec file(s) in %s", invalid, coverage_dir)
     if not ec_files:
         return None
 

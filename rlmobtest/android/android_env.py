@@ -1589,6 +1589,8 @@ class AndroidEnv:
                 stdout=FNULL,
                 stderr=FNULL,
             )
+            # Wait for the app to finish writing the .ec file before pulling
+            time.sleep(0.5)
             # Pull from app-internal storage via run-as (works on all Android versions)
             call(
                 f"adb exec-out run-as {self.app_package} cat files/coverage.ec > {_TMP_COVERAGE}",
@@ -1602,11 +1604,14 @@ class AndroidEnv:
             self.copy_coverage()
 
     def copy_coverage(self):
-        """Copy coverage file with timestamp."""
+        """Copy coverage file with timestamp (skips empty/invalid files)."""
         if self.coverage_enabled:
             timestr = time.strftime("%Y%m%d-%H%M%S")
             try:
-                shutil.copy(_TMP_COVERAGE, f"{self.coverage_path}/coverage_{timestr}.ec")
+                if _TMP_COVERAGE.exists() and _TMP_COVERAGE.stat().st_size >= 5:
+                    with _TMP_COVERAGE.open("rb") as f:
+                        if f.read(3) == b"\x01\xc0\xc0":
+                            shutil.copy(_TMP_COVERAGE, f"{self.coverage_path}/coverage_{timestr}.ec")
             except Exception:
                 print("Failed Coverage")
 
