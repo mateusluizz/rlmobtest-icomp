@@ -5,6 +5,20 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato e baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.1.19] - 2026-04-16
+
+### Fixed
+- `settings.json`: corrige `package_name` de `de.tadris.fitness` para `de.tadris.fitness.debug` (APK debug gerado pelo build JaCoCo)
+- `android_env.py`: adicionado `time.sleep(0.5)` entre o broadcast `DUMP_COVERAGE` e o pull do `.ec` — elimina race condition onde o arquivo era lido antes do app terminar de escrever; `copy_coverage()` agora valida magic bytes JaCoCo (`\x01\xc0\xc0`) antes de salvar o arquivo
+- `jacoco.py`: `merge_ec_files()` valida magic bytes JaCoCo em todos os `.ec` antes de processar — previne `Invalid execution data file` causado por arquivos vazios ou corrompidos
+- `generate_requirements.py`: `find_run_paths()` corrigido para estrutura de diretórios com UUID — o branch "hoje" agora itera sobre subdiretórios UUID dentro do diretório do dia (`{agent}/{year}/{month}/{day}/{uuid}/`)
+
+### Added
+- `pipeline.py`: bloco `try/finally` em torno dos steps 1–4 de cada app exibe tabela de UUIDs gerados ao final da execução, mesmo em caso de erro ou interrupção (`Ctrl+C`)
+- `.env.example`: arquivo de exemplo com variáveis de ambiente disponíveis (`ROOT_PASSWORD`, etc.)
+
+---
+
 ## [0.1.18] - 2026-03-31
 
 ### Added
@@ -295,7 +309,9 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
-[Unreleased]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.15...HEAD
+[Unreleased]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.19...HEAD
+[0.1.19]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.18...v0.1.19
+[0.1.18]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.17...v0.1.18
 [0.1.15]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/seu-usuario/rlmobtest-icomp/compare/v0.1.12...v0.1.13
